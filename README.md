@@ -1,6 +1,6 @@
 # AI Creative Studio
 
-> A production-ready multi-agent system for generating complete social media campaigns using Google's Agent Development Kit (ADK), Agent-to-Agent (A2A) protocol, and Gemini 2.5 Flash.
+> A distributed multi-agent orchestration system using A2A protocol, Vertex AI Agent Engine, and Cloud Run - demonstrating agent-to-agent communication with remote specialist agents for social media campaign generation.
 
 ## 📋 Table of Contents
 
@@ -17,15 +17,16 @@
 
 ## Overview
 
-AI Creative Studio is a **flexible multi-agent orchestration system** that creates complete social media campaigns. It uses an intelligent orchestrator (Creative Director) that coordinates 5 specialist agents to handle everything from market research to project planning.
+AI Creative Studio demonstrates **distributed multi-agent orchestration** for creating complete social media campaigns. It showcases the A2A protocol with an intelligent orchestrator (Creative Director) deployed on Vertex AI Agent Engine that coordinates 5 specialist agents running on Cloud Run to handle everything from market research to project planning with Notion integration.
 
 ### Key Features
 
+- 🌐 **Distributed Multi-Agent System**: Orchestrator on Vertex AI Agent Engine coordinates 5 remote specialist agents on Cloud Run
+- 🔄 **A2A Protocol**: Standardized agent-to-agent communication over HTTPS
 - 🎯 **Intelligent Orchestration**: Flexible routing - calls 1 agent for simple tasks, all 5 for complete campaigns
-- 🌐 **A2A Protocol**: Distributed, network-addressable agents with standardized communication
 - 📊 **Planning-First Approach**: Orchestrator creates execution plan before delegating
+- 📝 **Notion MCP Integration**: Project Manager creates tasks directly in Notion via Model Context Protocol
 - 🔍 **Built-in Observability**: Comprehensive logging and delegation tracking via plugins
-- ☁️ **Cloud-Native**: Deploy to Google Cloud Run (agents) and Vertex AI Agent Engine (orchestrator)
 - 🔧 **AgentTool Pattern**: Wraps remote agents as callable tools for flexible delegation
 
 ### What It Does
@@ -41,6 +42,7 @@ AI Creative Studio is a **flexible multi-agent orchestration system** that creat
 - AI image generation prompts for each post
 - Quality review and feedback
 - Project timeline and deliverables
+- Notion tasks created for project tracking (optional)
 
 ---
 
@@ -68,7 +70,7 @@ graph TB
 
     subgraph "External Tools"
         GS[Google Search]
-        MCP[MCP Tools<br/>Optional]
+        NOTION[Notion API<br/>via MCP]
     end
 
     USER -->|Campaign Brief| CD
@@ -79,6 +81,7 @@ graph TB
     CD -->|A2A Protocol| PM
 
     BS -->|Uses| GS
+    PM -->|Uses| NOTION
 
     CD -->|Complete Campaign| USER
 
@@ -402,9 +405,29 @@ User: "Create complete campaign with posts and timeline"
 
 **Type**: `LlmAgent`
 
-**Tools**: None (pure LLM)
+**Tools**: Notion MCP (Model Context Protocol)
 
-**Responsibility**: Create project timelines, tasks, and deliverables
+**Responsibility**: Create project timelines, tasks, and deliverables with Notion integration
+
+**MCP Integration**:
+- Connects to Notion API via MCP server
+- Creates tasks directly in Notion database
+- Available operations:
+  - `API-post-page`: Create new pages/tasks
+  - `API-patch-page`: Update existing pages
+  - `API-post-search`: Search pages
+  - `API-post-database-query`: Query database
+  - `API-retrieve-a-database`: Get database details
+
+**Notion Database Properties**:
+- Task name (title)
+- Status (Not started, In progress, Done)
+- Priority (High, Medium, Low)
+- Due date
+- Description
+- Assignee
+- Task type
+- Effort level
 
 **Input**: Receives complete campaign details from conversation history
 
@@ -417,13 +440,13 @@ User: "Create complete campaign with posts and timeline"
 [Major checkpoints]
 
 **Tasks & Deliverables:**
-[Detailed task list]
+[Detailed task list with Notion links]
 
 **Team Responsibilities:**
 [Who does what]
 ```
 
-**Deployment**: Cloud Run with A2A server
+**Deployment**: Cloud Run with A2A server and Notion MCP integration
 
 ---
 
@@ -483,6 +506,20 @@ graph LR
 - **Python 3.11+**
 - **Google API Key** from [AI Studio](https://aistudio.google.com/app/apikey)
 - **gcloud CLI** installed and configured
+- **Notion Account** (optional, for Project Manager integration)
+  - Create a Notion integration at [Notion Developers](https://www.notion.so/my-integrations)
+  - Create a database in Notion with the following properties:
+    - Task name (Title)
+    - Status (Status)
+    - Priority (Select)
+    - Due date (Date)
+    - Description (Rich text)
+    - Summary (Rich text)
+    - Assignee (People)
+    - Task type (Multi-select)
+    - Effort level (Select)
+  - Share the database with your integration
+  - Copy the Integration Token and Database ID
 
 ### 1. Clone and Install
 
@@ -515,6 +552,10 @@ REGION="us-central1"
 
 # Gemini API
 GOOGLE_API_KEY="your-gemini-api-key"
+
+# Notion Integration (for Project Manager)
+NOTION_API_TOKEN="your-notion-integration-token"
+NOTION_DATABASE_ID="your-notion-database-id"
 
 # Agent URLs (will be filled after deployment)
 STRATEGIST_AGENT_URL=""
@@ -682,7 +723,10 @@ cd agents/deploy
 - Containerized with A2A server
 - Auto-scaling (0-100 instances)
 - Public HTTPS endpoints
-- Environment: GOOGLE_API_KEY
+- Environment variables:
+  - `GOOGLE_API_KEY` (all agents)
+  - `NOTION_API_TOKEN` (Project Manager only)
+  - `NOTION_DATABASE_ID` (Project Manager only)
 
 **Creative Director** → Vertex AI Agent Engine:
 - Managed agent runtime
@@ -1015,38 +1059,71 @@ class CustomMetricsPlugin(BasePlugin):
 
 ### MCP Integration
 
-Integrate external tools via Model Context Protocol:
+The Project Manager agent integrates with Notion via Model Context Protocol (MCP):
 
 ```python
-# Example: Add Notion integration
-from mcp_notion import notion_tool
+# agents/project_manager/agent.py
+from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
+from mcp import StdioServerParameters
 
+# Configure Notion MCP server
+notion_params = StdioServerParameters(
+    command="npx",
+    args=["-y", "@modelcontextprotocol/server-notion"],
+    env={
+        "NOTION_API_KEY": os.getenv("NOTION_API_TOKEN"),
+    }
+)
+
+# Create MCP toolset
+notion_tools = McpToolset(
+    connection_params=StdioConnectionParams(server_params=notion_params)
+)
+
+# Add to agent
 agent = LlmAgent(
-    tools=[google_search, notion_tool]
+    name="project_manager",
+    model="gemini-2.5-flash",
+    tools=[notion_tools],
+    instruction=get_system_instruction(database_id=os.getenv("NOTION_DATABASE_ID"))
 )
 ```
+
+**MCP Server**: Uses the official `@modelcontextprotocol/server-notion` package
+
+**Environment Variables Required**:
+- `NOTION_API_TOKEN`: Your Notion integration token
+- `NOTION_DATABASE_ID`: The database ID where tasks will be created
+
+**Available Operations**:
+- Create tasks in Notion database
+- Update task status and properties
+- Search and query existing tasks
+- Retrieve database schema
 
 ---
 
 ## Project Status
 
-**Current Version**: Production-ready multi-agent orchestration
+**Current Version**: Distributed multi-agent orchestration demonstration
 
-**Working**:
-- ✅ All 5 specialist agents
+**Implemented Features**:
+- ✅ All 5 specialist agents with A2A protocol
 - ✅ Flexible orchestration (1 or all agents)
-- ✅ Planning-first execution
-- ✅ Cloud Run deployment
-- ✅ Agent Engine deployment
-- ✅ A2A protocol communication
-- ✅ Observability plugins
+- ✅ Planning-first execution pattern
+- ✅ Cloud Run deployment for specialist agents
+- ✅ Vertex AI Agent Engine deployment for orchestrator
+- ✅ Remote agent-to-agent communication via A2A
+- ✅ Notion MCP integration for Project Manager
+- ✅ Observability plugins and logging
 
-**Tested**:
-- ✅ Complete campaign generation
-- ✅ Sequential agent execution
-- ✅ Context passing between agents
+**Tested Scenarios**:
+- ✅ Complete campaign generation (all 5 agents)
+- ✅ Single agent delegation
+- ✅ Sequential agent execution with context passing
 - ✅ Error handling and retries
-- ✅ Remote A2A communication
+- ✅ Remote A2A communication over HTTPS
+- ✅ Notion task creation via MCP
 
 ---
 
