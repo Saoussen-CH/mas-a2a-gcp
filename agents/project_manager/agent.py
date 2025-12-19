@@ -39,19 +39,18 @@ You have access to Notion API tools via MCP:
 - API-retrieve-a-database: Get database details
 
 **IMPORTANT: Creating Pages in Notion Database**
-The Notion database ID is available as an environment variable. To create a page in the database, use API-post-page with this structure:
+The Notion database ID is available as an environment variable. To create a page in the database, use API-post-page to create a simple page with properties only (no content blocks).
+
+**SIMPLIFIED APPROACH**: Create pages with properties only - the detailed timeline is already provided in your text output above.
 
 **Database Properties Available:**
-- "Task name": title (required - the main title)
-- "Status": status (use values like "Not started", "In progress", "Done")
-- "Priority": select (use values like "High", "Medium", "Low")
-- "Due date": date (format: "2025-12-31")
-- "Description": rich_text
-- "Summary": rich_text
-- "Assignee": people
-- "Task type": multi_select
-- "Effort level": select
+- "Task name": title (required - use campaign name + "Project Timeline")
+- "Status": status (use "In progress")
+- "Priority": select (use "High")
+- "Due date": date (use campaign launch date)
+- "Summary": rich_text (put brief summary here)
 
+**Example API call (properties only, NO children parameter)**:
 ```
 API-post-page with parameters:
 {{
@@ -64,7 +63,7 @@ API-post-page with parameters:
       "title": [
         {{
           "text": {{
-            "content": "EcoBrew Coffee Launch - Project Timeline"
+            "content": "[Campaign Name] - Project Timeline"
           }}
         }}
       ]
@@ -83,89 +82,22 @@ API-post-page with parameters:
       "date": {{
         "start": "2026-01-02"
       }}
+    }},
+    "Summary": {{
+      "rich_text": [
+        {{
+          "type": "text",
+          "text": {{
+            "content": "Campaign timeline: [X weeks], Budget: $[amount], Deliverables: [list]"
+          }}
+        }}
+      ]
     }}
-  }},
-  "children": [
-    {{
-      "object": "block",
-      "type": "heading_2",
-      "heading_2": {{
-        "rich_text": [
-          {{
-            "type": "text",
-            "text": {{
-              "content": "Project Timeline"
-            }}
-          }}
-        ]
-      }}
-    }},
-    {{
-      "object": "block",
-      "type": "paragraph",
-      "paragraph": {{
-        "rich_text": [
-          {{
-            "type": "text",
-            "text": {{
-              "content": "Phase 1: Strategy (Dec 19-20, 2025)"
-            }}
-          }}
-        ]
-      }}
-    }},
-    {{
-      "object": "block",
-      "type": "paragraph",
-      "paragraph": {{
-        "rich_text": [
-          {{
-            "type": "text",
-            "text": {{
-              "content": "Phase 2: Creation (Dec 23-27, 2025)"
-            }}
-          }}
-        ]
-      }}
-    }},
-    {{
-      "object": "block",
-      "type": "heading_2",
-      "heading_2": {{
-        "rich_text": [
-          {{
-            "type": "text",
-            "text": {{
-              "content": "Budget Breakdown"
-            }}
-          }}
-        ]
-      }}
-    }},
-    {{
-      "object": "block",
-      "type": "paragraph",
-      "paragraph": {{
-        "rich_text": [
-          {{
-            "type": "text",
-            "text": {{
-              "content": "Total: $3,000"
-            }}
-          }}
-        ]
-      }}
-    }}
-  ]
+  }}
 }}
 ```
 
-**CRITICAL**:
-- The "children" parameter MUST be an array of objects (JSON objects), NOT an array of strings
-- Each block in children must have: "object": "block", "type": "block_type", and the type-specific content
-- Use rich_text arrays for text content, not plain strings
-- **IMPORTANT**: Blocks CANNOT be nested. Do NOT add "children" to individual blocks. All blocks must be in a flat array at the top level
-- Keep the structure simple with headings and paragraphs only
+**CRITICAL**: Do NOT include a "children" parameter. Create the page with properties only. The detailed timeline is in the text output above, which is the primary deliverable.
 
 When given a campaign brief and timeline:
 1. Break down the campaign into phases (Strategy, Creation, Review, Launch)
