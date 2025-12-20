@@ -506,6 +506,7 @@ graph LR
 - **Python 3.11+**
 - **Google API Key** from [AI Studio](https://aistudio.google.com/app/apikey)
 - **gcloud CLI** installed and configured
+- **Node.js and npm** (for Notion MCP server via npx)
 - **Notion Account** (optional, for Project Manager integration)
   - Create a Notion integration at [Notion Developers](https://www.notion.so/my-integrations)
   - Create a database in Notion with the following properties:
@@ -898,17 +899,21 @@ Then open `http://localhost:8000` to interact with the agent through a web inter
 
 ### Core Technologies
 
-- **[Google ADK](https://google.github.io/adk-docs/)**: Agent Development Kit for building production agents
+- **[Google ADK](https://google.github.io/adk-docs/)**: Agent Development Kit for building distributed agents
 - **[Gemini 2.5 Flash](https://ai.google.dev/gemini-api)**: Fast, efficient multimodal LLM
 - **[A2A Protocol](https://github.com/google/A2A)**: Agent-to-Agent communication standard
-- **[Vertex AI Agent Engine](https://cloud.google.com/vertex-ai/docs/agent-engine)**: Managed agent runtime
-- **[Cloud Run](https://cloud.google.com/run)**: Serverless container platform
+- **[Vertex AI Agent Engine](https://cloud.google.com/vertex-ai/docs/agent-engine)**: Managed agent runtime for orchestrator
+- **[Cloud Run](https://cloud.google.com/run)**: Serverless container platform for specialist agents
+- **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)**: Standard protocol for tool integration
+- **[Notion API](https://developers.notion.com/)**: Task management and database integration
 
 ### Key Patterns
 
+- **Distributed Multi-Agent Architecture**: Orchestrator and specialist agents deployed separately, communicating via A2A
 - **AgentTool Pattern**: Wrapping remote agents as tools for flexible orchestration
 - **Planning-First**: Orchestrator creates plan before execution
 - **Sequential Execution**: Agents execute in order with context passing
+- **MCP Integration**: External tool integration via Model Context Protocol (Notion)
 - **Plugin-Based Observability**: Logging and tracking via ADK plugins
 
 ### Project Structure

@@ -38,66 +38,68 @@ You have access to Notion API tools via MCP:
 - API-post-database-query: Query the database
 - API-retrieve-a-database: Get database details
 
-**IMPORTANT: Creating Pages in Notion Database**
-The Notion database ID is available as an environment variable. To create a page in the database, use API-post-page to create a simple page with properties only (no content blocks).
+**IMPORTANT: Creating Project and Tasks in Notion**
 
-**SIMPLIFIED APPROACH**: Create pages with properties only - the detailed timeline is already provided in your text output above.
+You have access to create pages in BOTH the Projects and Tasks databases.
 
-**Database Properties Available:**
-- "Task name": title (required - use campaign name + "Project Timeline")
+**COMPLETE WORKFLOW:**
+1. First, provide the text timeline (required)
+2. Create a PROJECT page in the Projects database (database ID from environment)
+3. Extract the project page ID from the API response
+4. Create TASK pages in the Tasks database for each major task
+5. Link each task to the project using the "Project" relation property
+
+**PROJECTS DATABASE Properties:**
+- "Project name": title (required - campaign name)
 - "Status": status (use "In progress")
-- "Priority": select (use "High")
-- "Due date": date (use campaign launch date)
-- "Summary": rich_text (put brief summary here)
+- "Priority": select (use "High", "Medium", or "Low")
+- "Dates": date (start and end dates: {{"start": "2025-12-19", "end": "2026-01-02"}})
+- "Summary": rich_text (brief project summary)
 
-**Example API call (properties only, NO children parameter)**:
+**TASKS DATABASE ID: 2ceb1b31123181508894ddb3c597dc48**
+**TASKS DATABASE Properties:**
+- "Task name": title (required - task description)
+- "Status": status (use "Not started")
+- "Priority": select (use "High", "Medium", or "Low")
+- "Due": date (task deadline: {{"start": "2025-12-25"}})
+- "Project": relation (link to project: {{"relation": [{{"id": "project_page_id"}}]}})
+
+**EXAMPLE - Step 1: Create Project**
 ```
-API-post-page with parameters:
+API-post-page:
 {{
-  "parent": {{
-    "type": "database_id",
-    "database_id": "ACTUAL_DATABASE_ID_FROM_ENV"
-  }},
+  "parent": {{"type": "database_id", "database_id": "PROJECTS_DB_ID_FROM_ENV"}},
   "properties": {{
-    "Task name": {{
-      "title": [
-        {{
-          "text": {{
-            "content": "[Campaign Name] - Project Timeline"
-          }}
-        }}
-      ]
-    }},
-    "Status": {{
-      "status": {{
-        "name": "In progress"
-      }}
-    }},
-    "Priority": {{
-      "select": {{
-        "name": "High"
-      }}
-    }},
-    "Due date": {{
-      "date": {{
-        "start": "2026-01-02"
-      }}
-    }},
-    "Summary": {{
-      "rich_text": [
-        {{
-          "type": "text",
-          "text": {{
-            "content": "Campaign timeline: [X weeks], Budget: $[amount], Deliverables: [list]"
-          }}
-        }}
-      ]
-    }}
+    "Project name": {{"title": [{{"text": {{"content": "GreenBrew Campaign"}}}}]}},
+    "Status": {{"status": {{"name": "In progress"}}}},
+    "Priority": {{"select": {{"name": "High"}}}},
+    "Dates": {{"date": {{"start": "2025-12-19", "end": "2026-01-02"}}}},
+    "Summary": {{"rich_text": [{{"type": "text", "text": {{"content": "2-week campaign, $5000 budget, 3 posts + landing page"}}}}]}}
+  }}
+}}
+```
+Response will include: "id": "12345..." - **Save this project page ID**
+
+**EXAMPLE - Step 2: Create Tasks (repeat for each task)**
+```
+API-post-page:
+{{
+  "parent": {{"type": "database_id", "database_id": "2ceb1b31123181508894ddb3c597dc48"}},
+  "properties": {{
+    "Task name": {{"title": [{{"text": {{"content": "Draft Instagram Post 1"}}}}]}},
+    "Status": {{"status": {{"name": "Not started"}}}},
+    "Priority": {{"select": {{"name": "Medium"}}}},
+    "Due": {{"date": {{"start": "2025-12-23"}}}},
+    "Project": {{"relation": [{{"id": "PROJECT_PAGE_ID_FROM_STEP1"}}]}}
   }}
 }}
 ```
 
-**CRITICAL**: Do NOT include a "children" parameter. Create the page with properties only. The detailed timeline is in the text output above, which is the primary deliverable.
+**CRITICAL RULES:**
+- Do NOT include "children" parameter in any API call
+- Create 5-10 tasks for the main deliverables and milestones
+- Use the project page ID from Step 1 in each task's "Project" relation
+- The text timeline is still the primary deliverable - Notion is supplementary
 
 When given a campaign brief and timeline:
 1. Break down the campaign into phases (Strategy, Creation, Review, Launch)
@@ -109,8 +111,9 @@ When given a campaign brief and timeline:
 
 **Workflow**:
 1. **FIRST**: Provide comprehensive text output with the timeline (required - always do this)
-2. **THEN**: Attempt to create the project in Notion using API-post-page with the format shown above
-3. If Notion creation fails, that's okay - the text output from step 1 is the primary deliverable
+2. **THEN**: Create the project page in the Projects database and get the project page ID
+3. **THEN**: Create task pages in the Tasks database (5-10 main tasks), linking each to the project
+4. If Notion creation fails, that's okay - the text output from step 1 is the primary deliverable
 
 **IMPORTANT**: You MUST always return the text-based project timeline in your response, regardless of whether Notion creation succeeds or fails. The text output is the primary deliverable.
 
@@ -128,9 +131,12 @@ Format your text output as:
 [Key checkpoints with dates]
 
 **Notion Status:**
-[Result of attempting to create Notion page with page ID if successful, or error message if failed]
+[Report on creating project and tasks, e.g.:
+- "Project created: [Project Name] (ID: xxx)"
+- "Created X tasks linked to project"
+- Or error message if failed]
 
-REMEMBER: You must ALWAYS include the complete text timeline above (Project Timeline, Task List, Budget Breakdown, Milestones) in your response. Only after providing this text output should you attempt to create the Notion page. Both deliverables (text + Notion page) are expected when possible.
+REMEMBER: You must ALWAYS include the complete text timeline above (Project Timeline, Task List, Budget Breakdown, Milestones) in your response. Only after providing this text output should you attempt to create the Notion project and tasks. Both deliverables (text + Notion pages) are expected when possible.
 """
 
 def create_project_manager_agent():
