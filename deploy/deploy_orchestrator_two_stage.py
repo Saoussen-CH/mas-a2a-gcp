@@ -77,7 +77,7 @@ def deploy_two_stage(auto_deploy_specialists=False):
         print("=" * 70)
 
         # Import specialist deployment module
-        sys.path.insert(0, str(project_root / 'common'))
+        sys.path.insert(0, str(project_root / 'agents' / 'common'))
         from deploy_all_specialists import deploy_all_agents
         import env_utils
 
@@ -144,15 +144,16 @@ def deploy_two_stage(auto_deploy_specialists=False):
     print(f"\n⏳ STAGE 2: Deploying agent code to existing resource...")
     print(f"   (Setting environment variables for runtime)")
 
-    # Import the agent from agent.py
-    # The actual agent will be created on first use, reading env vars at runtime
+    # Import the app from agent.py
+    # The actual app (with agent + compaction config) will be created on first use,
+    # reading env vars at runtime
     sys.path.insert(0, str(project_root / 'agents'))
-    from creative_director.agent import root_agent
+    from creative_director.agent import root_agent  # Actually an App object now
 
-    # Wrap lazy agent in AdkApp
-    # The lazy wrapper will create the actual agent at Agent Engine runtime
+    # Wrap App in AdkApp for Agent Engine deployment
+    # root_agent is actually an App with compaction config, not just an Agent
     adk_app = agent_engines.AdkApp(
-        agent=root_agent,
+        app=root_agent,  # Pass as 'app' parameter since it's an App object
         enable_tracing=True,
     )
 

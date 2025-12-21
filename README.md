@@ -15,6 +15,14 @@
 
 ---
 
+## 🚀 Quick Links
+
+- **[Complete Deployment Guide](DEPLOYMENT_GUIDE.md)** - Comprehensive step-by-step deployment instructions
+- **[A2A Inspector Guide](tools/a2a-inspector/A2A_INSPECTOR_GUIDE.md)** - Testing individual agents with A2A Inspector
+- **[A2A Logging Guide](tools/a2a-inspector/A2A_LOGGING_GUIDE.md)** - Debugging and monitoring A2A interactions
+
+---
+
 ## Overview
 
 AI Creative Studio demonstrates **distributed multi-agent orchestration** for creating complete social media campaigns. It showcases the A2A protocol with an intelligent orchestrator (Creative Director) deployed on Vertex AI Agent Engine that coordinates 5 specialist agents running on Cloud Run to handle everything from market research to project planning with Notion integration.
@@ -25,6 +33,7 @@ AI Creative Studio demonstrates **distributed multi-agent orchestration** for cr
 - 🔄 **A2A Protocol**: Standardized agent-to-agent communication over HTTPS
 - 🎯 **Intelligent Orchestration**: Flexible routing - calls 1 agent for simple tasks, all 5 for complete campaigns
 - 📊 **Planning-First Approach**: Orchestrator creates execution plan before delegating
+- 🧠 **Smart Context Compaction**: Lazy summarization prevents token limit failures while preserving quality
 - 📝 **Notion MCP Integration**: Project Manager creates tasks directly in Notion via Model Context Protocol
 - 🔍 **Built-in Observability**: Comprehensive logging and delegation tracking via plugins
 - 🔧 **AgentTool Pattern**: Wraps remote agents as callable tools for flexible delegation
@@ -239,6 +248,10 @@ graph LR
 from google.adk.agents import Agent
 from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.tools.agent_tool import AgentTool
+from google.adk.apps import App
+from google.adk.apps.app import EventsCompactionConfig
+from google.adk.apps.llm_event_summarizer import LlmEventSummarizer
+from google.adk.models import Gemini
 
 # Create remote agents
 strategist_agent = RemoteA2aAgent(
@@ -250,12 +263,31 @@ strategist_agent = RemoteA2aAgent(
 # Wrap as AgentTool
 strategist_tool = AgentTool(agent=strategist_agent)
 
-# Create orchestrator with tools
-orchestrator = Agent(
+# Create orchestrator agent
+agent = Agent(
     name="creative_director",
     model="gemini-2.5-flash",
     tools=[strategist_tool, copywriter_tool, designer_tool, critic_tool, pm_tool],
-    instruction=PLANNING_FIRST_INSTRUCTION
+    instruction=PLANNING_FIRST_INSTRUCTION,
+    generate_content_config=GenerateContentConfig(
+        max_output_tokens=20000,  # Support full 5-agent workflows
+        temperature=0.2
+    )
+)
+
+# Configure lazy context compaction for scalability
+summarizer = LlmEventSummarizer(llm=Gemini(model_id="gemini-2.5-flash"))
+compaction_config = EventsCompactionConfig(
+    summarizer=summarizer,
+    compaction_interval=3,  # Summarize after every 3 agents
+    overlap_size=1          # Keep most recent agent's full output
+)
+
+# Wrap in App with compaction
+app = App(
+    name="creative_director",
+    root_agent=agent,
+    events_compaction_config=compaction_config
 )
 ```
 
@@ -267,6 +299,25 @@ The orchestrator uses a **planning-first** instruction pattern:
 2. **Create Plan BEFORE Delegating**: Outline complete sequence to user
 3. **Execute Sequentially**: Call each agent, wait for response, confirm, continue
 4. **Pass Context**: Each agent receives relevant output from previous agents
+
+**Context Compaction Strategy**:
+
+To prevent token limit failures in long workflows, the orchestrator uses **lazy context compaction**:
+
+- **When**: After every 3 agent completions (configurable)
+- **How**: Older agent outputs are summarized using Gemini Flash
+- **Quality**: Most recent agent's full output is preserved (overlap_size=1)
+
+For a 5-agent workflow:
+1. Agents 1-3 (Strategist → Copywriter → Designer): Full context preserved
+2. After Agent 3: Context compacted → Agents 1-2 summarized, Agent 3 kept full
+3. Agents 4-5 (Critic → PM): See full recent context + summarized earlier work
+
+**Benefits**:
+- ✅ Prevents token limit failures in multi-agent workflows
+- ✅ Preserves quality (full recent context always available)
+- ✅ Scales to 10+ agent workflows
+- ✅ Cost efficient (only summarizes when needed)
 
 **Simple Request** → Calls 1 agent:
 ```
@@ -403,31 +454,70 @@ User: "Create complete campaign with posts and timeline"
 
 **File**: `agents/project_manager/agent.py`
 
-**Type**: `LlmAgent`
+**Type**: `Agent` (using `Agent` class with MCP tools)
 
-**Tools**: Notion MCP (Model Context Protocol)
+**Tools**: Notion MCP (Model Context Protocol) via `@notionhq/notion-mcp-server`
 
 **Responsibility**: Create project timelines, tasks, and deliverables with Notion integration
 
 **MCP Integration**:
-- Connects to Notion API via MCP server
-- Creates tasks directly in Notion database
-- Available operations:
-  - `API-post-page`: Create new pages/tasks
-  - `API-patch-page`: Update existing pages
-  - `API-post-search`: Search pages
-  - `API-post-database-query`: Query database
-  - `API-retrieve-a-database`: Get database details
+- Connects to Notion API via MCP server: `@notionhq/notion-mcp-server`
+- Uses `McpToolset` with `StdioConnectionParams` to spawn MCP server as subprocess
+- Creates project and task pages in two separate Notion databases
 
-**Notion Database Properties**:
-- Task name (title)
-- Status (Not started, In progress, Done)
-- Priority (High, Medium, Low)
-- Due date
-- Description
-- Assignee
-- Task type
-- Effort level
+**MCP Tools Exposed** (via `@notionhq/notion-mcp-server`):
+- `API-retrieve-a-database`: Get database schema (properties, types, valid values) - **ALWAYS CALLED FIRST**
+- `API-post-database-query`: Query existing pages in databases
+- `API-post-search`: Search for existing pages across workspace
+- `API-post-page`: Create new pages in databases
+- `API-patch-page`: Update existing pages
+
+**Dynamic Schema Discovery**:
+
+The Project Manager uses **dynamic schema discovery** to adapt to ANY Notion database structure:
+
+1. **No Hardcoded Properties**: Agent never assumes property names exist
+2. **Query First**: Checks for existing projects/tasks before creating new ones
+3. **Schema Discovery**: Calls `API-retrieve-a-database` to learn the actual schema
+4. **Adapts to Changes**: If you rename or add properties, the agent automatically adapts
+
+**Workflow**:
+1. Agent queries existing data (finds what's already in Notion)
+2. Calls `API-retrieve-a-database` to discover the current database schema
+3. Extracts exact property names, types, and valid values from the API response
+4. Creates or updates pages using ONLY the discovered property names
+5. Links tasks to projects using relation properties from the schema
+
+**Notion Database Structure**:
+
+**TWO DATABASES REQUIRED** (but property names are flexible):
+
+1. **Projects Database** (ID from `NOTION_DATABASE_ID` environment variable)
+   - Must have a **title** property (name can be anything: "Project name", "Title", "Name", etc.)
+   - Must have a **status** property (for tracking progress)
+   - Must have a **date** property with start/end (for timeline)
+   - Optional: select properties for priority, rich_text for summary, etc.
+   - **The agent will discover your actual property names automatically**
+
+2. **Tasks Database** (hardcoded ID: `2ceb1b31123181508894ddb3c597dc48`)
+   - Must have a **title** property (for task description)
+   - Must have a **status** property (for task status)
+   - Must have a **date** property (for due dates)
+   - Must have a **relation** property linking to Projects database
+   - **The agent will discover your actual property names automatically**
+
+**Example**: If you name your properties "Nom du projet", "Statut", "Priorité", "Dates", and "Résumé", the agent will automatically use those names instead of the English defaults.
+
+**Environment Variables**:
+- `NOTION_API_KEY`: Notion integration token (passed as `NOTION_TOKEN` to MCP server)
+- `NOTION_DATABASE_ID`: Database ID for the **Projects** database (Tasks DB ID is hardcoded)
+
+**Workflow**:
+1. Agent generates text-based project timeline (primary deliverable)
+2. Creates project page in Projects database
+3. Extracts project page ID from API response
+4. Creates 5-10 task pages in Tasks database
+5. Links each task to project using the "Project" relation property
 
 **Input**: Receives complete campaign details from conversation history
 
@@ -509,18 +599,25 @@ graph LR
 - **Node.js and npm** (for Notion MCP server via npx)
 - **Notion Account** (optional, for Project Manager integration)
   - Create a Notion integration at [Notion Developers](https://www.notion.so/my-integrations)
-  - Create a database in Notion with the following properties:
-    - Task name (Title)
-    - Status (Status)
-    - Priority (Select)
-    - Due date (Date)
-    - Description (Rich text)
-    - Summary (Rich text)
-    - Assignee (People)
-    - Task type (Multi-select)
-    - Effort level (Select)
-  - Share the database with your integration
-  - Copy the Integration Token and Database ID
+  - Create **TWO databases** in Notion with these **required property types** (names can be anything):
+
+    **Projects Database:**
+    - One **Title** property (e.g., "Project name", "Name", "Nom", etc.)
+    - One **Status** property (e.g., "Status", "État", "Progress", etc.)
+    - One **Date** property with start & end enabled (e.g., "Dates", "Timeline", "Période", etc.)
+    - Optional: **Select** for priority, **Rich text** for summary, etc.
+
+    **Tasks Database:**
+    - One **Title** property (e.g., "Task name", "Task", "Tâche", etc.)
+    - One **Status** property (e.g., "Status", "État", etc.)
+    - One **Date** property (e.g., "Due", "Deadline", "Date limite", etc.)
+    - One **Relation** property linked to Projects database (e.g., "Project", "Projet", etc.)
+    - Optional: **Select** for priority, etc.
+
+  - **The agent will automatically discover your property names** - no need to match the examples exactly!
+  - Share **both databases** with your integration
+  - Copy the Integration Token and **Projects Database ID**
+  - Copy the **Tasks Database ID** and update it in `agents/project_manager/agent.py:59`
 
 ### 1. Clone and Install
 
@@ -554,9 +651,13 @@ REGION="us-central1"
 # Gemini API
 GOOGLE_API_KEY="your-gemini-api-key"
 
-# Notion Integration (for Project Manager)
-NOTION_API_TOKEN="your-notion-integration-token"
-NOTION_DATABASE_ID="your-notion-database-id"
+# Notion Integration (for Project Manager with Dynamic Schema Discovery)
+# The agent will automatically discover and adapt to your database property names
+# You need TWO databases:
+# 1. Projects Database (provide ID here)
+# 2. Tasks Database (hardcoded in agent.py:59 - update if different)
+NOTION_API_KEY="your-notion-integration-token"
+NOTION_DATABASE_ID="your-projects-database-id"
 
 # Agent URLs (will be filled after deployment)
 STRATEGIST_AGENT_URL=""
@@ -587,35 +688,36 @@ brand_strategist > **Audience Insights:**
 ...
 ```
 
-### 4. Deploy Specialist Agents to Cloud Run
+### 4. Deploy Complete System
 
 ```bash
-# Deploy all 5 specialist agents
+# Deploy all agents (specialists + orchestrator) with one command
 cd deploy
-python deploy_all_agents.py
+./deploy_complete_system.sh
 ```
 
 This will:
-1. Build Docker images for each agent
-2. Push to Google Container Registry
-3. Deploy to Cloud Run
-4. Output agent URLs
+1. Load environment variables (including Notion credentials)
+2. Deploy all 5 specialist agents to Cloud Run (in parallel)
+3. Collect agent URLs automatically
+4. Deploy Creative Director to Vertex AI Agent Engine
+5. Output resource name
 
-**Copy the URLs** and add them to your `.env`:
+**Or deploy specialists individually:**
 
 ```bash
-STRATEGIST_AGENT_URL="https://brand-strategist-agent-xxxxx-uc.a.run.app"
-COPYWRITER_AGENT_URL="https://copywriter-agent-xxxxx-uc.a.run.app"
-DESIGNER_AGENT_URL="https://designer-agent-xxxxx-uc.a.run.app"
-CRITIC_AGENT_URL="https://critic-agent-xxxxx-uc.a.run.app"
-PM_AGENT_URL="https://project-manager-agent-xxxxx-uc.a.run.app"
+# Deploy individual agent
+./deploy.sh project-manager
+
+# Deploy all specialists only
+python3 ../agents/common/deploy_all_specialists.py
 ```
 
-### 5. Deploy Creative Director to Agent Engine
+### 5. Alternative: Deploy Orchestrator Separately
 
 ```bash
-# Deploy orchestrator
-python deploy_orchestrator_two_stage.py
+# Deploy orchestrator only (after specialists are deployed)
+python3 deploy_orchestrator_two_stage.py --action deploy
 ```
 
 This will:
@@ -670,7 +772,7 @@ Total Events: 11+
 Deploy everything with a single command:
 
 ```bash
-cd agents/deploy
+cd deploy
 ./deploy_complete_system.sh
 ```
 
@@ -689,7 +791,7 @@ This script:
 #### Option 1: Python Script with Auto-Deploy
 
 ```bash
-cd agents/deploy
+cd deploy
 python3 deploy_orchestrator_two_stage.py --action deploy --auto-deploy-specialists
 ```
 
@@ -714,7 +816,7 @@ python3 deploy_orchestrator_two_stage.py --action deploy
 For testing or updating a single agent:
 
 ```bash
-cd agents/deploy
+cd deploy
 ./deploy.sh  # Then specify agent directory when prompted
 ```
 
@@ -726,8 +828,8 @@ cd agents/deploy
 - Public HTTPS endpoints
 - Environment variables:
   - `GOOGLE_API_KEY` (all agents)
-  - `NOTION_API_TOKEN` (Project Manager only)
-  - `NOTION_DATABASE_ID` (Project Manager only)
+  - `NOTION_API_KEY` (Project Manager only - for Notion MCP integration)
+  - `NOTION_DATABASE_ID` (Project Manager only - Projects database ID)
 
 **Creative Director** → Vertex AI Agent Engine:
 - Managed agent runtime
@@ -769,7 +871,7 @@ The system includes comprehensive logging for all Agent-to-Agent (A2A) interacti
 
 ```bash
 # Fetch recent A2A logs
-cd agents/deploy
+cd deploy
 ./fetch_orchestrator_logs.sh 1h
 
 # Analyze logs
@@ -781,7 +883,7 @@ gcloud logging tail \
   --project=devfestahlen
 ```
 
-**📖 Complete Guide:** [A2A_LOGGING_GUIDE.md](deploy/A2A_LOGGING_GUIDE.md)
+**📖 Complete Guide:** [A2A_LOGGING_GUIDE.md](tools/a2a-inspector/A2A_LOGGING_GUIDE.md)
 - How to access A2A logs
 - Log analysis and metrics
 - Debugging A2A issues
@@ -811,7 +913,7 @@ gcloud logging tail \
 
 ```bash
 # Setup inspector (one-time)
-cd agents/deploy
+cd deploy
 ./setup_inspector.sh
 
 # Start inspector
@@ -823,7 +925,7 @@ bash scripts/run.sh
 # Or Cloud Run agent with auth token
 ```
 
-**📖 See full guide:** [A2A_INSPECTOR_GUIDE.md](deploy/A2A_INSPECTOR_GUIDE.md)
+**📖 See full guide:** [A2A_INSPECTOR_GUIDE.md](tools/a2a-inspector/A2A_INSPECTOR_GUIDE.md)
 - How to test agents locally
 - How to test Cloud Run deployments
 - Troubleshooting common issues
@@ -913,6 +1015,7 @@ Then open `http://localhost:8000` to interact with the agent through a web inter
 - **AgentTool Pattern**: Wrapping remote agents as tools for flexible orchestration
 - **Planning-First**: Orchestrator creates plan before execution
 - **Sequential Execution**: Agents execute in order with context passing
+- **Lazy Context Compaction**: Smart summarization prevents token limits while preserving quality
 - **MCP Integration**: External tool integration via Model Context Protocol (Notion)
 - **Plugin-Based Observability**: Logging and tracking via ADK plugins
 
@@ -931,18 +1034,29 @@ ai-creative-studio/
 │   ├── copywriter/            # Social media copy agent
 │   ├── designer/              # Visual design agent
 │   ├── critic/                # Quality review agent
-│   └── project_manager/       # Timeline & planning agent
+│   ├── project_manager/       # Timeline & planning agent (with Notion MCP)
+│   └── common/
+│       └── deploy_all_specialists.py  # Deploy all specialists (used by orchestrator)
 ├── deploy/
-│   ├── deploy_all_agents.py           # Deploy all specialists
+│   ├── deploy.sh                      # Deploy individual agents
+│   ├── deploy_complete_system.sh      # One-command full deploy
 │   ├── deploy_orchestrator_two_stage.py  # Deploy orchestrator
-│   └── deploy_all_to_agent_engine.py  # One-command full deploy
-├── plugins/
-│   ├── agent_delegation_tracker.py  # Custom delegation tracking
-│   └── __init__.py
-├── test_orchestrator.py               # Test deployed system
-├── test_orchestrator_local_with_plugins.py  # Local testing with observability
+│   ├── setup_gcp.sh                   # Initial GCP setup
+│   ├── setup_all_specialists.sh       # Create service accounts
+│   ├── teardown_gcp.sh                # Clean up resources
+│   ├── allow_unauthenticated.sh       # Make services public
+│   ├── configure_agent_auth.sh        # Configure authentication
+│   ├── test_agents.sh                 # Test agents
+│   └── test_deployed_agents.py        # Comprehensive tests
+├── tools/
+│   └── a2a-inspector/         # A2A debugging and testing tools
+│       ├── setup_inspector.sh             # Setup A2A Inspector
+│       ├── A2A_INSPECTOR_GUIDE.md         # Inspector usage guide
+│       ├── A2A_LOGGING_GUIDE.md           # Logging guide
+│       └── README.md
 ├── requirements.txt
 ├── .env.example
+├── DEPLOYMENT_GUIDE.md
 └── README.md
 ```
 
@@ -952,16 +1066,47 @@ ai-creative-studio/
 
 ### Common Issues
 
-#### 1. Orchestrator Only Calls One Agent
+#### 1. Orchestrator Stops After 2-3 Agents (Token Limit)
 
-**Symptom**: Orchestrator stops after calling brand_strategist
+**Symptom**: Orchestrator stops after calling designer (agent 3), doesn't complete critic and project_manager
+
+**Root Cause**: The orchestrator hits the token output limit (default 8192) before completing all 5 agents. Each agent produces 1000-3000 token outputs, and the orchestrator presents full results.
+
+**Solution**: The orchestrator now uses **lazy context compaction** (implemented in `agents/creative_director/agent.py`):
+
+```python
+# Increased token limit
+max_output_tokens=20000  # From 8192
+
+# Lazy context compaction (summarizes after 3 agents)
+compaction_config = EventsCompactionConfig(
+    compaction_interval=3,  # Summarize after every 3 agents
+    overlap_size=1,         # Keep most recent agent's full output
+    summarizer=LlmEventSummarizer(llm=Gemini(model_id="gemini-2.5-flash"))
+)
+```
+
+**How it works**:
+- Agents 1-3: Full context preserved
+- After Agent 3: Older agents (1-2) are summarized, Agent 3 kept full
+- Agents 4-5: Receive full recent context + summarized earlier work
+
+**To verify fix**:
+```bash
+python deploy/test_deployed_agents.py --test orchestrator
+# Should see all 5 agents complete: strategist → copywriter → designer → critic → project_manager
+```
+
+#### 2. Orchestrator Only Calls One Agent
+
+**Symptom**: Orchestrator stops after calling brand_strategist only
 
 **Solution**: Ensure you're using the latest `agent.py` with:
 - ✅ `Agent` (not `LlmAgent`) with `AgentTool` wrappers
 - ✅ Planning-first instruction pattern
 - ✅ Step-by-step confirmation pattern
 
-#### 2. Agent URLs Not Found
+#### 3. Agent URLs Not Found
 
 **Symptom**: `RemoteA2aAgent` fails with "Cannot resolve agent card"
 
@@ -978,7 +1123,7 @@ cd deploy
 python deploy_orchestrator_two_stage.py
 ```
 
-#### 3. API Quota Exceeded (429 Error)
+#### 4. API Quota Exceeded (429 Error)
 
 **Symptom**: "You exceeded your current quota" error
 
@@ -987,7 +1132,7 @@ python deploy_orchestrator_two_stage.py
 - Upgrade to paid Gemini API tier
 - Add retry logic with exponential backoff (already in code)
 
-#### 4. Cloud Run Agent Not Accessible
+#### 5. Cloud Run Agent Not Accessible
 
 **Symptom**: "Connection refused" or "Service unavailable"
 
@@ -1003,7 +1148,7 @@ curl https://brand-strategist-agent-xxxxx-uc.a.run.app/.well-known/agent.json
 gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=brand-strategist-agent" --limit 50
 ```
 
-#### 5. Import Errors
+#### 6. Import Errors
 
 **Symptom**: `ModuleNotFoundError: No module named 'google.adk'`
 
@@ -1018,10 +1163,10 @@ python -c "import google.adk; print(google.adk.__version__)"
 
 ### Getting Help
 
-- **Documentation**: See `QUICK_START.md` for detailed setup
-- **Observability**: See `OBSERVABILITY_FINDINGS.md` for debugging patterns
+- **Documentation**: See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed setup
+- **A2A Debugging**: See [A2A Inspector Guide](tools/a2a-inspector/A2A_INSPECTOR_GUIDE.md) for debugging agents
+- **Logging**: See [A2A Logging Guide](tools/a2a-inspector/A2A_LOGGING_GUIDE.md) for log analysis
 - **Architecture**: See architecture diagrams in this README
-- **Issues**: Check `deploy/README.md` for deployment troubleshooting
 
 ### Debug Mode
 
@@ -1072,65 +1217,77 @@ from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
 from mcp import StdioServerParameters
 
 # Configure Notion MCP server
-notion_params = StdioServerParameters(
+# IMPORTANT: Notion MCP server expects NOTION_TOKEN, not NOTION_API_KEY
+mcp_env = {
+    "NOTION_TOKEN": os.getenv("NOTION_API_KEY"),  # Pass as NOTION_TOKEN
+    "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")
+}
+
+server_params = StdioServerParameters(
     command="npx",
-    args=["-y", "@modelcontextprotocol/server-notion"],
-    env={
-        "NOTION_API_KEY": os.getenv("NOTION_API_TOKEN"),
-    }
+    args=["-y", "@notionhq/notion-mcp-server"],  # Official Notion MCP server
+    env=mcp_env
 )
 
 # Create MCP toolset
-notion_tools = McpToolset(
-    connection_params=StdioConnectionParams(server_params=notion_params)
+notion_toolset = McpToolset(
+    connection_params=StdioConnectionParams(
+        server_params=server_params,
+        timeout=30.0  # Timeout for MCP server startup
+    )
 )
 
 # Add to agent
-agent = LlmAgent(
+agent = Agent(
     name="project_manager",
     model="gemini-2.5-flash",
-    tools=[notion_tools],
+    tools=[notion_toolset],
     instruction=get_system_instruction(database_id=os.getenv("NOTION_DATABASE_ID"))
 )
 ```
 
-**MCP Server**: Uses the official `@modelcontextprotocol/server-notion` package
+**MCP Server**: Uses the official `@notionhq/notion-mcp-server` package (not `@modelcontextprotocol`)
 
 **Environment Variables Required**:
-- `NOTION_API_TOKEN`: Your Notion integration token
-- `NOTION_DATABASE_ID`: The database ID where tasks will be created
+- `NOTION_API_KEY`: Your Notion integration token (passed as `NOTION_TOKEN` to MCP server)
+- `NOTION_DATABASE_ID`: The **Projects** database ID
+- **Tasks Database ID**: Hardcoded in `agent.py:59` (default: `2ceb1b31123181508894ddb3c597dc48`)
 
-**Available Operations**:
-- Create tasks in Notion database
-- Update task status and properties
-- Search and query existing tasks
-- Retrieve database schema
+**Dynamic Schema Discovery**:
+
+The Project Manager implements dynamic schema discovery to work with ANY Notion database structure:
+
+```python
+# System instruction emphasizes:
+# 1. NEVER assume property names - always call API-retrieve-a-database first
+# 2. Query existing data before creating new entries
+# 3. Use ONLY property names discovered from the API response
+# 4. Adapt to any schema changes automatically
+```
+
+**Tool Calling Best Practices**:
+
+The agent includes explicit instructions to prevent malformed function calls:
+- ✅ Call MCP tools directly by name: `API-post-page(...)`
+- ❌ Never wrap in print(): `print(API-post-page(...))`
+- ❌ Never use prefixes: `default_api.API-post-page(...)`
+
+**Available MCP Operations**:
+- `API-retrieve-a-database`: Get database schema (ALWAYS called first)
+- `API-post-database-query`: Query existing pages in databases
+- `API-post-search`: Search for pages across workspace
+- `API-post-page`: Create project/task pages in Notion databases
+- `API-patch-page`: Update existing page properties
+
+**Test the Integration**:
+```bash
+cd agents/project_manager
+python test_local_notion.py
+```
 
 ---
 
-## Project Status
 
-**Current Version**: Distributed multi-agent orchestration demonstration
-
-**Implemented Features**:
-- ✅ All 5 specialist agents with A2A protocol
-- ✅ Flexible orchestration (1 or all agents)
-- ✅ Planning-first execution pattern
-- ✅ Cloud Run deployment for specialist agents
-- ✅ Vertex AI Agent Engine deployment for orchestrator
-- ✅ Remote agent-to-agent communication via A2A
-- ✅ Notion MCP integration for Project Manager
-- ✅ Observability plugins and logging
-
-**Tested Scenarios**:
-- ✅ Complete campaign generation (all 5 agents)
-- ✅ Single agent delegation
-- ✅ Sequential agent execution with context passing
-- ✅ Error handling and retries
-- ✅ Remote A2A communication over HTTPS
-- ✅ Notion task creation via MCP
-
----
 
 ## License
 
@@ -1144,8 +1301,8 @@ Built with:
 - [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/)
 - [Agent-to-Agent Protocol](https://github.com/google/A2A)
 - [Google Gemini API](https://ai.google.dev/gemini-api)
-- Patterns from [AgentVerse Architect](https://codelabs.developers.google.com/agentverse-architect) and [InstaVibe](https://codelabs.developers.google.com/instavibe-adk-multi-agents) codelabs
 
 ---
 
 **Questions?** Check `QUICK_START.md` or review the architecture diagrams above.
+ 

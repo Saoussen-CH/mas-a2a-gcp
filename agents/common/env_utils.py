@@ -20,15 +20,23 @@ def load_env_file(env_path: Optional[Path] = None) -> Dict[str, str]:
         Dict with environment configuration
     """
     if env_path is None:
-        # Look for .env in project root (parent of agents/ directory)
-        env_path = Path(__file__).parent.parent / ".env"
+        # Look for .env in project root (two levels up from agents/common/)
+        # __file__ = .../agents/common/env_utils.py
+        # parent = .../agents/common
+        # parent.parent = .../agents
+        # parent.parent.parent = .../ (project root)
+        env_path = Path(__file__).parent.parent.parent / ".env"
 
     if env_path.exists():
         load_dotenv(env_path)
 
+    # Support both naming conventions: GCP_PROJECT_ID/PROJECT_ID and GCP_REGION/LOCATION
+    project_id = os.getenv("GCP_PROJECT_ID") or os.getenv("PROJECT_ID")
+    region = os.getenv("GCP_REGION") or os.getenv("LOCATION") or "us-central1"
+
     return {
-        "PROJECT_ID": os.getenv("GCP_PROJECT_ID"),
-        "REGION": os.getenv("GCP_REGION", "us-central1"),
+        "PROJECT_ID": project_id,
+        "REGION": region,
         "GOOGLE_API_KEY": os.getenv("GOOGLE_API_KEY"),
     }
 

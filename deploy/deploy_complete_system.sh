@@ -25,11 +25,12 @@ fi
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$SCRIPT_DIR/.."
 
 # Check for .env file
-if [ ! -f "$SCRIPT_DIR/../../.env" ] && [ ! -f "$SCRIPT_DIR/../.env" ]; then
+if [ ! -f "$PROJECT_ROOT/.env" ]; then
     echo -e "${YELLOW}Warning: No .env file found${NC}"
-    echo "Please create .env file with GCP_PROJECT_ID and GCP_REGION"
+    echo "Please create .env file with PROJECT_ID and LOCATION"
     echo ""
     echo "You can copy .env.example:"
     echo "  cp .env.example .env"
@@ -39,6 +40,21 @@ if [ ! -f "$SCRIPT_DIR/../../.env" ] && [ ! -f "$SCRIPT_DIR/../.env" ]; then
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         exit 1
     fi
+else
+    # Load environment variables from .env file
+    echo -e "${GREEN}Loading environment variables from .env...${NC}"
+    set -a
+    source <(grep -v '^#' "$PROJECT_ROOT/.env" | grep -v '^[[:space:]]*$' | sed 's/\r$//')
+    set +a
+    echo -e "${GREEN}Environment variables loaded${NC}"
+
+    # Display key configuration (without exposing sensitive data)
+    if [[ -n "$NOTION_API_KEY" ]] && [[ -n "$NOTION_DATABASE_ID" ]]; then
+        echo -e "${GREEN}✓ Notion credentials found - project-manager will have Notion integration${NC}"
+    else
+        echo -e "${YELLOW}⚠ Notion credentials not found - project-manager will work without Notion integration${NC}"
+    fi
+    echo ""
 fi
 
 # Run complete deployment
@@ -76,9 +92,10 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}Your AI Creative Studio is ready!${NC}"
     echo ""
     echo -e "${YELLOW}Next steps:${NC}"
-    echo "  1. Update your .env file with the AGENT_ENGINE_RESOURCE_NAME"
+    echo "  1. Configure authentication:"
+    echo "     cd deploy && ./allow_unauthenticated.sh"
     echo "  2. Test the system:"
-    echo "     python3 test_orchestrator.py"
+    echo "     ./test_agents.sh orchestrator"
     echo ""
 else
     echo ""

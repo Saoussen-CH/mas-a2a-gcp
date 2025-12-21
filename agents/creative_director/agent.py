@@ -506,7 +506,7 @@ def create_creative_director():
     from google.genai.types import GenerateContentConfig
 
     generation_config = GenerateContentConfig(
-        max_output_tokens=8192,  # Allow longer responses for multi-agent workflows
+        max_output_tokens=20000,  # Increased to support full 5-agent workflows with complete outputs
         temperature=0.2,  # Lower temperature for more consistent workflow execution
     )
 
@@ -518,19 +518,61 @@ def create_creative_director():
     agent = Agent(
         name="creative_director",
         model="gemini-2.5-flash",
-        description="Creative Director orchestrator with enhanced A2A logging via LoggingPlugin",
+        description="Creative Director orchestrator with lazy context compaction",
         instruction=system_instruction,
         tools=agent_tools,  # 🔧 AgentTools! LLM can call these as tools
         generate_content_config=generation_config,
     )
 
-    logger.info("✅ Agent created - A2A logging via ADK LoggingPlugin and Cloud Logging")
+    logger.info("✅ Agent created successfully")
 
-    return agent
+    # Configure context compaction for scalability
+    # Strategy: "Summarize only when necessary"
+    # - compaction_interval=3: Summarize after every 3 completed agents
+    # - overlap_size=1: Keep the most recent agent's full output
+    #
+    # For 5-agent workflow:
+    #   Agents 1-3: Full context preserved
+    #   After Agent 3: Context compacted (Agents 1-2 summarized, Agent 3 kept full)
+    #   Agents 4-5: See full recent context + summarized older context
+    #
+    # Benefits:
+    # - Prevents token limit failures in long workflows
+    # - Preserves quality for early agents (full context)
+    # - Scales to 10+ agent workflows
+    # - Cost efficient (only summarizes when needed)
+    from google.adk.apps.llm_event_summarizer import LlmEventSummarizer
+    from google.adk.models import Gemini
+    from google.adk.apps.app import EventsCompactionConfig
+    from google.adk.apps import App
+
+    # Use fast model for summarization
+    summarization_llm = Gemini(model_id="gemini-2.5-flash")
+    summarizer = LlmEventSummarizer(llm=summarization_llm)
+
+    # Create compaction config
+    compaction_config = EventsCompactionConfig(
+        summarizer=summarizer,
+        compaction_interval=3,  # Summarize after every 3 agents
+        overlap_size=1,  # Keep most recent agent's full output
+    )
+
+    # Wrap agent in App with compaction config
+    app = App(
+        name="creative_director",
+        root_agent=agent,
+        events_compaction_config=compaction_config,
+    )
+
+    logger.info("✅ App created with lazy context compaction (interval=3, overlap=1)")
+    logger.info("   Context will be summarized only when necessary to stay within token limits")
+
+    return app
 
 
 # Create root_agent for Agent Engine deployment
-# With AgentTools pattern, the agent is created at runtime with URLs from env vars
+# With AgentTools pattern, the app (with compaction) is created at runtime with URLs from env vars
+# Note: This returns an App object with compaction config, not just an Agent
 root_agent = create_creative_director()
 
 

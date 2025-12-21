@@ -17,8 +17,8 @@ NC='\033[0m' # No Color
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AGENTS_DIR="$SCRIPT_DIR/.."
-PROJECT_ROOT="$SCRIPT_DIR/../.."
+PROJECT_ROOT="$SCRIPT_DIR/.."
+AGENTS_DIR="$PROJECT_ROOT/agents"
 
 # Agent configuration mapping
 # Format: "agent_name|directory_name|service_name|service_account_name|display_name"
@@ -169,6 +169,19 @@ echo -e "${YELLOW}This may take several minutes...${NC}\n"
 
 cd "$AGENT_PATH"
 
+# Build initial environment variables
+DEPLOY_ENV_VARS="GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=$REGION"
+
+# Add Notion credentials for project_manager agent
+if [[ "$SERVICE_NAME" == "project-manager" ]]; then
+    if [[ -n "$NOTION_API_KEY" ]] && [[ -n "$NOTION_DATABASE_ID" ]]; then
+        echo -e "${GREEN}Adding Notion MCP credentials to project_manager...${NC}"
+        DEPLOY_ENV_VARS="$DEPLOY_ENV_VARS,NOTION_API_KEY=$NOTION_API_KEY,NOTION_DATABASE_ID=$NOTION_DATABASE_ID"
+    else
+        echo -e "${YELLOW}Warning: NOTION_API_KEY or NOTION_DATABASE_ID not set - project_manager will work without Notion integration${NC}"
+    fi
+fi
+
 gcloud run deploy "$SERVICE_NAME" \
     --source=. \
     --port=8080 \
@@ -177,7 +190,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --project="$PROJECT_ID" \
     --service-account="$SERVICE_ACCOUNT_EMAIL" \
     --no-allow-unauthenticated \
-    --set-env-vars=GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT="$PROJECT_ID",GOOGLE_CLOUD_LOCATION="$REGION" \
+    --set-env-vars="$DEPLOY_ENV_VARS" \
     --memory=1Gi \
     --cpu=1 \
     --timeout=300 \

@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Load environment variables
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$SCRIPT_DIR/../../.env"
+ENV_FILE="$SCRIPT_DIR/../.env"
 
 if [ -f "$ENV_FILE" ]; then
     echo -e "${GREEN}Loading environment variables from .env file...${NC}"
@@ -170,7 +170,7 @@ done
 echo ""
 echo "Next steps:"
 echo -e "  ${YELLOW}1. Deploy all specialist agents to Cloud Run:${NC}"
-echo "     cd agents/deploy"
+echo "     cd deploy"
 echo "     ./deploy_complete_system.sh"
 echo ""
 echo -e "  ${YELLOW}2. Or deploy specialists individually:${NC}"

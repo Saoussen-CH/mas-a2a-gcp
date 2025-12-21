@@ -100,6 +100,24 @@ async def deploy_single_agent(
     agent_path = Path(__file__).parent.parent / agent_dir
     sa_email = f"{service_account}@{project_id}.iam.gserviceaccount.com"
 
+    # Build environment variables
+    env_vars = (
+        f"GOOGLE_GENAI_USE_VERTEXAI=true,"
+        f"GOOGLE_CLOUD_PROJECT={project_id},"
+        f"GOOGLE_CLOUD_LOCATION={region}"
+    )
+
+    # Add Notion credentials for project-manager agent
+    if name == "project-manager":
+        notion_api_key = os.getenv("NOTION_API_KEY")
+        notion_database_id = os.getenv("NOTION_DATABASE_ID")
+
+        if notion_api_key and notion_database_id:
+            print(f"   Adding Notion MCP credentials to {name}...")
+            env_vars += f",NOTION_API_KEY={notion_api_key},NOTION_DATABASE_ID={notion_database_id}"
+        else:
+            print(f"   Warning: NOTION_API_KEY or NOTION_DATABASE_ID not set - {name} will work without Notion integration")
+
     cmd = [
         "gcloud", "run", "deploy", name,
         "--source=.",
@@ -109,9 +127,7 @@ async def deploy_single_agent(
         f"--project={project_id}",
         f"--service-account={sa_email}",
         "--no-allow-unauthenticated",
-        "--set-env-vars=GOOGLE_GENAI_USE_VERTEXAI=true,"
-                       f"GOOGLE_CLOUD_PROJECT={project_id},"
-                       f"GOOGLE_CLOUD_LOCATION={region}",
+        f"--set-env-vars={env_vars}",
         "--memory=1Gi",
         "--cpu=1",
         "--timeout=300",
@@ -179,6 +195,7 @@ async def update_agent_a2a_config(
 ) -> None:
     """
     Update deployed agent with A2A configuration (PUBLIC_HOST, PORT, PROTOCOL)
+    Also adds Notion credentials for project-manager agent.
 
     Args:
         service_name: Name of the Cloud Run service
@@ -191,12 +208,26 @@ async def update_agent_a2a_config(
 
     print(f"   Updating A2A config for {service_name}...")
 
+    # Build environment variables update
+    env_vars_update = f"PUBLIC_HOST={public_host},PUBLIC_PORT=443,PROTOCOL=https"
+
+    # Add Notion credentials for project-manager agent
+    if service_name == "project-manager":
+        notion_api_key = os.getenv("NOTION_API_KEY")
+        notion_database_id = os.getenv("NOTION_DATABASE_ID")
+
+        if notion_api_key and notion_database_id:
+            print(f"   Adding Notion MCP credentials to {service_name}...")
+            env_vars_update += f",NOTION_API_KEY={notion_api_key},NOTION_DATABASE_ID={notion_database_id}"
+        else:
+            print(f"   Warning: NOTION_API_KEY or NOTION_DATABASE_ID not set - {service_name} will work without Notion integration")
+
     cmd = [
         "gcloud", "run", "services", "update", service_name,
         "--platform=managed",
         f"--region={region}",
         f"--project={project_id}",
-        f"--update-env-vars=PUBLIC_HOST={public_host},PUBLIC_PORT=443,PROTOCOL=https",
+        f"--update-env-vars={env_vars_update}",
         "--quiet"
     ]
 
