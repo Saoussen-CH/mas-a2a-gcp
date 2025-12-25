@@ -226,7 +226,7 @@ Testing deployed agents requires authentication tokens since Cloud Run services 
 ```bash
 # Deploy a single agent (example: brand_strategist)
 cd agents/deploy
-./deploy.sh
+python3 deploy_all_specialists.py
 
 # Or deploy all agents
 cd ../common
@@ -536,7 +536,7 @@ npx @a2aproject/a2a-inspector inspect http://localhost:8080
 
 # 3. If validation passes, deploy
 cd ../deploy
-./deploy.sh
+python3 deploy_all_specialists.py
 ```
 
 ---

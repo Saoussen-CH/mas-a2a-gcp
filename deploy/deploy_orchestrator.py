@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-Two-Stage Deployment for Creative Director Agent Engine
-========================================================
-This approach:
-1. Creates Agent Engine resource first (gets ID)
-2. Deploys agent code with environment variables
-
-This allows the agent to access AGENT_ENGINE_ID and other runtime config.
+Deploy Creative Director Orchestrator for Creative Director Agent Engine
+==========================================================
+This approach attempts to create and deploy in ONE step.
+Use this to test if single-stage deployment works or what error it produces.
 
 Usage:
     # Deploy Agent Engine
-    python3 deploy_orchestrator_two_stage.py --action deploy
+    python3 deploy_orchestrator.py --action deploy
 
     # Test deployment
-    python3 deploy_orchestrator_two_stage.py --action test --resource_name <resource_name>
+    python3 deploy_orchestrator.py --action test --resource_name <resource_name>
 
     # Cleanup (delete Agent Engine)
-    python3 deploy_orchestrator_two_stage.py --action cleanup --resource_name <resource_name>
+    python3 deploy_orchestrator.py --action cleanup --resource_name <resource_name>
 """
 
 import argparse
@@ -47,7 +44,6 @@ DESIGNER_URL = os.getenv("DESIGNER_AGENT_URL", "")
 STRATEGIST_URL = os.getenv("STRATEGIST_AGENT_URL", "")
 CRITIC_URL = os.getenv("CRITIC_AGENT_URL", "")
 PM_URL = os.getenv("PM_AGENT_URL", "")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
 
 def init_vertex_ai():
@@ -63,8 +59,8 @@ def init_vertex_ai():
     print(f"  Staging: {STAGING_BUCKET}")
 
 
-def deploy_two_stage(auto_deploy_specialists=False):
-    """Deploy using two-stage approach.
+def deploy_orchestrator(auto_deploy_specialists=False):
+    """Deploy using single-stage approach - create with all config at once.
 
     Args:
         auto_deploy_specialists: If True, deploy all specialist agents first
@@ -76,8 +72,7 @@ def deploy_two_stage(auto_deploy_specialists=False):
         print("AUTO-DEPLOY: Deploying all specialist agents first...")
         print("=" * 70)
 
-        # Import specialist deployment module
-        sys.path.insert(0, str(project_root / 'agents' / 'common'))
+        # Import specialist deployment module (now in deploy/)
         from deploy_all_specialists import deploy_all_agents
         import env_utils
 
@@ -110,117 +105,131 @@ def deploy_two_stage(auto_deploy_specialists=False):
         print("\n" + "=" * 70)
 
     print("\n" + "=" * 70)
-    print("TWO-STAGE DEPLOYMENT: Creative Director Agent Engine")
+    print("DEPLOYING: Creative Director Agent Engine")
     print("=" * 70)
+    print("\nAttempting to create AND deploy in ONE step...")
+    print("This will help us understand if single-stage deployment works,")
+    print("or what specific error occurs that requires two-stage approach.")
 
     init_vertex_ai()
+
+    # Import the app from agent.py
+    sys.path.insert(0, str(project_root / 'agents'))
+    from creative_director.agent import root_app  # App object with compaction config
+
+    # Wrap App in AdkApp for Agent Engine deployment
+    adk_app = agent_engines.AdkApp(
+        app=root_app,  # Pass as 'app' parameter since it's an App object
+        enable_tracing=True,
+    )
 
     # Initialize client
     client = Client(project=PROJECT_ID, location=LOCATION)
 
     # =========================================================================
-    # STAGE 1: Create Agent Engine Resource (No Code Yet)
+    # : Create AND Deploy with ALL config at once
     # =========================================================================
-    print("\n⏳ STAGE 1: Creating Agent Engine resource...")
-    print("   (This creates the resource and gets the ID)")
+    print("\n⏳ Creating Agent Engine with full configuration...")
+    print("   (Single API call with all env vars and requirements)")
 
-    agent_engine_resource = client.agent_engines.create(
-        config={
-            "display_name": DISPLAY_NAME,
-        }
-    )
+    print(f"\n  Configuration:")
+    print(f"    - Display Name: {DISPLAY_NAME}")
+    print(f"    - Requirements:")
+    print(f"      • google-cloud-aiplatform[agent_engines]>=1.112")
+    print(f"      • google-adk[a2a]==1.20.0")
+    print(f"      • google-genai>=1.51.0")
+    print(f"      • python-dotenv>=1.0.0")
+    print(f"      • pydantic>=2.0.0")
+    print(f"      • cloudpickle>=3.0.0")
+    print(f"    - Environment Variables:")
+    print(f"      • COPYWRITER_AGENT_URL={COPYWRITER_URL or '(not set)'}")
+    print(f"      • DESIGNER_AGENT_URL={DESIGNER_URL or '(not set)'}")
+    print(f"      • STRATEGIST_AGENT_URL={STRATEGIST_URL or '(not set)'}")
+    print(f"      • CRITIC_AGENT_URL={CRITIC_URL or '(not set)'}")
+    print(f"      • PM_AGENT_URL={PM_URL or '(not set)'}")
 
-    # Extract resource name and ID
-    resource_name = agent_engine_resource.api_resource.name
-    agent_engine_id = resource_name.split("/")[-1]
+    try:
+        # Attempt single-stage deployment
+        # NOTE: Use 'agent' parameter, not 'agent_engine' (deprecated)
+        agent_engine_resource = client.agent_engines.create(
+            agent=adk_app,
+            config={
+                "staging_bucket": STAGING_BUCKET,
+                "display_name": DISPLAY_NAME,
+                "requirements": [
+                    "google-cloud-aiplatform[agent_engines]>=1.112",
+                    "google-adk[a2a]==1.20.0",
+                    "google-genai>=1.51.0",
+                    "python-dotenv>=1.0.0",
+                    "pydantic>=2.0.0",
+                    "cloudpickle>=3.0.0",
+                ],
+                "env_vars": {
+                    "COPYWRITER_AGENT_URL": COPYWRITER_URL,
+                    "DESIGNER_AGENT_URL": DESIGNER_URL,
+                    "STRATEGIST_AGENT_URL": STRATEGIST_URL,
+                    "CRITIC_AGENT_URL": CRITIC_URL,
+                    "PM_AGENT_URL": PM_URL,
+                    # Note: GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION are auto-set
+                },
+            }
+        )
 
-    print(f"\n✓ Agent Engine resource created!")
-    print(f"  Resource: {resource_name}")
-    print(f"  ID: {agent_engine_id}")
+        # Extract resource name and ID
+        resource_name = agent_engine_resource.api_resource.name
+        agent_engine_id = resource_name.split("/")[-1]
 
-    # =========================================================================
-    # STAGE 2: Deploy Agent Code with Environment Variables
-    # =========================================================================
-    print(f"\n⏳ STAGE 2: Deploying agent code to existing resource...")
-    print(f"   (Setting environment variables for runtime)")
+        print("\n" + "=" * 70)
+        print("✅ DEPLOYING SUCCESSFUL!")
+        print("=" * 70)
+        print("\n🎉 Success! Single-stage deployment works fine!")
+        print("\nThis means the two-stage pattern may not be necessary,")
+        print("or the reason for it is different than we thought.")
 
-    # Import the app from agent.py
-    # The actual app (with agent + compaction config) will be created on first use,
-    # reading env vars at runtime
-    sys.path.insert(0, str(project_root / 'agents'))
-    from creative_director.agent import root_agent  # Actually an App object now
+        print(f"\nResource Name: {resource_name}")
+        print(f"Agent Engine ID: {agent_engine_id}")
 
-    # Wrap App in AdkApp for Agent Engine deployment
-    # root_agent is actually an App with compaction config, not just an Agent
-    adk_app = agent_engines.AdkApp(
-        app=root_agent,  # Pass as 'app' parameter since it's an App object
-        enable_tracing=True,
-    )
+        print(f"\n✓ Agent deployed with environment variables!")
+        print(f"  - COPYWRITER_AGENT_URL={COPYWRITER_URL or '(not set)'}")
+        print(f"  - DESIGNER_AGENT_URL={DESIGNER_URL or '(not set)'}")
+        print(f"  - STRATEGIST_AGENT_URL={STRATEGIST_URL or '(not set)'}")
+        print(f"  - CRITIC_AGENT_URL={CRITIC_URL or '(not set)'}")
+        print(f"  - PM_AGENT_URL={PM_URL or '(not set)'}")
 
-    # Deploy agent code to the existing resource WITH env vars
-    print(f"\n  Deploying with requirements:")
-    print(f"    - google-cloud-aiplatform[agent_engines]>=1.112")
-    print(f"    - google-adk[a2a]==1.20.0")
-    print(f"    - google-genai>=1.51.0")
-    print(f"    - python-dotenv>=1.0.0")
+        print(f"\nUpdate your .env file with:")
+        print(f'AGENT_ENGINE_RESOURCE_NAME="{resource_name}"')
+        print(f'AGENT_ENGINE_ID="{agent_engine_id}"')
 
-    remote_app = agent_engines.update(
-        resource_name=resource_name,
-        agent_engine=adk_app,
-        requirements=[
-            "google-cloud-aiplatform[agent_engines]>=1.112",
-            "google-adk[a2a]==1.20.0",
-            "google-genai>=1.51.0",
-            "python-dotenv>=1.0.0",
-        ],
-        # Note: extra_packages not needed - agent is pickled with cloudpickle
-        # IMPORTANT: Don't set GOOGLE_API_KEY - Agent Engine provides auth via project/location
-        env_vars={
-            "AGENT_ENGINE_ID": agent_engine_id,
-            "COPYWRITER_AGENT_URL": COPYWRITER_URL,
-            "DESIGNER_AGENT_URL": DESIGNER_URL,
-            "STRATEGIST_AGENT_URL": STRATEGIST_URL,
-            "CRITIC_AGENT_URL": CRITIC_URL,
-            "PM_AGENT_URL": PM_URL,
-            # Note: GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION are auto-set by Agent Engine
-        },
-    )
+        print(f"\nView in Cloud Console:")
+        print(f"https://console.cloud.google.com/vertex-ai/reasoning-engines?project={PROJECT_ID}")
 
-    print(f"\n✓ Agent code deployed!")
-    print(f"  Environment variables set:")
-    print(f"    - AGENT_ENGINE_ID={agent_engine_id}")
-    print(f"    - COPYWRITER_AGENT_URL={COPYWRITER_URL or '(not set)'}")
-    print(f"    - DESIGNER_AGENT_URL={DESIGNER_URL or '(not set)'}")
-    print(f"    - STRATEGIST_AGENT_URL={STRATEGIST_URL or '(not set)'}")
-    print(f"    - CRITIC_AGENT_URL={CRITIC_URL or '(not set)'}")
-    print(f"    - PM_AGENT_URL={PM_URL or '(not set)'}")
-    print(f"  Auto-set by Agent Engine:")
-    print(f"    - GOOGLE_CLOUD_PROJECT (for authentication)")
-    print(f"    - GOOGLE_CLOUD_LOCATION (for authentication)")
+        print(f"\n💡 To test the deployment, run:")
+        print(f'python3 {__file__} --action test --resource_name "{resource_name}"')
 
-    # =========================================================================
-    # SUCCESS
-    # =========================================================================
-    print("\n" + "=" * 70)
-    print("✅ TWO-STAGE DEPLOYMENT SUCCESSFUL!")
-    print("=" * 70)
+        return agent_engine_resource, resource_name
 
-    print(f"\nResource Name: {resource_name}")
-    print(f"Agent Engine ID: {agent_engine_id}")
+    except Exception as e:
+        print("\n" + "=" * 70)
+        print("❌ DEPLOYING FAILED!")
+        print("=" * 70)
+        print("\n🔍 This is the error that requires two-stage deployment:")
+        print(f"\nError Type: {type(e).__name__}")
+        print(f"Error Message: {str(e)}")
 
-    print(f"\n✓ RemoteA2aAgent will work at runtime!")
-    print(f"  - Agent URLs are set as environment variables")
-    print(f"  - No AGENT_ENGINE_DEPLOYMENT flag at runtime")
-    print(f"  - Full orchestration capabilities enabled")
+        # Print detailed error info
+        import traceback
+        print(f"\nFull Traceback:")
+        print(traceback.format_exc())
 
-    print(f"\nUpdate your .env file with:")
-    print(f'AGENT_ENGINE_RESOURCE_NAME="{resource_name}"')
-    print(f'AGENT_ENGINE_ID="{agent_engine_id}"')
+        print("\n" + "=" * 70)
+        print("💡 ANALYSIS:")
+        print("=" * 70)
+        print("\nThis error explains why two-stage deployment is needed.")
+        print("The two-stage approach works around this issue by:")
+        print("1. Creating the resource first (gets the resource ID)")
+        print("2. Then updating it with the agent code and env vars")
 
-    print(f"\nView in Cloud Console:")
-    print(f"https://console.cloud.google.com/vertex-ai/reasoning-engines?project={PROJECT_ID}")
-
-    return remote_app, resource_name
+        raise
 
 
 # =============================================================================
@@ -230,7 +239,7 @@ def deploy_two_stage(auto_deploy_specialists=False):
 async def test_deployed_agent(resource_name: str):
     """Test the deployed agent."""
     print("\n" + "=" * 70)
-    print("TESTING DEPLOYED AGENT")
+    print("TESTING DEPLOYED AGENT ()")
     print("=" * 70)
 
     init_vertex_ai()
@@ -282,7 +291,7 @@ async def test_deployed_agent(resource_name: str):
 def cleanup_agent_engine(resource_name: str):
     """Delete the deployed Agent Engine resource."""
     print("\n" + "=" * 70)
-    print("CLEANUP: Deleting Agent Engine")
+    print("CLEANUP: Deleting Agent Engine (Single-Stage)")
     print("=" * 70)
 
     init_vertex_ai()
@@ -330,7 +339,7 @@ def cleanup_agent_engine(resource_name: str):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Two-Stage Deployment for Creative Director Agent Engine"
+        description="Deploy Creative Director Orchestrator for Creative Director Agent Engine (Testing)"
     )
     parser.add_argument(
         "--action",
@@ -343,7 +352,6 @@ def main():
         type=str,
         help="Resource name for test/cleanup actions (e.g., projects/.../reasoningEngines/...)"
     )
-    # NEW: Add auto-deploy flag
     parser.add_argument(
         "--auto-deploy-specialists",
         action="store_true",
@@ -353,13 +361,22 @@ def main():
     args = parser.parse_args()
 
     if args.action == "deploy":
-        remote_app, resource_name = deploy_two_stage(
-            auto_deploy_specialists=args.auto_deploy_specialists
-        )
-        print(f"\n💡 To test the deployment, run:")
-        print(f'python3 {__file__} --action test --resource_name "{resource_name}"')
-        print(f"\n💡 To delete the deployment, run:")
-        print(f'python3 {__file__} --action cleanup --resource_name "{resource_name}"')
+        try:
+            remote_app, resource_name = deploy_orchestrator(
+                auto_deploy_specialists=args.auto_deploy_specialists
+            )
+            print(f"\n💡 To test the deployment, run:")
+            print(f'python3 {__file__} --action test --resource_name "{resource_name}"')
+            print(f"\n💡 To delete the deployment, run:")
+            print(f'python3 {__file__} --action cleanup --resource_name "{resource_name}"')
+        except Exception as e:
+            print("\n\n" + "=" * 70)
+            print("CONCLUSION:")
+            print("=" * 70)
+            print("\nSingle-stage deployment failed with the error above.")
+            print("This confirms that two-stage deployment is necessary.")
+            print("\nPlease check error details above and retry.")
+            sys.exit(1)
 
     elif args.action == "test":
         if not args.resource_name:

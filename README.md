@@ -466,47 +466,29 @@ User: "Create complete campaign with posts and timeline"
 - Creates project and task pages in two separate Notion databases
 
 **MCP Tools Exposed** (via `@notionhq/notion-mcp-server`):
-- `API-retrieve-a-database`: Get database schema (properties, types, valid values) - **ALWAYS CALLED FIRST**
-- `API-post-database-query`: Query existing pages in databases
-- `API-post-search`: Search for existing pages across workspace
-- `API-post-page`: Create new pages in databases
+- `API-post-page`: Create new pages in databases (projects or tasks)
 - `API-patch-page`: Update existing pages
-
-**Dynamic Schema Discovery**:
-
-The Project Manager uses **dynamic schema discovery** to adapt to ANY Notion database structure:
-
-1. **No Hardcoded Properties**: Agent never assumes property names exist
-2. **Query First**: Checks for existing projects/tasks before creating new ones
-3. **Schema Discovery**: Calls `API-retrieve-a-database` to learn the actual schema
-4. **Adapts to Changes**: If you rename or add properties, the agent automatically adapts
-
-**Workflow**:
-1. Agent queries existing data (finds what's already in Notion)
-2. Calls `API-retrieve-a-database` to discover the current database schema
-3. Extracts exact property names, types, and valid values from the API response
-4. Creates or updates pages using ONLY the discovered property names
-5. Links tasks to projects using relation properties from the schema
+- `API-post-search`: Search for existing pages
+- `API-post-database-query`: Query databases with filters
+- `API-retrieve-a-database`: Get database schema and details
 
 **Notion Database Structure**:
 
-**TWO DATABASES REQUIRED** (but property names are flexible):
+**TWO DATABASES REQUIRED:**
 
 1. **Projects Database** (ID from `NOTION_DATABASE_ID` environment variable)
-   - Must have a **title** property (name can be anything: "Project name", "Title", "Name", etc.)
-   - Must have a **status** property (for tracking progress)
-   - Must have a **date** property with start/end (for timeline)
-   - Optional: select properties for priority, rich_text for summary, etc.
-   - **The agent will discover your actual property names automatically**
+   - **"Project name"**: title (required - campaign name)
+   - **"Status"**: status (e.g., "In progress", "Completed")
+   - **"Priority"**: select (options: "High", "Medium", "Low")
+   - **"Dates"**: date (start and end: `{"start": "2025-12-19", "end": "2026-01-02"}`)
+   - **"Summary"**: rich_text (brief project description)
 
 2. **Tasks Database** (hardcoded ID: `2ceb1b31123181508894ddb3c597dc48`)
-   - Must have a **title** property (for task description)
-   - Must have a **status** property (for task status)
-   - Must have a **date** property (for due dates)
-   - Must have a **relation** property linking to Projects database
-   - **The agent will discover your actual property names automatically**
-
-**Example**: If you name your properties "Nom du projet", "Statut", "Priorité", "Dates", and "Résumé", the agent will automatically use those names instead of the English defaults.
+   - **"Task name"**: title (required - task description)
+   - **"Status"**: status (options: "Not started", "In progress", "Done")
+   - **"Priority"**: select (options: "High", "Medium", "Low")
+   - **"Due"**: date (task deadline: `{"start": "2025-12-25"}`)
+   - **"Project"**: relation (links to project page in Projects database)
 
 **Environment Variables**:
 - `NOTION_API_KEY`: Notion integration token (passed as `NOTION_TOKEN` to MCP server)
@@ -599,22 +581,22 @@ graph LR
 - **Node.js and npm** (for Notion MCP server via npx)
 - **Notion Account** (optional, for Project Manager integration)
   - Create a Notion integration at [Notion Developers](https://www.notion.so/my-integrations)
-  - Create **TWO databases** in Notion with these **required property types** (names can be anything):
+  - Create **TWO databases** in Notion with the following properties:
 
     **Projects Database:**
-    - One **Title** property (e.g., "Project name", "Name", "Nom", etc.)
-    - One **Status** property (e.g., "Status", "État", "Progress", etc.)
-    - One **Date** property with start & end enabled (e.g., "Dates", "Timeline", "Période", etc.)
-    - Optional: **Select** for priority, **Rich text** for summary, etc.
+    - Project name (Title)
+    - Status (Status)
+    - Priority (Select: High, Medium, Low)
+    - Dates (Date with start and end)
+    - Summary (Rich text)
 
     **Tasks Database:**
-    - One **Title** property (e.g., "Task name", "Task", "Tâche", etc.)
-    - One **Status** property (e.g., "Status", "État", etc.)
-    - One **Date** property (e.g., "Due", "Deadline", "Date limite", etc.)
-    - One **Relation** property linked to Projects database (e.g., "Project", "Projet", etc.)
-    - Optional: **Select** for priority, etc.
+    - Task name (Title)
+    - Status (Status: Not started, In progress, Done)
+    - Priority (Select: High, Medium, Low)
+    - Due (Date)
+    - Project (Relation to Projects database)
 
-  - **The agent will automatically discover your property names** - no need to match the examples exactly!
   - Share **both databases** with your integration
   - Copy the Integration Token and **Projects Database ID**
   - Copy the **Tasks Database ID** and update it in `agents/project_manager/agent.py:59`
@@ -651,9 +633,8 @@ REGION="us-central1"
 # Gemini API
 GOOGLE_API_KEY="your-gemini-api-key"
 
-# Notion Integration (for Project Manager with Dynamic Schema Discovery)
-# The agent will automatically discover and adapt to your database property names
-# You need TWO databases:
+# Notion Integration (for Project Manager)
+# IMPORTANT: You need TWO databases:
 # 1. Projects Database (provide ID here)
 # 2. Tasks Database (hardcoded in agent.py:59 - update if different)
 NOTION_API_KEY="your-notion-integration-token"
@@ -703,26 +684,24 @@ This will:
 4. Deploy Creative Director to Vertex AI Agent Engine
 5. Output resource name
 
-**Or deploy specialists individually:**
+**Or deploy specialists separately:**
 
 ```bash
-# Deploy individual agent
-./deploy.sh project-manager
-
 # Deploy all specialists only
-python3 ../agents/common/deploy_all_specialists.py
+cd deploy
+python3 deploy_all_specialists.py
 ```
 
 ### 5. Alternative: Deploy Orchestrator Separately
 
 ```bash
 # Deploy orchestrator only (after specialists are deployed)
-python3 deploy_orchestrator_two_stage.py --action deploy
+python3 deploy_orchestrator.py --action deploy
 ```
 
 This will:
-1. Deploy specialist agents first (if not already deployed)
-2. Set environment variables with agent URLs
+1. Use already-deployed specialist agents (or deploy them if --auto-deploy-specialists flag is used)
+2. Read agent URLs from environment variables
 3. Deploy Creative Director to Vertex AI Agent Engine
 4. Output resource name
 
@@ -792,42 +771,35 @@ This script:
 
 ```bash
 cd deploy
-python3 deploy_orchestrator_two_stage.py --action deploy --auto-deploy-specialists
+python3 deploy_orchestrator.py --action deploy --auto-deploy-specialists
 ```
 
 Same as the shell script above, but gives you more control and detailed output.
 
-#### Option 2: Manual Two-Stage Deployment
+#### Option 2: Manual Deployment
 
 If you prefer manual control over each step:
 
 ```bash
-# Stage 1: Deploy all specialist agents
-cd agents/common
+# Step 1: Deploy all specialist agents (with public agent cards)
+cd deploy
 python3 deploy_all_specialists.py
 
-# Stage 2: Deploy orchestrator with collected URLs
-cd ../deploy
-python3 deploy_orchestrator_two_stage.py --action deploy
+# Step 2: Deploy orchestrator with collected URLs
+python3 deploy_orchestrator.py --action deploy
 ```
 
-#### Option 3: Deploy Individual Agents
-
-For testing or updating a single agent:
-
-```bash
-cd deploy
-./deploy.sh  # Then specify agent directory when prompted
-```
 
 ### Deployment Architecture Details
 
 **Specialist Agents** → Cloud Run:
 - Containerized with A2A server
 - Auto-scaling (0-100 instances)
-- Public HTTPS endpoints
+- Public HTTPS endpoints (--allow-unauthenticated for agent cards)
+- Uses default Compute Engine service account
 - Environment variables:
-  - `GOOGLE_API_KEY` (all agents)
+  - `GOOGLE_GENAI_USE_VERTEXAI=true`
+  - `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`
   - `NOTION_API_KEY` (Project Manager only - for Notion MCP integration)
   - `NOTION_DATABASE_ID` (Project Manager only - Projects database ID)
 
@@ -1036,16 +1008,14 @@ ai-creative-studio/
 │   ├── critic/                # Quality review agent
 │   ├── project_manager/       # Timeline & planning agent (with Notion MCP)
 │   └── common/
-│       └── deploy_all_specialists.py  # Deploy all specialists (used by orchestrator)
+│       ├── setup.sh                   # Local development setup
+│       └── test_local.sh              # Local A2A testing
 ├── deploy/
-│   ├── deploy.sh                      # Deploy individual agents
+│   ├── deploy_all_specialists.py      # Deploy all specialists to Cloud Run
 │   ├── deploy_complete_system.sh      # One-command full deploy
-│   ├── deploy_orchestrator_two_stage.py  # Deploy orchestrator
-│   ├── setup_gcp.sh                   # Initial GCP setup
-│   ├── setup_all_specialists.sh       # Create service accounts
+│   ├── deploy_orchestrator.py         # Deploy orchestrator to Agent Engine
+│   ├── env_utils.py                   # Environment variable utilities
 │   ├── teardown_gcp.sh                # Clean up resources
-│   ├── allow_unauthenticated.sh       # Make services public
-│   ├── configure_agent_auth.sh        # Configure authentication
 │   ├── test_agents.sh                 # Test agents
 │   └── test_deployed_agents.py        # Comprehensive tests
 ├── tools/
@@ -1120,7 +1090,7 @@ curl https://your-agent-url/.well-known/agent.json
 
 # Redeploy with correct URLs
 cd deploy
-python deploy_orchestrator_two_stage.py
+python3 deploy_orchestrator.py --action deploy
 ```
 
 #### 4. API Quota Exceeded (429 Error)
@@ -1253,31 +1223,12 @@ agent = Agent(
 - `NOTION_DATABASE_ID`: The **Projects** database ID
 - **Tasks Database ID**: Hardcoded in `agent.py:59` (default: `2ceb1b31123181508894ddb3c597dc48`)
 
-**Dynamic Schema Discovery**:
-
-The Project Manager implements dynamic schema discovery to work with ANY Notion database structure:
-
-```python
-# System instruction emphasizes:
-# 1. NEVER assume property names - always call API-retrieve-a-database first
-# 2. Query existing data before creating new entries
-# 3. Use ONLY property names discovered from the API response
-# 4. Adapt to any schema changes automatically
-```
-
-**Tool Calling Best Practices**:
-
-The agent includes explicit instructions to prevent malformed function calls:
-- ✅ Call MCP tools directly by name: `API-post-page(...)`
-- ❌ Never wrap in print(): `print(API-post-page(...))`
-- ❌ Never use prefixes: `default_api.API-post-page(...)`
-
 **Available MCP Operations**:
-- `API-retrieve-a-database`: Get database schema (ALWAYS called first)
-- `API-post-database-query`: Query existing pages in databases
-- `API-post-search`: Search for pages across workspace
 - `API-post-page`: Create project/task pages in Notion databases
 - `API-patch-page`: Update existing page properties
+- `API-post-search`: Search for pages
+- `API-post-database-query`: Query databases with filters
+- `API-retrieve-a-database`: Get database schema and details
 
 **Test the Integration**:
 ```bash

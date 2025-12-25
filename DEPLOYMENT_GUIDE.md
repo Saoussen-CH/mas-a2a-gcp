@@ -238,8 +238,7 @@ Step 2: Deploying Creative Director to Agent Engine...
 ✅ Deployment Complete!
 
 Next steps:
-1. Configure authentication: cd deploy && ./allow_unauthenticated.sh
-2. Test deployment: ./test_agents.sh orchestrator
+Test deployment: ./test_agents.sh orchestrator
 ```
 
 ---
@@ -251,7 +250,7 @@ If you prefer more control:
 #### Step 1: Deploy Specialist Agents
 
 ```bash
-cd agents/common
+cd deploy
 python3 deploy_all_specialists.py
 ```
 
@@ -280,7 +279,7 @@ PM_AGENT_URL="https://project-manager-xxxxx-uc.a.run.app"
 
 ```bash
 cd ../deploy
-python3 deploy_orchestrator_two_stage.py --action deploy
+python3 deploy_orchestrator.py --action deploy
 ```
 
 This deploys the Creative Director to Vertex AI Agent Engine with all specialist URLs.
@@ -314,359 +313,6 @@ gcloud run deploy brand-strategist-agent \
   --region us-central1 \
   --platform managed \
   --set-env-vars GOOGLE_API_KEY=$GOOGLE_API_KEY
-```
-
----
-
-## Configuring Authentication
-
-**CRITICAL STEP**: After deployment, configure authentication so the orchestrator can call specialist agents.
-
-### Option 1: Unauthenticated Access (Recommended for Development)
-
-Allow unauthenticated access to specialist agents:
-
-```bash
-cd deploy
-./allow_unauthenticated.sh
-```
-
-**What this does:**
-- Adds `allUsers` to the IAM policy for each specialist agent
-- Makes the A2A endpoints publicly accessible
-- Enables A2A communication to work immediately
-
-**When to use:**
-- ✅ Development and testing
-- ✅ Following A2A protocol design philosophy (open agent discovery)
-- ✅ No sensitive data in your agents
-- ✅ You want simplicity and standard A2A behavior
-
-**Security considerations:**
-- URLs are not discoverable (obscure, not indexed)
-- Add Cloud Run resource limits to prevent cost abuse
-- Set billing alerts
-- Standard practice for A2A agents in development
-
-**Risk mitigation:**
-```bash
-# Add resource limits to prevent abuse
-for agent in brand-strategist copywriter designer critic project-manager; do
-  gcloud run services update ${agent}-agent \
-    --region=us-central1 \
-    --max-instances=5 \
-    --concurrency=10 \
-    --cpu-throttling \
-    --timeout=300
-done
-```
-
----
-
-### Option 2: Authenticated A2A with Custom Client (Production Alternative)
-
-If you need service account authentication for production, you'll need to implement a custom authenticated A2A client.
-
-#### Understanding the Problem
-
-The Google ADK's `RemoteA2aAgent` doesn't automatically attach authentication tokens when making A2A calls. This is acknowledged as "experimental" in the SDK.
-
-**What happens:**
-```
-Creative Director (Agent Engine)
-    ↓ Makes HTTP POST via A2A protocol
-    ↓ Does NOT include authentication token ❌
-Specialist Agent (Cloud Run)
-    ↓ Receives unauthenticated request
-    ↓ Checks IAM policy
-    ↓ Sees: Only service account allowed
-    ↓ Rejects with 403 Forbidden
-```
-
-**The solution:** Extend `RemoteA2aAgent` to attach Cloud Run authentication tokens.
-
-#### Step 1: Configure Service Account Permissions
-
-First, grant the Agent Engine service account permission to invoke specialist services:
-
-```bash
-cd deploy
-./configure_agent_auth.sh
-```
-
-This script:
-- Gets the Agent Engine's service account
-- Grants `roles/run.invoker` to each specialist service
-- Configures IAM policies for service-to-service auth
-
-**Verify the configuration:**
-```bash
-# Get Agent Engine service account
-PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
-SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-
-# Check IAM policy for one specialist
-gcloud run services get-iam-policy brand-strategist-agent \
-  --region=us-central1 \
-  --format=yaml
-```
-
-You should see:
-```yaml
-bindings:
-- members:
-  - serviceAccount:164883448638-compute@developer.gserviceaccount.com
-  role: roles/run.invoker
-```
-
-#### Step 2: Implement AuthenticatedRemoteA2aAgent
-
-Create a custom A2A client that includes authentication tokens.
-
-**Where to add this:** In your orchestrator code at `agents/creative_director/agent.py`
-
-Add these imports at the top of the file:
-
-```python
-from google.auth.transport.requests import Request
-import google.auth
-import google.oauth2.id_token
-import requests
-from typing import Any, Dict
-```
-
-Add the custom authenticated agent class:
-
-```python
-class AuthenticatedRemoteA2aAgent(RemoteA2aAgent):
-    """
-    Custom RemoteA2aAgent that includes Cloud Run authentication tokens.
-
-    This extends the standard RemoteA2aAgent to automatically attach
-    Google Cloud identity tokens when making requests to Cloud Run services.
-
-    Use this when your specialist agents require service account authentication
-    instead of allowing unauthenticated access via allUsers.
-    """
-
-    def __init__(self, agent_url: str):
-        """
-        Initialize authenticated remote agent.
-
-        Args:
-            agent_url: The URL of the remote A2A agent (Cloud Run service)
-        """
-        super().__init__(agent_url)
-        self.credentials, _ = google.auth.default()
-        self.agent_url = agent_url
-
-    def _get_auth_token(self) -> str:
-        """
-        Get Cloud Run identity token for the target service.
-
-        Returns:
-            str: ID token for authenticating to Cloud Run
-        """
-        try:
-            # Get ID token for the target Cloud Run service
-            token = google.oauth2.id_token.fetch_id_token(
-                Request(),
-                self.agent_url
-            )
-            return token
-        except Exception as e:
-            print(f"Error fetching auth token: {e}")
-            raise
-
-    def _make_authenticated_request(self, url: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Make an authenticated HTTP request to the remote agent.
-
-        Args:
-            url: The endpoint URL
-            data: Request payload
-
-        Returns:
-            Response data as dictionary
-        """
-        token = self._get_auth_token()
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        response = requests.post(url, json=data, headers=headers, timeout=300)
-        response.raise_for_status()
-        return response.json()
-
-    # Override the parent's HTTP request methods to use authentication
-    def send_message(self, message: str) -> str:
-        """Send authenticated message to remote agent."""
-        try:
-            endpoint = f"{self.agent_url}/message"
-            data = {"message": message}
-            response = self._make_authenticated_request(endpoint, data)
-            return response.get("response", "")
-        except Exception as e:
-            print(f"Error sending authenticated message: {e}")
-            return ""
-```
-
-#### Step 3: Update Creative Director to Use Authenticated Agents
-
-In `agents/creative_director/agent.py`, replace `RemoteA2aAgent` with `AuthenticatedRemoteA2aAgent`:
-
-**Before:**
-```python
-def create_specialist_agents():
-    return {
-        'brand_strategist': RemoteA2aAgent(agent_url=os.environ.get('STRATEGIST_AGENT_URL')),
-        'copywriter': RemoteA2aAgent(agent_url=os.environ.get('COPYWRITER_AGENT_URL')),
-        'designer': RemoteA2aAgent(agent_url=os.environ.get('DESIGNER_AGENT_URL')),
-        'critic': RemoteA2aAgent(agent_url=os.environ.get('CRITIC_AGENT_URL')),
-        'project_manager': RemoteA2aAgent(agent_url=os.environ.get('PM_AGENT_URL'))
-    }
-```
-
-**After:**
-```python
-def create_specialist_agents():
-    return {
-        'brand_strategist': AuthenticatedRemoteA2aAgent(agent_url=os.environ.get('STRATEGIST_AGENT_URL')),
-        'copywriter': AuthenticatedRemoteA2aAgent(agent_url=os.environ.get('COPYWRITER_AGENT_URL')),
-        'designer': AuthenticatedRemoteA2aAgent(agent_url=os.environ.get('DESIGNER_AGENT_URL')),
-        'critic': AuthenticatedRemoteA2aAgent(agent_url=os.environ.get('CRITIC_AGENT_URL')),
-        'project_manager': AuthenticatedRemoteA2aAgent(agent_url=os.environ.get('PM_AGENT_URL'))
-    }
-```
-
-#### Step 4: Redeploy the Orchestrator
-
-After making these code changes:
-
-```bash
-cd deploy
-python3 deploy_orchestrator_two_stage.py --action deploy
-```
-
-This redeploys the Creative Director with the authenticated A2A client.
-
-#### Step 5: Verify Authentication Works
-
-Test that the orchestrator can now call specialists with authentication:
-
-```bash
-cd deploy
-./test_agents.sh orchestrator
-```
-
-You should see successful calls to all specialist agents.
-
-**Verify authentication is being used:**
-```bash
-# Check Cloud Run logs for authenticated requests
-gcloud logging read "resource.type=cloud_run_revision \
-  AND resource.labels.service_name=brand-strategist \
-  AND textPayload=~'Authorization'" \
-  --limit=10 \
-  --format="table(timestamp,textPayload)"
-```
-
----
-
-### Comparison: Option 1 vs Option 2
-
-| Aspect | Option 1: Unauthenticated | Option 2: Authenticated |
-|--------|---------------------------|-------------------------|
-| **Setup Complexity** | Simple (one script) | Complex (code changes + deployment) |
-| **A2A Protocol Alignment** | ✅ Follows standard A2A design | ⚠️ Custom implementation |
-| **Security** | URLs are obscure but public | Service account authentication |
-| **Cost Protection** | Resource limits + billing alerts | IAM-based access control |
-| **Agent Discovery** | ✅ Agents are discoverable | ❌ Breaks open agent ecosystem |
-| **Maintenance** | None | Custom code to maintain |
-| **Use Case** | Development, testing, open agents | Production with strict auth requirements |
-| **Works Out of Box** | ✅ Yes | ❌ Requires code modifications |
-
-### Recommendation
-
-**For most use cases, use Option 1** (`allow_unauthenticated.sh`):
-- Simpler and follows A2A protocol philosophy
-- Adequate security for AI agents with no sensitive data
-- Add resource limits for cost protection
-- Standard approach used in Google's own A2A examples
-
-**Use Option 2 only if:**
-- Your organization requires authentication on all services
-- You handle sensitive data or PII in agents
-- You need audit trails of which service accounts called which services
-- Compliance requirements mandate service-to-service authentication
-
----
-
-### Additional Security Hardening (Optional)
-
-If using Option 1 but want additional protection:
-
-**1. Add Cloud Armor (WAF/DDoS protection):**
-```bash
-# Cloud Armor requires Load Balancer in front of Cloud Run
-# See: https://cloud.google.com/armor/docs/integrating-cloud-run
-```
-
-**2. VPC Service Controls:**
-```bash
-# Restrict access to your project's network
-# See: https://cloud.google.com/vpc-service-controls
-```
-
-**3. Application-level rate limiting:**
-Add rate limiting logic in specialist agent code:
-```python
-from functools import wraps
-from datetime import datetime, timedelta
-
-request_counts = {}
-
-def rate_limit(max_requests=100, window_minutes=1):
-    def decorator(f):
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            now = datetime.now()
-            client_id = request.remote_addr
-
-            # Clean old entries
-            cutoff = now - timedelta(minutes=window_minutes)
-            request_counts[client_id] = [
-                t for t in request_counts.get(client_id, [])
-                if t > cutoff
-            ]
-
-            # Check rate limit
-            if len(request_counts.get(client_id, [])) >= max_requests:
-                return jsonify({"error": "Rate limit exceeded"}), 429
-
-            # Track this request
-            request_counts.setdefault(client_id, []).append(now)
-            return f(*args, **kwargs)
-        return wrapped
-    return decorator
-```
-
-**4. Monitoring and Alerts:**
-```bash
-# Set up budget alerts
-gcloud billing budgets create \
-  --billing-account=YOUR_BILLING_ACCOUNT \
-  --display-name="Cloud Run Budget Alert" \
-  --budget-amount=100USD \
-  --threshold-rule=percent=50 \
-  --threshold-rule=percent=90
-
-# Set up log-based metrics for unusual activity
-gcloud logging metrics create high_request_volume \
-  --description="Alert on high request volume to specialists" \
-  --log-filter='resource.type="cloud_run_revision"
-    AND severity>=WARNING'
 ```
 
 ---
@@ -738,20 +384,6 @@ This runs all tests: specialists + orchestrator.
 
 ### Issue 1: "Brand Strategist returned empty response"
 
-**Symptom**: Orchestrator can't reach specialist agents
-
-**Solution**: Configure authentication
-
-```bash
-cd deploy
-./allow_unauthenticated.sh
-```
-
-**Verify**: Test agent accessibility
-```bash
-curl https://your-agent-url/.well-known/agent-card.json
-# Should return JSON with agent metadata
-```
 
 ---
 
@@ -786,7 +418,7 @@ compaction_config = EventsCompactionConfig(
 ```bash
 # Redeploy orchestrator with updated code
 cd deploy
-python3 deploy_orchestrator_two_stage.py --action deploy
+python3 deploy_orchestrator.py --action deploy
 
 # Test full workflow
 python3 test_deployed_agents.py --test orchestrator
@@ -846,7 +478,7 @@ cd agents/project_manager
 - ❌ Wrong database ID → Check URL: `notion.so/workspace/DATABASE_ID?v=...`
 - ❌ Wrong environment variable name → Use `NOTION_API_KEY` (not `NOTION_TOKEN`)
 - ❌ Tasks database ID not updated → Edit `agents/project_manager/agent.py:59`
-- ❌ Malformed function calls (fixed in latest version) → Redeploy: `./deploy/deploy.sh project_manager`
+- ❌ Malformed function calls (fixed in latest version) → Redeploy: `cd deploy && python3 deploy_all_specialists.py`
 
 **How Dynamic Schema Discovery Works:**
 
@@ -906,7 +538,7 @@ gcloud run deploy agent-name \
 
 ### Issue 6: Agent Engine Deployment Fails
 
-**Symptom**: `deploy_orchestrator_two_stage.py` fails
+**Symptom**: `deploy_orchestrator.py` fails
 
 **Solution**: Check specialist URLs are set
 
@@ -915,7 +547,7 @@ gcloud run deploy agent-name \
 grep AGENT_URL .env
 
 # If missing, deploy specialists first
-cd agents/common
+cd deploy
 python3 deploy_all_specialists.py
 ```
 
@@ -957,10 +589,9 @@ python3 analyze_agent_logs.py /tmp/orchestrator_logs_*.txt
 # Make your changes to the agent code
 cd agents/brand_strategist
 
-# Redeploy
+# Redeploy all specialists (fast, parallel)
 cd ../../deploy
-./deploy.sh
-# Select the agent to redeploy
+python3 deploy_all_specialists.py
 ```
 
 ### Update the Orchestrator
@@ -1064,7 +695,6 @@ cd deploy
 3. (Optional) Set up Notion databases
 4. Configure `.env` file
 5. Run `./deploy_complete_system.sh`
-6. Run `./allow_unauthenticated.sh`
 7. Test with `./test_agents.sh all`
 
 **That's it!** Your distributed multi-agent system is now deployed and running on Google Cloud.

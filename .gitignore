@@ -2,6 +2,8 @@
 .claude
 .env
 refs/
+prez_youtube/
+medium/
 
 # Python
 __pycache__/

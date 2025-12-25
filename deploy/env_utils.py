@@ -20,12 +20,11 @@ def load_env_file(env_path: Optional[Path] = None) -> Dict[str, str]:
         Dict with environment configuration
     """
     if env_path is None:
-        # Look for .env in project root (two levels up from agents/common/)
-        # __file__ = .../agents/common/env_utils.py
-        # parent = .../agents/common
-        # parent.parent = .../agents
-        # parent.parent.parent = .../ (project root)
-        env_path = Path(__file__).parent.parent.parent / ".env"
+        # Look for .env in project root (one level up from deploy/)
+        # __file__ = .../deploy/env_utils.py
+        # parent = .../deploy
+        # parent.parent = .../ (project root)
+        env_path = Path(__file__).parent.parent / ".env"
 
     if env_path.exists():
         load_dotenv(env_path)

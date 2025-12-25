@@ -6,15 +6,19 @@ Features: Dynamic agent list, strong verification, error handling, comprehensive
 
 import os
 import logging
-import json
-from datetime import datetime
 from google.adk.agents import Agent
 from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.tools.agent_tool import AgentTool
+from google.adk.plugins.logging_plugin import LoggingPlugin
 
 # Configure logging
 logger = logging.getLogger("ai_creative_studio.creative_director")
 logger.setLevel(logging.INFO)
+
+# NOTE: A2ALoggingPlugin cannot be deployed to Agent Engine due to cloudpickle serialization
+# Custom plugins create module dependencies that Agent Engine can't resolve when unpickling
+# For detailed A2A communication logging in production, use Cloud Logging or add logging
+# to specialist agents on the Cloud Run side instead
 
 # Enhanced system instruction with dynamic agent list injection
 SYSTEM_INSTRUCTION_TEMPLATE = """You are an expert Creative Director AI Orchestrator for social media campaign creation.
@@ -282,125 +286,6 @@ If you cannot answer YES to all of these, DO NOT finish - continue executing the
 """
 
 
-# A2A Agent Call Logging Callbacks (serialization-friendly)
-def log_agent_tool_call(event):
-    """Log A2A agent calls with protocol-specific details - serialization-friendly version"""
-    import logging
-    import json
-    from datetime import datetime
-
-    # Get logger inside function for serialization
-    log = logging.getLogger("ai_creative_studio.creative_director")
-
-    try:
-        # Extract tool call information
-        if hasattr(event, 'function_call'):
-            function_call = event.function_call
-            tool_name = function_call.name if hasattr(function_call, 'name') else 'unknown'
-            args = function_call.args if hasattr(function_call, 'args') else {}
-
-            # Parse arguments if they're JSON string
-            if isinstance(args, str):
-                try:
-                    args = json.loads(args)
-                except:
-                    pass
-
-            # Extract the query/prompt being sent to the agent
-            query = ""
-            if isinstance(args, dict):
-                query = args.get('query', args.get('prompt', args.get('message', '')))
-
-            log.info(f"{'='*70}")
-            log.info(f"🔧 A2A AGENT CALL: {tool_name}")
-            log.info(f"   Timestamp: {datetime.now().isoformat()}")
-            log.info(f"   Protocol: Agent-to-Agent (A2A)")
-            log.info(f"   Agent Type: RemoteA2aAgent")
-            log.info(f"   Query length: {len(str(query))} chars")
-            log.info(f"   Query preview: {str(query)[:300]}...")
-            log.info(f"{'='*70}")
-
-            # Log structured data for A2A analysis
-            a2a_call_data = {
-                'event': 'a2a_agent_call',
-                'protocol': 'a2a',
-                'timestamp': datetime.now().isoformat(),
-                'agent_name': tool_name,
-                'query_length': len(str(query)),
-                'query_preview': str(query)[:300],
-                'args_keys': list(args.keys()) if isinstance(args, dict) else []
-            }
-            log.info(f"   A2A Call Data: {json.dumps(a2a_call_data, indent=2)}")
-
-    except Exception as e:
-        log.error(f"Error logging A2A agent call: {e}")
-
-
-def log_agent_tool_response(event):
-    """Log A2A agent responses with protocol-specific details - serialization-friendly version"""
-    import logging
-    import json
-    from datetime import datetime
-
-    # Get logger inside function for serialization
-    log = logging.getLogger("ai_creative_studio.creative_director")
-
-    try:
-        # Extract response information
-        tool_name = "unknown"
-        response_text = ""
-        response_metadata = {}
-
-        if hasattr(event, 'function_response'):
-            function_response = event.function_response
-            tool_name = function_response.name if hasattr(function_response, 'name') else 'unknown'
-
-            # Extract response content
-            if hasattr(function_response, 'response'):
-                response = function_response.response
-                if isinstance(response, dict):
-                    response_text = response.get('content', response.get('text', str(response)))
-                    response_metadata = {k: str(v)[:100] for k, v in response.items() if k not in ['content', 'text']}
-                else:
-                    response_text = str(response)
-
-        # Check for errors in response
-        is_error = 'error' in str(response_text).lower() or 'failed' in str(response_text).lower() or 'empty' in str(response_text).lower()
-        status = "❌ ERROR" if is_error else "✅ SUCCESS"
-
-        log.info(f"{'='*70}")
-        log.info(f"📥 A2A AGENT RESPONSE: {tool_name} - {status}")
-        log.info(f"   Timestamp: {datetime.now().isoformat()}")
-        log.info(f"   Protocol: Agent-to-Agent (A2A)")
-        log.info(f"   Response length: {len(str(response_text))} chars")
-        log.info(f"   Response preview: {str(response_text)[:300]}...")
-
-        if response_metadata:
-            log.info(f"   Metadata: {json.dumps(response_metadata, indent=2)}")
-
-        if is_error:
-            log.error(f"   ⚠️  ERROR DETECTED in {tool_name} response!")
-
-        log.info(f"{'='*70}")
-
-        # Log structured data for A2A analysis
-        a2a_response_data = {
-            'event': 'a2a_agent_response',
-            'protocol': 'a2a',
-            'timestamp': datetime.now().isoformat(),
-            'agent_name': tool_name,
-            'status': 'error' if is_error else 'success',
-            'response_length': len(str(response_text)),
-            'response_preview': str(response_text)[:300],
-            'has_metadata': bool(response_metadata),
-            'metadata_keys': list(response_metadata.keys()) if response_metadata else []
-        }
-        log.info(f"   A2A Response Data: {json.dumps(a2a_response_data, indent=2)}")
-
-    except Exception as e:
-        log.error(f"Error logging A2A agent response: {e}")
-
-
 def create_creative_director():
     """
     Create the Creative Director orchestrator agent using AgentTool pattern.
@@ -510,11 +395,11 @@ def create_creative_director():
         temperature=0.2,  # Lower temperature for more consistent workflow execution
     )
 
-    # Create agent WITHOUT custom callbacks (Agent Engine can't serialize them)
-    # Instead, we rely on:
-    # 1. ADK's built-in LoggingPlugin (enabled at runtime)
-    # 2. Cloud Logging integration (automatic)
-    # 3. Agent Engine's built-in tracing (enabled by default)
+    # Create agent and add LoggingPlugin via App (not directly on Agent)
+    # LoggingPlugin is added to App, not Agent, for better serialization compatibility
+    # Also available:
+    # - Cloud Logging integration (automatic when deployed)
+    # - Agent Engine's built-in tracing (enabled by default)
     agent = Agent(
         name="creative_director",
         model="gemini-2.5-flash",
@@ -557,23 +442,29 @@ def create_creative_director():
         overlap_size=1,  # Keep most recent agent's full output
     )
 
-    # Wrap agent in App with compaction config
+    # Wrap agent in App with compaction config and logging
+    # Note: Custom plugins (like A2ALoggingPlugin) cannot be deployed due to serialization issues
+    # Only use ADK's built-in plugins which are part of the installed packages
     app = App(
         name="creative_director",
         root_agent=agent,
         events_compaction_config=compaction_config,
+        plugins=[
+            LoggingPlugin(),  # ADK's built-in: LLM calls, tool executions, token usage
+        ],
     )
 
     logger.info("✅ App created with lazy context compaction (interval=3, overlap=1)")
+    logger.info("✅ LoggingPlugin enabled for LLM and tool call logging")
     logger.info("   Context will be summarized only when necessary to stay within token limits")
 
-    return app
+    return agent, app
 
 
-# Create root_agent for Agent Engine deployment
-# With AgentTools pattern, the app (with compaction) is created at runtime with URLs from env vars
-# Note: This returns an App object with compaction config, not just an Agent
-root_agent = create_creative_director()
+# Create both agent and app
+# - root_agent: For ADK web UI (needs BaseAgent)
+# - root_app: For Agent Engine deployment (needs App with compaction config)
+root_agent, root_app = create_creative_director()
 
 
 if __name__ == "__main__":

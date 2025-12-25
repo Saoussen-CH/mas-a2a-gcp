@@ -78,7 +78,7 @@ echo ""
 echo -e "${GREEN}Starting deployment...${NC}\n"
 
 # Run the orchestrator deployment with auto-deploy flag
-python3 "$SCRIPT_DIR/deploy_orchestrator_two_stage.py" \
+python3 "$SCRIPT_DIR/deploy_orchestrator.py" \
     --action deploy \
     --auto-deploy-specialists
 
@@ -92,9 +92,7 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}Your AI Creative Studio is ready!${NC}"
     echo ""
     echo -e "${YELLOW}Next steps:${NC}"
-    echo "  1. Configure authentication:"
-    echo "     cd deploy && ./allow_unauthenticated.sh"
-    echo "  2. Test the system:"
+    echo "  1. Test the system:"
     echo "     ./test_agents.sh orchestrator"
     echo ""
 else

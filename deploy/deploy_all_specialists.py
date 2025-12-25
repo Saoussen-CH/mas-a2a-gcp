@@ -22,31 +22,26 @@ AGENTS = [
     {
         "name": "brand-strategist",
         "dir": "brand_strategist",
-        "service_account": "brand-strategist-sa",
         "port": 8080,
     },
     {
         "name": "copywriter",
         "dir": "copywriter",
-        "service_account": "copywriter-sa",
         "port": 8080,
     },
     {
         "name": "designer",
         "dir": "designer",
-        "service_account": "designer-sa",
         "port": 8080,
     },
     {
         "name": "critic",
         "dir": "critic",
-        "service_account": "critic-sa",
         "port": 8080,
     },
     {
         "name": "project-manager",
         "dir": "project_manager",
-        "service_account": "project-manager-sa",
         "port": 8080,
     },
 ]
@@ -92,13 +87,11 @@ async def deploy_single_agent(
     """
     name = agent_config["name"]
     agent_dir = agent_config["dir"]
-    service_account = agent_config["service_account"]
 
     print(f"🚀 Deploying {name}...")
 
-    # Build Cloud Run deployment command (similar to deploy.sh)
-    agent_path = Path(__file__).parent.parent / agent_dir
-    sa_email = f"{service_account}@{project_id}.iam.gserviceaccount.com"
+    # Build Cloud Run deployment command
+    agent_path = Path(__file__).parent.parent / "agents" / agent_dir
 
     # Build environment variables
     env_vars = (
@@ -125,8 +118,7 @@ async def deploy_single_agent(
         "--platform=managed",
         f"--region={region}",
         f"--project={project_id}",
-        f"--service-account={sa_email}",
-        "--no-allow-unauthenticated",
+        "--allow-unauthenticated",  # Allow public access to agent cards
         f"--set-env-vars={env_vars}",
         "--memory=1Gi",
         "--cpu=1",
