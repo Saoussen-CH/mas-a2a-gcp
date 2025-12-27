@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Notion MCP server globally
-RUN npm install -g @notionhq/notion-mcp-server
+RUN npm install -g @notionhq/notion-mcp-server@1.9.1
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv

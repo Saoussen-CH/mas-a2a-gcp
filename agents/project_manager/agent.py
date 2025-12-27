@@ -198,8 +198,8 @@ def create_project_manager_agent():
         logger.info(f"MCP environment configured with {len(mcp_env)} variables")
 
         server_params = StdioServerParameters(
-            command="npx",
-            args=["-y", "@notionhq/notion-mcp-server"],
+            command="notion-mcp-server",  # Use globally installed version from Dockerfile
+            args=[],
             env=mcp_env
         )
 
