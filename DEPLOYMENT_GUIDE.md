@@ -125,6 +125,22 @@ gcloud --version
 
 ## Initial Setup
 
+### 0. Automated GCP Setup (Recommended)
+
+For a quick automated setup of GCP infrastructure:
+
+```bash
+# Run the automated GCP setup script
+./deploy/setup_gcp.sh
+```
+
+This script will:
+- Enable required Google Cloud APIs
+- Create service accounts for all agents
+- Grant necessary IAM permissions
+
+**Alternative**: Manual setup following steps below
+
 ### 1. Clone and Install Dependencies
 
 ```bash
@@ -478,7 +494,24 @@ cd agents/project_manager
 - ❌ Wrong database ID → Check URL: `notion.so/workspace/DATABASE_ID?v=...`
 - ❌ Wrong environment variable name → Use `NOTION_API_KEY` (not `NOTION_TOKEN`)
 - ❌ Tasks database ID not updated → Edit `agents/project_manager/agent.py:59`
-- ❌ Malformed function calls (fixed in latest version) → Redeploy: `cd deploy && python3 deploy_all_specialists.py`
+- ❌ MCP server version 2.0.0 UUID reformatting bug → **Fixed in latest version** (pins to v1.9.1)
+
+**MCP Version Fix Details:**
+The Dockerfile now pins the Notion MCP server to version 1.9.1 to avoid UUID reformatting bugs in version 2.0.0:
+```dockerfile
+# In agents/project_manager/Dockerfile
+RUN npm install -g @notionhq/notion-mcp-server@1.9.1
+```
+
+The agent code uses the globally installed version instead of downloading the latest via npx:
+```python
+# In agents/project_manager/agent.py
+server_params = StdioServerParameters(
+    command="notion-mcp-server",  # Use globally installed version
+    args=[],  # Not: ["npx", "-y", "@notionhq/notion-mcp-server"]
+    env=mcp_env
+)
+```
 
 **How Dynamic Schema Discovery Works:**
 
@@ -652,10 +685,29 @@ After successful deployment:
 
 ## Additional Resources
 
-- **A2A Inspector Guide**: `deploy/A2A_INSPECTOR_GUIDE.md`
-- **A2A Logging Guide**: `deploy/A2A_LOGGING_GUIDE.md`
-- **Testing Guide**: `deploy/TESTING.md`
+- **Revision Workflow Guide**: `docs/REVISION_WORKFLOW.md` - Learn about the automatic quality improvement loop
+- **Critic Test Prompts**: `critic_revision_test_prompts.md` - Test scenarios for the revision workflow
+- **A2A Inspector Guide**: `tools/a2a-inspector/A2A_INSPECTOR_GUIDE.md`
+- **A2A Logging Guide**: `tools/a2a-inspector/A2A_LOGGING_GUIDE.md`
 - **Main README**: `README.md`
+
+---
+
+## Key Features
+
+### Critic Revision Workflow
+
+The system includes an intelligent revision workflow that ensures quality:
+
+1. **Critic reviews** all creative work (posts + visuals)
+2. **Structured feedback** with scores and Status: `APPROVED` or `NEEDS_REVISION`
+3. **Automatic revisions**: Orchestrator calls copywriter/designer with feedback if needed
+4. **Maximum 1 revision** per agent to prevent infinite loops
+5. **Quality deliverables** reach Project Manager only after approval
+
+See `docs/REVISION_WORKFLOW.md` for complete details and workflow diagrams.
+
+**Test it**: Use prompts from `critic_revision_test_prompts.md` to trigger revision scenarios
 
 ---
 

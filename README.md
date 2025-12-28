@@ -18,6 +18,8 @@
 ## 🚀 Quick Links
 
 - **[Complete Deployment Guide](DEPLOYMENT_GUIDE.md)** - Comprehensive step-by-step deployment instructions
+- **[Revision Workflow Guide](docs/REVISION_WORKFLOW.md)** - Automatic quality improvement with critic feedback
+- **[Critic Test Prompts](critic_revision_test_prompts.md)** - Test scenarios for the revision workflow
 - **[A2A Inspector Guide](tools/a2a-inspector/A2A_INSPECTOR_GUIDE.md)** - Testing individual agents with A2A Inspector
 - **[A2A Logging Guide](tools/a2a-inspector/A2A_LOGGING_GUIDE.md)** - Debugging and monitoring A2A interactions
 
@@ -33,6 +35,7 @@ AI Creative Studio demonstrates **distributed multi-agent orchestration** for cr
 - 🔄 **A2A Protocol**: Standardized agent-to-agent communication over HTTPS
 - 🎯 **Intelligent Orchestration**: Flexible routing - calls 1 agent for simple tasks, all 5 for complete campaigns
 - 📊 **Planning-First Approach**: Orchestrator creates execution plan before delegating
+- 🔁 **Critic Revision Workflow**: Automatic quality improvement loop - critic feedback triggers agent revisions before final delivery
 - 🧠 **Smart Context Compaction**: Lazy summarization prevents token limit failures while preserving quality
 - 📝 **Notion MCP Integration**: Project Manager creates tasks directly in Notion via Model Context Protocol
 - 🔍 **Built-in Observability**: Comprehensive logging and delegation tracking via plugins
@@ -447,6 +450,8 @@ User: "Create complete campaign with posts and timeline"
 ```
 
 **Deployment**: Cloud Run with A2A server
+
+**Revision Workflow**: When the Critic identifies issues (Status: NEEDS_REVISION), the orchestrator automatically calls the relevant agent (copywriter or designer) with the critic's feedback to revise the work before proceeding to the Project Manager. See [docs/REVISION_WORKFLOW.md](docs/REVISION_WORKFLOW.md) for details.
 
 ---
 
@@ -1194,8 +1199,8 @@ mcp_env = {
 }
 
 server_params = StdioServerParameters(
-    command="npx",
-    args=["-y", "@notionhq/notion-mcp-server"],  # Official Notion MCP server
+    command="notion-mcp-server",  # Use globally installed version from Dockerfile
+    args=[],
     env=mcp_env
 )
 
@@ -1216,7 +1221,15 @@ agent = Agent(
 )
 ```
 
-**MCP Server**: Uses the official `@notionhq/notion-mcp-server` package (not `@modelcontextprotocol`)
+**MCP Server**: Uses the official `@notionhq/notion-mcp-server` package version **1.9.1**
+
+> **Important**: The Dockerfile pins the MCP server to version 1.9.1 to avoid UUID reformatting bugs in version 2.0.0. The agent uses the globally installed version instead of downloading the latest via npx.
+
+**Dockerfile Configuration**:
+```dockerfile
+# Install Notion MCP server globally (pinned to 1.9.1)
+RUN npm install -g @notionhq/notion-mcp-server@1.9.1
+```
 
 **Environment Variables Required**:
 - `NOTION_API_KEY`: Your Notion integration token (passed as `NOTION_TOKEN` to MCP server)

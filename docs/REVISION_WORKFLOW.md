@@ -1,6 +1,6 @@
 # Revision Workflow Feature
 
-> **Branch**: `feature/critic-revision-workflow`
+> **Status**: ✅ Merged to `main` branch
 
 ## Overview
 
