@@ -7,7 +7,7 @@
 
 **Watch the complete system in action:** [Deploying Distributed Multi-Agent Systems to Google Cloud: Live Demo](https://www.youtube.com/watch?v=QfON2LF_n3M)
 
-Watch a distributed multi-agent system in action: 1 Creative Director orchestrator coordinates 5 specialist agents via A2A protocol to generate complete Instagram campaigns—from market research to Notion timeline (via MCP integration).
+Watch a distributed multi-agent system in action: 1 Creative Director orchestrator coordinates 5 specialist agents via A2A protocol to generate complete Instagram campaigns:from market research to Notion timeline (via MCP integration).
 
 ## 📋 Table of Contents
 
@@ -34,7 +34,7 @@ Watch a distributed multi-agent system in action: 1 Creative Director orchestrat
 
 ## Overview
 
-AI Creative Studio demonstrates **distributed multi-agent orchestration** for creating complete social media campaigns. It showcases the A2A protocol with an intelligent orchestrator (Creative Director) deployed on Vertex AI Agent Engine that coordinates 5 specialist agents running on Cloud Run to handle everything from market research to project planning with Notion integration.
+AI Creative Studio demonstrates **distributed multi-agent orchestration** for creating complete social media campaigns. It showcases the A2A protocol with an intelligent orchestrator (Creative Director) deployed on Vertex AI Agent Engine that coordinates 5 specialist agents running on Cloud Run to handle everything from market research to project planning with (via  Notion MCP integration).
 
 ### Key Features
 
