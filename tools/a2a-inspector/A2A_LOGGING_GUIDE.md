@@ -56,7 +56,7 @@ The script will:
 gcloud logging read \
   'resource.type="aiplatform.googleapis.com/ReasoningEngine" AND
    resource.labels.reasoning_engine_id="2070963136264929280"' \
-  --project=devfestahlen \
+  --project=YOUR_PROJECT_ID \
   --limit=500 \
   --format="table(timestamp,textPayload)"
 ```
@@ -119,7 +119,7 @@ gcloud logging read \
   'resource.type="aiplatform.googleapis.com/ReasoningEngine" AND
    resource.labels.reasoning_engine_id="2070963136264929280" AND
    severity>=ERROR' \
-  --project=devfestahlen \
+  --project=YOUR_PROJECT_ID \
   --limit=50
 ```
 
@@ -130,7 +130,7 @@ gcloud logging read \
   'resource.type="aiplatform.googleapis.com/ReasoningEngine" AND
    resource.labels.reasoning_engine_id="2070963136264929280" AND
    textPayload=~"project_manager"' \
-  --project=devfestahlen \
+  --project=YOUR_PROJECT_ID \
   --limit=50
 ```
 
@@ -140,7 +140,7 @@ gcloud logging read \
 gcloud logging tail \
   'resource.type="aiplatform.googleapis.com/ReasoningEngine" AND
    resource.labels.reasoning_engine_id="2070963136264929280"' \
-  --project=devfestahlen
+  --project=YOUR_PROJECT_ID
 ```
 
 ## Structured Logging
@@ -185,7 +185,7 @@ If an agent call fails:
    gcloud logging read \
      'resource.type="cloud_run_revision" AND
       resource.labels.service_name="project-manager"' \
-     --project=devfestahlen \
+     --project=YOUR_PROJECT_ID \
      --limit=50
    ```
 

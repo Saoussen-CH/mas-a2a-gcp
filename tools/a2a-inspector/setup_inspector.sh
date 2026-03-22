@@ -17,18 +17,18 @@ echo -e "${GREEN}=== A2A Inspector Setup ===${NC}\n"
 # Check prerequisites
 echo -e "${YELLOW}Checking prerequisites...${NC}"
 
-if ! command -v git &> /dev/null; then
+if ! command -v git &>/dev/null; then
     echo -e "${RED}Error: git is not installed${NC}"
     exit 1
 fi
 
-if ! command -v node &> /dev/null; then
+if ! command -v node &>/dev/null; then
     echo -e "${RED}Error: Node.js is not installed${NC}"
     echo "Install from: https://nodejs.org/"
     exit 1
 fi
 
-if ! command -v npm &> /dev/null; then
+if ! command -v npm &>/dev/null; then
     echo -e "${RED}Error: npm is not installed${NC}"
     exit 1
 fi
@@ -49,7 +49,7 @@ fi
 
 # Install backend dependencies
 echo -e "\n${YELLOW}Installing backend dependencies...${NC}"
-if command -v uv &> /dev/null; then
+if command -v uv &>/dev/null; then
     uv sync
 else
     echo -e "${YELLOW}uv not found, installing with pip...${NC}"
