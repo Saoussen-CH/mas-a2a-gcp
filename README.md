@@ -329,6 +329,8 @@ For a 5-agent workflow:
 - ✅ Scales to 10+ agent workflows
 - ✅ Cost efficient (only summarizes when needed)
 
+![Context Compaction](diagrams/06-context-compaction.png)
+
 **Simple Request** → Calls 1 agent:
 ```
 User: "Just research the market for eco water bottles"
@@ -1249,6 +1251,8 @@ RUN npm install -g @notionhq/notion-mcp-server@1.9.1
 - `API-post-search`: Search for pages
 - `API-post-database-query`: Query databases with filters
 - `API-retrieve-a-database`: Get database schema and details
+
+![MCP Integration](diagrams/07-mcp-integration.png)
 
 **Test the Integration**:
 ```bash
