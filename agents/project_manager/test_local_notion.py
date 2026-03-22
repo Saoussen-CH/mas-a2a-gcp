@@ -1,10 +1,11 @@
 """
 Test Project Manager agent locally with Notion MCP
 """
-import os
-import sys
 import asyncio
 import logging
+import os
+import sys
+
 from dotenv import load_dotenv
 
 # Load environment variables from project root
@@ -23,6 +24,7 @@ from agent import create_project_manager_agent
 from google.adk import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
+
 
 async def test_pm_with_notion():
     """Test Project Manager agent with Notion integration"""
