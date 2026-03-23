@@ -18,42 +18,42 @@ echo -e "${GREEN}=== A2A Inspector Setup ===${NC}\n"
 echo -e "${YELLOW}Checking prerequisites...${NC}"
 
 if ! command -v git &>/dev/null; then
-    echo -e "${RED}Error: git is not installed${NC}"
-    exit 1
+	echo -e "${RED}Error: git is not installed${NC}"
+	exit 1
 fi
 
 if ! command -v node &>/dev/null; then
-    echo -e "${RED}Error: Node.js is not installed${NC}"
-    echo "Install from: https://nodejs.org/"
-    exit 1
+	echo -e "${RED}Error: Node.js is not installed${NC}"
+	echo "Install from: https://nodejs.org/"
+	exit 1
 fi
 
 if ! command -v npm &>/dev/null; then
-    echo -e "${RED}Error: npm is not installed${NC}"
-    exit 1
+	echo -e "${RED}Error: npm is not installed${NC}"
+	exit 1
 fi
 
 echo -e "${GREEN}Prerequisites OK${NC}\n"
 
 # Clone repository if not exists
 if [ -d "$INSPECTOR_DIR" ]; then
-    echo -e "${YELLOW}A2A Inspector already cloned at $INSPECTOR_DIR${NC}"
-    echo -e "${YELLOW}Pulling latest changes...${NC}"
-    cd "$INSPECTOR_DIR"
-    git pull
+	echo -e "${YELLOW}A2A Inspector already cloned at $INSPECTOR_DIR${NC}"
+	echo -e "${YELLOW}Pulling latest changes...${NC}"
+	cd "$INSPECTOR_DIR"
+	git pull
 else
-    echo -e "${YELLOW}Cloning A2A Inspector...${NC}"
-    git clone https://github.com/a2aproject/a2a-inspector.git "$INSPECTOR_DIR"
-    cd "$INSPECTOR_DIR"
+	echo -e "${YELLOW}Cloning A2A Inspector...${NC}"
+	git clone https://github.com/a2aproject/a2a-inspector.git "$INSPECTOR_DIR"
+	cd "$INSPECTOR_DIR"
 fi
 
 # Install backend dependencies
 echo -e "\n${YELLOW}Installing backend dependencies...${NC}"
 if command -v uv &>/dev/null; then
-    uv sync
+	uv sync
 else
-    echo -e "${YELLOW}uv not found, installing with pip...${NC}"
-    pip install -e .
+	echo -e "${YELLOW}uv not found, installing with pip...${NC}"
+	pip install -e .
 fi
 
 # Install frontend dependencies
