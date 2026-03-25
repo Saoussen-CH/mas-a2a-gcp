@@ -152,17 +152,56 @@ echo "API key set: $([ -n '$GOOGLE_API_KEY' ] && echo Yes || echo No)"
 ---
 
 ## Step 3: Understand the A2A Protocol
-Duration: 5:00
+Duration: 8:00
 
 Before writing code, let's understand **A2A** — the communication backbone of this system.
 
+### The problem A2A solves
+
+Imagine you have a Brand Strategist agent built with ADK and a Copywriter agent built with LangGraph. How does one call the other? They speak different internal languages. You'd need to write custom glue code every time.
+
+**A2A solves this** by defining a universal language that any agent — regardless of framework — can speak. It's the HTTP of the agent world: a standard everyone agrees on so anyone can talk to anyone.
+
 ### What is A2A?
 
-The Agent-to-Agent (A2A) protocol is an open standard that lets AI agents from **any framework** communicate over HTTPS using JSON-RPC.
+A2A (Agent-to-Agent) is an **open protocol** published by Google. It defines:
+1. **How an agent describes itself** (agent card)
+2. **How another agent calls it** (JSON-RPC over HTTPS)
+3. **How results are returned** (streaming or single response)
 
-### Key concepts
+The key insight: once an agent is A2A-compliant, any orchestrator can use it — ADK, LangGraph, CrewAI, custom code — without knowing how the agent was built internally.
 
-**1. Agent Card** — Each agent self-describes at `/.well-known/agent.json`:
+### How it works — step by step
+
+```
+Creative Director                  Brand Strategist
+      │                                  │
+      │  1. GET /.well-known/agent.json  │
+      │ ────────────────────────────────►│
+      │  ◄──── agent card (name, url,    │
+      │         skills, capabilities) ───│
+      │                                  │
+      │  2. POST /a2a/brand_strategist   │
+      │     {"method": "tasks/send",     │
+      │      "params": {"message": ...}} │
+      │ ────────────────────────────────►│
+      │                                  │  LLM does
+      │                                  │  the work...
+      │  3. streaming response chunks    │
+      │  ◄───────────────────────────────│
+      │  ◄───────────────────────────────│
+      │  ◄───────────────────────────────│
+```
+
+**Step 1 — Discovery:** The orchestrator fetches the agent card once to learn the agent's name, URL, and capabilities.
+
+**Step 2 — Invocation:** The orchestrator sends a task via JSON-RPC POST. The body contains the message (the prompt for the specialist).
+
+**Step 3 — Response:** The specialist streams back its response in chunks, just like a regular LLM call.
+
+### The agent card
+
+Each agent publishes a self-description at `/.well-known/agent.json`. This is like a business card — it tells the world what the agent can do and where to reach it:
 
 ```json
 {
@@ -171,46 +210,43 @@ The Agent-to-Agent (A2A) protocol is an open standard that lets AI agents from *
   "url": "https://brand-strategist-xyz.run.app",
   "capabilities": { "streaming": true },
   "skills": [
-    { "id": "market_research", "description": "Research markets and competitors" }
+    {
+      "id": "market_research",
+      "description": "Research target audiences, competitors, and trends"
+    }
   ]
 }
 ```
 
-**2. Discovery** — The orchestrator fetches agent cards to learn what each agent can do.
+The orchestrator reads this card to build its `RemoteA2aAgent` object — no hardcoded knowledge of the specialist's internals needed.
 
-**3. Invocation** — Agents communicate via JSON-RPC:
+### Exposing an agent via A2A in ADK
 
-```bash
-POST /a2a/brand_strategist
-{
-  "jsonrpc": "2.0",
-  "method": "tasks/send",
-  "params": {
-    "message": {
-      "role": "user",
-      "parts": [{"text": "Research the eco-friendly water bottle market"}]
-    }
-  }
-}
-```
-
-**4. ADK wrapping** — `to_a2a()` makes any ADK agent A2A-compliant in one line:
+`to_a2a()` wraps any ADK agent in an A2A-compliant FastAPI app. One line:
 
 ```python
 from google.adk.a2a.utils.agent_to_a2a import to_a2a
 
+# root_agent = your normal ADK Agent(...)
 a2a_app = to_a2a(root_agent, host=PUBLIC_HOST, port=PUBLIC_PORT, protocol=PROTOCOL)
 uvicorn.run(a2a_app, host=HOST, port=PORT)
 ```
 
-### Why A2A?
+This automatically creates:
+- `/.well-known/agent.json` — the agent card
+- `/a2a/{agent_name}` — the JSON-RPC endpoint
 
-| Benefit | Description |
+### Why A2A matters for this project
+
+Without A2A, the Creative Director would need to import and run all 5 specialists in the same process. With A2A:
+
+| Without A2A | With A2A |
 |---|---|
-| **Framework agnostic** | ADK, LangGraph, CrewAI agents all interoperate |
-| **Discoverable** | Agents self-describe capabilities via agent cards |
-| **Scalable** | Each agent is an independent HTTPS microservice |
-| **Composable** | Mix and swap agents without changing the orchestrator |
+| All agents in one process | Each agent is an independent service |
+| One framework for all agents | Mix ADK, LangGraph, CrewAI freely |
+| Scale everything together | Scale each agent independently |
+| One failure crashes all | Failures are isolated per service |
+| Hard to update one agent | Deploy agents independently |
 
 ---
 
@@ -351,57 +387,117 @@ OVERALL ASSESSMENT:
 ---
 
 ## Step 6: The Project Manager Agent with MCP
-Duration: 8:00
+Duration: 10:00
 
-The Project Manager introduces a new ADK concept: **MCP (Model Context Protocol)**.
+The Project Manager introduces a new concept: **MCP (Model Context Protocol)**.
 
 ```bash
 cat agents/project_manager/agent.py
 ```
 
+### The problem MCP solves
+
+Your agent needs to call an external service — say, create a page in Notion. You could write Python code that calls the Notion REST API directly. But then:
+
+- Every developer writes a different wrapper
+- You need to maintain custom integration code
+- The LLM doesn't know the API exists unless you describe every endpoint manually
+
+**MCP solves this** by defining a standard way for external services to expose their capabilities as **tools** an LLM can discover and call automatically.
+
 ### What is MCP?
 
-MCP lets agents connect to external services via **stdio servers** that expose tools the LLM can call. Think of it as a plugin system for agents.
+MCP (Model Context Protocol) is an **open standard** (published by Anthropic) for connecting AI agents to external tools and data sources. It works like a universal adapter.
 
-### Notion MCP integration
+An MCP server is a small program that:
+1. Wraps an external API (Notion, GitHub, databases, filesystems...)
+2. Exposes that API as a list of typed, documented **tools**
+3. Communicates with the agent via a simple protocol (stdio or HTTP)
+
+The agent connects to the MCP server, automatically discovers the available tools, and can call them just like any other tool — the LLM sees `API-post-page(...)` as a callable function.
+
+### A2A vs MCP — what's the difference?
+
+This is a common point of confusion. Here's the key distinction:
+
+| | A2A | MCP |
+|---|---|---|
+| **What connects** | Agent ↔ Agent | Agent ↔ External tool/service |
+| **The other side is** | Another LLM agent | An API wrapper (no LLM) |
+| **Example** | Creative Director calls Brand Strategist | Project Manager calls Notion API |
+| **Protocol** | JSON-RPC over HTTPS | stdio or HTTP stream |
+| **Defined by** | Google | Anthropic |
+
+Think of it this way:
+- **A2A** = how agents talk to other **agents**
+- **MCP** = how agents talk to **tools and services**
+
+In this project both are used together:
+
+```
+Creative Director
+    │
+    │  (A2A)  Brand Strategist ─── (google_search tool built into ADK)
+    │  (A2A)  Copywriter
+    │  (A2A)  Designer
+    │  (A2A)  Critic
+    │  (A2A)  Project Manager
+                   │
+                   │  (MCP)  notion-mcp-server ──► Notion REST API
+```
+
+### How MCP works in the code
 
 ```python
 from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
 from mcp import StdioServerParameters
 
-# Connect to the Notion MCP server via stdio
+# 1. Tell ADK how to launch the MCP server process
 server_params = StdioServerParameters(
-    command="notion-mcp-server",          # Installed in Dockerfile
+    command="notion-mcp-server",   # Executable installed in the Docker image
     env={"NOTION_TOKEN": notion_api_key}
 )
 
+# 2. ADK starts the process and discovers its tools automatically
 notion_toolset = McpToolset(
     connection_params=StdioConnectionParams(server_params=server_params)
 )
 
-# Agent automatically gets Notion API tools!
+# 3. Pass the toolset to the agent — the LLM can now call Notion API tools
 agent = Agent(
     name="project_manager",
     model="gemini-2.5-flash",
     instruction=get_system_instruction(database_id=notion_database_id),
-    tools=[notion_toolset],
+    tools=[notion_toolset],   # LLM sees: API-post-page, API-retrieve-a-database, etc.
 )
 ```
 
-The Notion MCP server exposes these tools directly to the LLM:
-- `API-retrieve-a-database` — discover database schema
-- `API-post-page` — create pages
-- `API-patch-page` — update pages
-- `API-post-database-query` — query existing data
+When the agent runs, ADK starts `notion-mcp-server` as a subprocess. The MCP server exposes these tools to the LLM:
+
+| Tool | What it does |
+|---|---|
+| `API-retrieve-a-database` | Fetches a database's schema (property names, types, valid values) |
+| `API-post-database-query` | Queries pages in a database |
+| `API-post-page` | Creates a new page |
+| `API-patch-page` | Updates an existing page |
+
+The LLM calls these like normal functions — it doesn't know or care that they go through MCP to the Notion REST API under the hood.
+
+### Why stdio? Why not just HTTP?
+
+The MCP server runs as a **child process** of the agent, communicating over stdin/stdout. This means:
+- No network port needed — runs locally alongside the agent
+- Lifecycle managed by the agent (started on demand, stopped on exit)
+- Simple to containerize — everything ships in one Docker image
 
 ### Graceful degradation
 
 ```python
 if not notion_api_key or not notion_database_id:
-    # Create agent without Notion tools — still creates text timelines
-    agent = Agent(name="project_manager", ...)
+    # No Notion — agent still works, produces text-based timelines
+    agent = Agent(name="project_manager", model="gemini-2.5-flash", ...)
 else:
-    # Create agent with Notion MCP tools
+    # With Notion — agent gets MCP tools and creates actual database entries
     agent = Agent(name="project_manager", tools=[notion_toolset], ...)
 ```
 
