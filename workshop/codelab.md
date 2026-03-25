@@ -51,29 +51,69 @@ You will write **5 specialist AI agents**, connect them via the **Agent-to-Agent
 - A **Gemini API key** from [aistudio.google.com](https://aistudio.google.com/app/apikey)
 - Basic Python knowledge
 
-### Environment
+### Run this codelab in Cloud Shell
 
-> This codelab is designed for **GCP Cloud Shell**. All commands run directly in your browser — no local setup required.
->
-> Open Cloud Shell: [console.cloud.google.com](https://console.cloud.google.com) → click **Activate Cloud Shell** (`>_`) in the top toolbar.
+Click the button below to clone the starter repo and open this codelab automatically in Cloud Shell:
+
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://ssh.cloud.google.com/cloudshell/open?cloudshell_git_repo=https://github.com/YOUR_USERNAME/ai-creative-studio&cloudshell_tutorial=workshop/codelab.md&cloudshell_workspace=workshop/starter)
+
+> Replace `YOUR_USERNAME` with your GitHub username before sharing this link with participants.
 
 ---
 
-## Step 1: Set Up Your Environment
+## Step 1: Set Up Your Cloud Shell Environment
 Duration: 5:00
+
+### What is Cloud Shell?
+
+Cloud Shell is a free browser-based Linux environment with everything pre-installed: `gcloud`, `git`, Python, Docker, and more. You don't need to install anything locally.
+
+When you clicked "Open in Cloud Shell", it opened two panels:
+
+```text
+┌──────────────────────────────────────────────────────┐
+│  Cloud Shell Editor  (top panel)                     │
+│  • File tree on the left                             │
+│  • Open files as tabs                                │
+│  • Use  cloudshell edit <file>  to open a file here  │
+├──────────────────────────────────────────────────────┤
+│  Terminal  (bottom panel)                            │
+│  • Run all commands here                             │
+│  • Pre-authenticated with your Google account        │
+└──────────────────────────────────────────────────────┘
+```
+
+**Web Preview** — used later when running `adk web` to test agents in the browser:
+
+```text
+Cloud Shell toolbar (top-right):
+  ⋮  [Open Editor]  [Web Preview ↗]  [Settings]
+                           │
+                           └─► "Preview on port 8000"
+                               Opens the agent UI in a new browser tab
+```
+
+> **Tip:** If Cloud Shell goes idle for 20 minutes it will disconnect. If this happens, reconnect and re-run `set -a && source .env && set +a` to reload your environment variables.
 
 ### Authenticate and configure your project
 
-Cloud Shell is pre-authenticated. Run these commands to configure your project:
+Cloud Shell is already authenticated with your Google account. Just set your project:
 
 ```console
-# Confirm your active account
 gcloud auth list
+```
 
-# Set your project
+Expected output:
+```text
+  ACCOUNT: your-email@example.com
+  PROJECT: (unset)
+```
+
+Now set your project:
+
+```console
 export PROJECT_ID="your-project-id"   # <-- CHANGE THIS
 export REGION="us-central1"
-
 gcloud config set project $PROJECT_ID
 ```
 
@@ -909,9 +949,9 @@ The LLM decides *when* to call each tool based on the system instruction and the
 ---
 
 ## Step 8: Test Locally with ADK Web
-Duration: 5:00
+Duration: 8:00
 
-Before deploying to Cloud Run, test agents locally using the ADK web interface.
+Before deploying to Cloud Run, test the Brand Strategist agent locally using the **ADK web UI** — a built-in chat interface for testing agents.
 
 ### Install dependencies
 
@@ -920,18 +960,53 @@ cd ~/ai-creative-studio/workshop/starter
 pip install -r agents/brand_strategist/requirements.txt
 ```
 
-### Start ADK web UI for the Brand Strategist
+### Start the ADK web UI
 
 ```console
 cd agents/brand_strategist
 adk web
 ```
 
-In Cloud Shell, click **Web Preview** → **Preview on port 8000** to open the ADK UI in your browser.
+You'll see:
+```text
+INFO: Started server process
+INFO: Uvicorn running on http://localhost:8000
+```
 
-Try these test prompts:
-- `"Research the eco-friendly water bottle market for health-conscious millennials"`
-- `"What are the top Instagram trends in the wellness space?"`
+The server is now running inside Cloud Shell. To open it in your browser, use **Web Preview**:
+
+1. Look at the **Cloud Shell toolbar** at the top of the page
+2. Click the **Web Preview** icon ( ![web preview](https://cloud.google.com/static/shell/docs/images/web_preview_button.png) looks like a box with an upward arrow )
+3. Click **"Preview on port 8000"**
+
+A new browser tab opens with the ADK web UI:
+
+```text
+┌─────────────────────────────────────────┐
+│  ADK Web Interface                       │
+│                                         │
+│  Agent: brand_strategist   ▼            │
+│                                         │
+│  ┌─────────────────────────────────┐   │
+│  │  Type a message...              │   │
+│  └─────────────────────────────────┘   │
+└─────────────────────────────────────────┘
+```
+
+> **If port 8000 is not listed:** click **"Change port"** and type `8000`.
+
+### Try these test prompts
+
+In the ADK web UI chat box, try:
+
+- `Research the eco-friendly water bottle market for health-conscious millennials`
+- `What are the top Instagram trends in the wellness space in 2025?`
+
+You should see the agent call Google Search and return structured research with Audience Insights, Competitive Analysis, and Trending Topics sections.
+
+### Stop the server and return to the terminal
+
+When you're done testing, go back to the Cloud Shell terminal and press `Ctrl+C` to stop the server.
 
 ### Quick programmatic test
 
