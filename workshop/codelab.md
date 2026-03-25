@@ -17,7 +17,7 @@ You will write **5 specialist AI agents**, connect them via the **Agent-to-Agent
 
 ### Architecture
 
-```
+```text
                   ┌───────────────────────────────────────────┐
                   │        Vertex AI Agent Engine              │
   User ──────────►│         Creative Director                  │
@@ -66,7 +66,7 @@ Duration: 5:00
 
 Cloud Shell is pre-authenticated. Run these commands to configure your project:
 
-```bash
+```console
 # Confirm your active account
 gcloud auth list
 
@@ -78,7 +78,7 @@ gcloud config set project $PROJECT_ID
 ```
 
 Expected output:
-```
+```text
 Updated property [core/project].
 ```
 
@@ -104,19 +104,19 @@ Duration: 3:00
 
 This codelab uses a **starter repository** — a skeleton project with all the infrastructure in place (Dockerfiles, requirements, deploy scripts) but with the agent logic left for you to write.
 
-```bash
+```console
 git clone https://github.com/YOUR_USERNAME/ai-creative-studio.git ~/ai-creative-studio
 cd ~/ai-creative-studio/workshop/starter
 ```
 
 Explore the starter structure:
 
-```bash
+```console
 find . -name 'agent.py' | sort
 ```
 
 Expected output:
-```
+```text
 ./agents/brand_strategist/agent.py
 ./agents/copywriter/agent.py
 ./agents/creative_director/agent.py
@@ -129,7 +129,7 @@ Each `agent.py` contains `# TODO` placeholders where you will write the agent lo
 
 Open any skeleton file to see what's expected:
 
-```bash
+```console
 cat agents/brand_strategist/agent.py
 ```
 
@@ -137,13 +137,13 @@ You'll see `# TODO` comments explaining exactly what to add at each point.
 
 ### Configure environment variables
 
-```bash
+```console
 cp .env.example .env
 ```
 
 Open `.env` in the Cloud Shell Editor and fill in:
 
-```bash
+```console
 GCP_PROJECT_ID=your-project-id        # same as $PROJECT_ID
 GCP_REGION=us-central1
 GOOGLE_API_KEY=your-gemini-api-key    # from aistudio.google.com
@@ -181,7 +181,7 @@ The key insight: once an agent is A2A-compliant, any orchestrator can use it —
 
 ### How it works — step by step
 
-```
+```text
 Creative Director                  Brand Strategist
       │                                  │
       │  1. GET /.well-known/agent.json  │
@@ -265,7 +265,7 @@ The Brand Strategist researches markets, competitors, and trends using **Google 
 
 Open the skeleton file in Cloud Shell Editor:
 
-```bash
+```console
 cloudshell edit agents/brand_strategist/agent.py
 ```
 
@@ -368,7 +368,7 @@ These three specialists follow the same ADK pattern as the Brand Strategist, but
 
 Open the file:
 
-```bash
+```console
 cloudshell edit agents/copywriter/agent.py
 ```
 
@@ -424,7 +424,7 @@ root_agent = Agent(
 
 Open the file:
 
-```bash
+```console
 cloudshell edit agents/designer/agent.py
 ```
 
@@ -480,7 +480,7 @@ root_agent = Agent(
 
 Open the file:
 
-```bash
+```console
 cloudshell edit agents/critic/agent.py
 ```
 
@@ -553,7 +553,7 @@ The Project Manager introduces a new concept: **MCP (Model Context Protocol)**.
 
 Open the file:
 
-```bash
+```console
 cloudshell edit agents/project_manager/agent.py
 ```
 
@@ -598,7 +598,7 @@ Think of it this way:
 
 In this project both are used together:
 
-```
+```text
 Creative Director
     │
     │  (A2A)  Brand Strategist ─── (google_search tool built into ADK)
@@ -733,7 +733,7 @@ The Creative Director is the master orchestrator. It reads specialist URLs from 
 
 Open the file:
 
-```bash
+```console
 cloudshell edit agents/creative_director/agent.py
 ```
 
@@ -877,7 +877,7 @@ A full 5-agent campaign generates a lot of tokens. Without compaction the workfl
 
 **How compaction works in a 5-agent run:**
 
-```
+```text
 Agent 1 (Strategist)  → full context
 Agent 2 (Copywriter)  → full context
 Agent 3 (Designer)    → full context
@@ -888,7 +888,7 @@ Agent 5 (PM)          → sees summary of 1-3 + full output of 4
 
 ### Understanding `RemoteA2aAgent` + `AgentTool`
 
-```
+```text
 RemoteA2aAgent("brand_strategist", agent_card=url)
      │
      │  wraps the remote service so ADK can call it
@@ -915,14 +915,14 @@ Before deploying to Cloud Run, test agents locally using the ADK web interface.
 
 ### Install dependencies
 
-```bash
+```console
 cd ~/ai-creative-studio/workshop/starter
 pip install -r agents/brand_strategist/requirements.txt
 ```
 
 ### Start ADK web UI for the Brand Strategist
 
-```bash
+```console
 cd agents/brand_strategist
 adk web
 ```
@@ -1007,7 +1007,7 @@ CMD ["python", "agent.py"]
 
 ### Deploy all 5 specialists in parallel
 
-```bash
+```console
 cd ~/ai-creative-studio/workshop/starter
 source .env
 
@@ -1142,7 +1142,7 @@ done
 
 ### Deploy the orchestrator
 
-```bash
+```console
 cd ~/ai-creative-studio/workshop/starter
 source .env
 
@@ -1151,7 +1151,7 @@ python deploy/deploy_orchestrator.py --action deploy
 
 This takes ~5–10 minutes. When complete, the `AGENT_ENGINE_ID` and `AGENT_ENGINE_RESOURCE_NAME` are saved to `.env`.
 
-```bash
+```console
 source .env
 echo "Agent Engine ID: $AGENT_ENGINE_ID"
 echo "Resource: $AGENT_ENGINE_RESOURCE_NAME"
@@ -1304,7 +1304,7 @@ Enable the Project Manager to create tasks directly in Notion.
 
 ### Add credentials to .env
 
-```bash
+```console
 echo "NOTION_API_KEY=ntn_your-token" >> .env      # <-- replace
 echo "NOTION_DATABASE_ID=your-db-id" >> .env       # <-- replace
 ```
@@ -1329,7 +1329,7 @@ Run a new campaign and check your Notion workspace — a project and tasks will 
 
 The Project Manager uses **dynamic schema discovery** — it never hardcodes Notion property names:
 
-```
+```text
 Step 1: Call API-retrieve-a-database to discover exact property names
 Step 2: Read the "properties" object in the response
 Step 3: Use ONLY discovered property names (case-sensitive) in API calls
@@ -1361,7 +1361,7 @@ done
 
 ### Delete the Agent Engine
 
-```bash
+```console
 source .env
 
 python deploy/deploy_orchestrator.py --action cleanup
@@ -1369,7 +1369,7 @@ python deploy/deploy_orchestrator.py --action cleanup
 
 ### Verify everything is removed
 
-```bash
+```console
 gcloud run services list --region=us-central1
 ```
 
