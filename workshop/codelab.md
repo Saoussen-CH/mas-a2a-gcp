@@ -99,17 +99,17 @@ This takes about 2 minutes. You'll see `Operation finished successfully` when do
 
 ---
 
-## Step 2: Clone the Repository
+## Step 2: Clone the Starter Repository
 Duration: 3:00
 
-Clone the AI Creative Studio project to your Cloud Shell environment:
+This codelab uses a **starter repository** — a skeleton project with all the infrastructure in place (Dockerfiles, requirements, deploy scripts) but with the agent logic left for you to write.
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/ai-creative-studio.git ~/ai-creative-studio
-cd ~/ai-creative-studio
+cd ~/ai-creative-studio/workshop/starter
 ```
 
-Explore the structure:
+Explore the starter structure:
 
 ```bash
 find . -name 'agent.py' | sort
@@ -125,7 +125,15 @@ Expected output:
 ./agents/project_manager/agent.py
 ```
 
-Each agent is a self-contained Python service with its own `agent.py`, `requirements.txt`, and `Dockerfile`.
+Each `agent.py` contains `# TODO` placeholders where you will write the agent logic. The `Dockerfile`, `requirements.txt`, and deploy scripts are already complete.
+
+Open any skeleton file to see what's expected:
+
+```bash
+cat agents/brand_strategist/agent.py
+```
+
+You'll see `# TODO` comments explaining exactly what to add at each point.
 
 ### Configure environment variables
 
@@ -133,7 +141,7 @@ Each agent is a self-contained Python service with its own `agent.py`, `requirem
 cp .env.example .env
 ```
 
-Open the `.env` file in the Cloud Shell Editor and fill in:
+Open `.env` in the Cloud Shell Editor and fill in:
 
 ```bash
 GCP_PROJECT_ID=your-project-id        # same as $PROJECT_ID
@@ -146,7 +154,7 @@ Load the variables:
 ```bash
 set -a && source .env && set +a
 echo "Project: $GCP_PROJECT_ID"
-echo "API key set: $([ -n '$GOOGLE_API_KEY' ] && echo Yes || echo No)"
+echo "API key set: $([ -n "$GOOGLE_API_KEY" ] && echo Yes || echo No)"
 ```
 
 ---
@@ -251,149 +259,305 @@ Without A2A, the Creative Director would need to import and run all 5 specialist
 ---
 
 ## Step 4: The Brand Strategist Agent
-Duration: 8:00
+Duration: 10:00
 
 The Brand Strategist researches markets, competitors, and trends using **Google Search**.
 
-Open the file:
+Open the skeleton file in Cloud Shell Editor:
 
 ```bash
-cat agents/brand_strategist/agent.py
+cloudshell edit agents/brand_strategist/agent.py
 ```
 
-### Key code walkthrough
+You'll see two `# TODO` sections. Fill them in now.
 
-**1. Import the ADK Agent and Google Search tool:**
+### TODO 1 — Write the system instruction
+
+Replace the `SYSTEM_INSTRUCTION` placeholder with this:
 
 ```python
-from google.adk.agents import Agent
-from google.adk.tools import google_search
+SYSTEM_INSTRUCTION = f"""You are a Brand Strategist specializing in market research and trend analysis.
+
+IMPORTANT: Today's date is {datetime.date.today().strftime("%B %d, %Y")}.
+When conducting research, focus on current trends from {datetime.date.today().year}.
+Use search queries like "[topic] trends {datetime.date.today().year}" for recent insights.
+
+IMPORTANT: Your role is RESEARCH ONLY. You do NOT create campaign content, captions, or designs.
+After providing research insights, your work is complete.
+
+Your expertise:
+- Identifying target audience insights and behaviors
+- Analyzing competitor strategies
+- Researching current social media trends
+- Understanding platform algorithms and best practices
+
+You have access to:
+- google_search: Search the web for competitors, trends, and market insights
+
+When given a campaign brief:
+1. Use google_search to research the target audience's current interests
+2. Search for and analyze 2-3 competitor brands
+3. Identify 3-5 trending topics related to the product category
+4. Provide high-level strategic insights — NOT specific campaign content
+
+DO NOT create captions, copy, designs, or any campaign content.
+
+Format your output as:
+**Audience Insights:**
+[Key behaviors and preferences based on research]
+
+**Competitive Analysis:**
+[What 2-3 competitors are doing — strengths and weaknesses]
+
+**Trending Topics:**
+[3-5 relevant trends to consider]
+
+**Key Strategic Insights:**
+[High-level themes and positioning opportunities]
+"""
 ```
 
-**2. Define the agent with a focused system instruction:**
+### TODO 2 — Create the root_agent
+
+Replace the incomplete `root_agent` with:
 
 ```python
 root_agent = Agent(
     name="brand_strategist",
     model="gemini-2.5-flash",
-    instruction=SYSTEM_INSTRUCTION,  # Defines role, output format, constraints
-    description="Brand strategist for market research and competitive insights",
-    tools=[google_search],           # Built-in Google Search tool
+    instruction=SYSTEM_INSTRUCTION,
+    description="Brand strategist for market research, trend analysis, and competitive insights",
+    tools=[google_search],
 )
 ```
 
-**3. Expose as A2A service in `__main__`:**
+### Understanding the code
+
+**Why the split between `HOST` and `PUBLIC_HOST`?**
+
+The `__main__` block (already complete in the skeleton) uses two different URL configs:
 
 ```python
-# Two different URL configs:
-# HOST/PORT      = where the container listens (e.g., 0.0.0.0:8080)
-# PUBLIC_HOST/PORT = what the agent card advertises (e.g., Cloud Run URL on :443)
+# Where the container actually listens:
+HOST = "0.0.0.0"
+PORT = 8080
+
+# What gets advertised in the agent card (the Cloud Run public URL):
+PUBLIC_HOST = os.getenv("PUBLIC_HOST", "localhost")
+PUBLIC_PORT = int(os.getenv("PUBLIC_PORT", str(PORT)))
+PROTOCOL = os.getenv("PROTOCOL", "http")
 
 a2a_app = to_a2a(root_agent, host=PUBLIC_HOST, port=PUBLIC_PORT, protocol=PROTOCOL)
 uvicorn.run(a2a_app, host=HOST, port=PORT)
 ```
 
-> **Note:** The split between `HOST` (listen address) and `PUBLIC_HOST` (advertised address) is critical for Cloud Run. The container listens on `0.0.0.0:8080` but the agent card must advertise the public HTTPS URL.
+When deployed to Cloud Run, `PUBLIC_HOST` is set to the Cloud Run HTTPS URL and `PUBLIC_PORT=443`. This ensures the agent card advertises the correct external address while the container still listens internally on `0.0.0.0:8080`.
 
-### System instruction design
+**Why RESEARCH ONLY?**
 
-The Brand Strategist's instruction enforces strict boundaries:
-
-```
-DO NOT:
-- Create captions, copy, or specific messaging
-- Generate image concepts or designs
-- Write TikTok scripts or Instagram posts
-
-Your job is RESEARCH ONLY.
-```
-
-This keeps agents focused and prevents scope creep in multi-agent workflows.
+Keeping each agent strictly scoped prevents scope creep. If the Brand Strategist started writing copy too, the Copywriter would receive redundant input and produce inconsistent output. Clear boundaries make the whole system more predictable.
 
 ---
 
 ## Step 5: The Copywriter, Designer, and Critic Agents
-Duration: 10:00
+Duration: 12:00
 
-The remaining three specialist agents follow the same pattern — no tools needed, just a well-crafted system instruction.
+These three specialists follow the same ADK pattern as the Brand Strategist, but without any tools — the LLM handles their tasks directly using the context passed by the orchestrator.
 
 ### Copywriter Agent
 
+Open the file:
+
 ```bash
-cat agents/copywriter/agent.py
+cloudshell edit agents/copywriter/agent.py
 ```
 
-The Copywriter reads prior context explicitly passed by the orchestrator:
+Replace `SYSTEM_INSTRUCTION` with:
 
-```
-IMPORTANT: You will receive strategic insights from the Brand Strategist
-in the conversation history above. Review their research on audience insights,
-competitive analysis, and trending topics to inform your copy.
+```python
+SYSTEM_INSTRUCTION = """You are an expert Social Media Copywriter specializing in Instagram content.
+
+IMPORTANT: The conversation history above contains research from the Brand Strategist.
+You MUST review their findings on audience insights, competitor analysis, and trending topics
+before writing any copy. This context is your creative foundation.
+
+Your task: Create 3-5 Instagram caption variations for the campaign brief.
+
+For each caption provide:
+1. A theme title (e.g., "Motivation Monday", "Science-backed")
+2. The full caption text (max 2,200 characters)
+3. 5-10 relevant hashtags (mix of popular and niche)
+4. A clear CTA (call-to-action)
+
+Caption variety — use different tones across the set:
+- Inspirational / aspirational
+- Educational / informative
+- Community / belonging
+- Urgency / FOMO
+- Story-driven / personal
+
+Format each caption as:
+**Caption [N]: [Theme Title]**
+[Full caption text]
+.
+[Hashtags]
+CTA: [Call to action]
+"""
 ```
 
-> **Key insight:** Agents don't share memory. The orchestrator explicitly includes the Brand Strategist's output in the Copywriter's prompt. This is the standard pattern for sequential agent workflows.
+Replace the incomplete `root_agent` with:
+
+```python
+root_agent = Agent(
+    name="copywriter",
+    model="gemini-2.5-flash",
+    instruction=SYSTEM_INSTRUCTION,
+    description="Instagram copywriter that creates engaging captions, hashtags, and CTAs",
+)
+```
+
+> **Key insight — no shared memory:** The Copywriter has no idea what the Brand Strategist said unless the orchestrator explicitly passes that output as context. In a multi-agent workflow, the orchestrator is responsible for assembling and forwarding prior results. This is why the instruction says "the conversation history above contains research" — that context is injected by the Creative Director.
+
+---
 
 ### Designer Agent
 
-```bash
-cat agents/designer/agent.py
-```
-
-The Designer creates **Imagen-ready prompts** for each caption:
-
-```
-Format:
-For Caption 1: "Every sip saves the planet"
-Concept A: Minimalist Nature
-  Prompt: Product shot against lush forest backdrop, morning mist,
-          golden hour lighting, 1080x1080, photorealistic...
-  Colors: Earth tones (forest green, warm brown, cream)
-  Mood:   Serene, aspirational
-```
-
-In production these prompts feed directly into the Vertex AI Imagen API.
-
-### Critic Agent — Structured output for machine-readable parsing
+Open the file:
 
 ```bash
-cat agents/critic/agent.py
+cloudshell edit agents/designer/agent.py
 ```
 
-The Critic uses a strict format that the orchestrator can parse programmatically:
+Replace `SYSTEM_INSTRUCTION` with:
 
+```python
+SYSTEM_INSTRUCTION = """You are a Visual Content Director specializing in Instagram aesthetics.
+
+IMPORTANT: The conversation history above contains:
+- Brand strategy insights from the Brand Strategist
+- Instagram captions from the Copywriter
+Review BOTH before creating visual concepts.
+
+Your task: For each caption, create 2-3 visual concepts with Imagen-ready prompts.
+
+Each concept must include:
+- A detailed Imagen generation prompt (photorealistic, specific composition)
+- Visual style (e.g., minimalist, vibrant, cinematic)
+- Color palette (specific colors with mood rationale)
+- Mood / feeling
+- Instagram dimensions: 1080x1080 (square) or 1080x1350 (portrait)
+
+Format for each caption:
+
+**For Caption [N]: "[Caption Theme]"**
+
+Concept A: [Visual Theme Name]
+- Prompt: [Full Imagen prompt — be specific: subject, setting, lighting, angle, style]
+- Style: [Visual style descriptor]
+- Colors: [Palette with hex codes or descriptive names]
+- Mood: [Emotional tone]
+- Format: [1080x1080 or 1080x1350]
+
+Concept B: [Alternative visual approach]
+[Same format]
+"""
 ```
-POSTS REVIEW:
-- Score: 6/10
-- Status: NEEDS_REVISION    ← Orchestrator reads this field
-- Suggestions: Strengthen CTAs, more professional tone
 
-VISUALS REVIEW:
-- Score: 8/10
-- Status: APPROVED          ← Orchestrator skips designer revision
+Replace the incomplete `root_agent` with:
 
-OVERALL ASSESSMENT:
-- All Approved: NO          ← Triggers copywriter revision cycle
+```python
+root_agent = Agent(
+    name="designer",
+    model="gemini-2.5-flash",
+    instruction=SYSTEM_INSTRUCTION,
+    description="Visual content director that creates Imagen-ready image generation prompts",
+)
 ```
 
-**Scoring guide:**
+---
 
-| Score | Status | Action |
-|---|---|---|
-| 9–10 | APPROVED | Publish as-is |
-| 7–8 | APPROVED | Minor issues, acceptable |
-| 5–6 | NEEDS_REVISION | Improve before proceeding |
-| 1–4 | NEEDS_REVISION | Significant issues |
+### Critic Agent — Structured output is critical
+
+Open the file:
+
+```bash
+cloudshell edit agents/critic/agent.py
+```
+
+> **Before writing the instruction**, understand why the format matters: the Creative Director orchestrator parses the Critic's response to decide whether to trigger revisions. If the format is wrong, revision logic breaks. The words `APPROVED` and `NEEDS_REVISION` must appear exactly.
+
+Replace `SYSTEM_INSTRUCTION` with:
+
+```python
+SYSTEM_INSTRUCTION = """You are a Creative Director and Quality Assurance Specialist.
+
+Your role: Review Instagram campaign materials and provide structured, actionable feedback.
+
+CRITICAL: You MUST use the EXACT output format below. The orchestrator parses your response
+programmatically — any deviation will break the revision workflow.
+
+Scoring guide:
+- 9-10: APPROVED (exceptional, publish as-is)
+- 7-8:  APPROVED (good, minor polish only)
+- 5-6:  NEEDS_REVISION (has potential but needs improvement)
+- 1-4:  NEEDS_REVISION (significant issues)
+
+Required output format — use this EXACTLY:
+
+**POSTS REVIEW:**
+- Score: [X/10]
+- Status: [APPROVED or NEEDS_REVISION]
+- What Works: [specific strengths]
+- Issues: [specific problems if any]
+- Suggestions: [concrete improvements if NEEDS_REVISION]
+
+**VISUALS REVIEW:**
+- Score: [X/10]
+- Status: [APPROVED or NEEDS_REVISION]
+- What Works: [specific strengths]
+- Issues: [specific problems if any]
+- Suggestions: [concrete improvements if NEEDS_REVISION]
+
+**OVERALL ASSESSMENT:**
+- All Approved: [YES or NO]
+- Priority Revisions: [most important fix if All Approved = NO]
+- Overall Score: [X/10]
+
+Evaluation criteria:
+- Clarity and brand voice consistency
+- Audience fit and relevance
+- Platform optimization (Instagram best practices)
+- Visual-copy alignment
+- CTA strength and clarity
+- Engagement potential
+"""
+```
+
+Replace the incomplete `root_agent` with:
+
+```python
+root_agent = Agent(
+    name="critic",
+    model="gemini-2.5-flash",
+    instruction=SYSTEM_INSTRUCTION,
+    description="Quality assurance specialist that reviews and scores campaign materials",
+)
+```
 
 ---
 
 ## Step 6: The Project Manager Agent with MCP
-Duration: 10:00
+Duration: 12:00
 
 The Project Manager introduces a new concept: **MCP (Model Context Protocol)**.
 
+Open the file:
+
 ```bash
-cat agents/project_manager/agent.py
+cloudshell edit agents/project_manager/agent.py
 ```
+
+This file is more complex — it has a `create_project_manager_agent()` function with two branches: one without Notion (text-only timelines) and one with the Notion MCP toolset. You'll fill in both.
 
 ### The problem MCP solves
 
@@ -446,59 +610,116 @@ Creative Director
                    │  (MCP)  notion-mcp-server ──► Notion REST API
 ```
 
-### How MCP works in the code
+### How MCP works in this project
 
-```python
-from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
-from mcp import StdioServerParameters
-
-# 1. Tell ADK how to launch the MCP server process
-server_params = StdioServerParameters(
-    command="notion-mcp-server",   # Executable installed in the Docker image
-    env={"NOTION_TOKEN": notion_api_key}
-)
-
-# 2. ADK starts the process and discovers its tools automatically
-notion_toolset = McpToolset(
-    connection_params=StdioConnectionParams(server_params=server_params)
-)
-
-# 3. Pass the toolset to the agent — the LLM can now call Notion API tools
-agent = Agent(
-    name="project_manager",
-    model="gemini-2.5-flash",
-    instruction=get_system_instruction(database_id=notion_database_id),
-    tools=[notion_toolset],   # LLM sees: API-post-page, API-retrieve-a-database, etc.
-)
-```
-
-When the agent runs, ADK starts `notion-mcp-server` as a subprocess. The MCP server exposes these tools to the LLM:
+When the agent runs, ADK launches `notion-mcp-server` as a child process. That process exposes these tools directly to the LLM:
 
 | Tool | What it does |
 |---|---|
-| `API-retrieve-a-database` | Fetches a database's schema (property names, types, valid values) |
-| `API-post-database-query` | Queries pages in a database |
+| `API-retrieve-a-database` | Fetches schema (property names, types, valid values) |
+| `API-post-database-query` | Queries existing pages |
 | `API-post-page` | Creates a new page |
 | `API-patch-page` | Updates an existing page |
 
-The LLM calls these like normal functions — it doesn't know or care that they go through MCP to the Notion REST API under the hood.
+The LLM calls these like any other function — it has no idea they go through MCP to the Notion REST API under the hood.
 
 ### Why stdio? Why not just HTTP?
 
 The MCP server runs as a **child process** of the agent, communicating over stdin/stdout. This means:
-- No network port needed — runs locally alongside the agent
-- Lifecycle managed by the agent (started on demand, stopped on exit)
-- Simple to containerize — everything ships in one Docker image
+- No extra network port needed
+- Lifecycle is managed by the agent (started on demand, stopped on exit)
+- Everything ships in one Docker image — no separate service to deploy
 
-### Graceful degradation
+### TODO 1 — Write the system instruction
+
+In `get_system_instruction()`, replace the placeholder return with:
 
 ```python
-if not notion_api_key or not notion_database_id:
-    # No Notion — agent still works, produces text-based timelines
-    agent = Agent(name="project_manager", model="gemini-2.5-flash", ...)
-else:
-    # With Notion — agent gets MCP tools and creates actual database entries
-    agent = Agent(name="project_manager", tools=[notion_toolset], ...)
+    return f"""You are a Project Manager specializing in creative campaign execution.
+
+Today's date is {datetime.date.today().strftime("%B %d, %Y")}.
+Use this as the starting point for all timelines.
+
+{db_info}
+
+Your task: Create a complete project plan for the campaign.
+
+ALWAYS provide the text timeline first — this is your primary deliverable.
+If Notion is configured, ALSO create the database entries after the text output.
+
+Text output format:
+
+**Project Timeline:**
+[Phase name] | [Start date] | [End date] | [Key activities]
+Phase 1: Strategy & Research | [date] → [date]
+Phase 2: Content Creation    | [date] → [date]
+Phase 3: Review & Revision   | [date] → [date]
+Phase 4: Launch & Monitoring | [date] → [date]
+
+**Task List:**
+| Task | Owner | Deadline | Status |
+[list each task with realistic deadlines from today]
+
+**Budget Breakdown:**
+[by category with approximate allocations]
+
+**Milestones:**
+[3-5 key checkpoints with dates]
+
+**Notion Status:**
+[If Notion configured: report on pages created]
+[If not configured: "No Notion database configured — text timeline only"]
+
+If Notion IS configured:
+1. Call API-retrieve-a-database to discover the exact property names and valid values
+2. Use ONLY those property names (case-sensitive) — never guess
+3. Call API-post-page to create the project entry
+4. Call API-post-page for each major task, linked to the project
+"""
+```
+
+### TODO 2 — Agent without Notion
+
+In the `if not notion_api_key` branch, replace the incomplete agent with:
+
+```python
+        return Agent(
+            name="project_manager",
+            model="gemini-2.5-flash",
+            instruction=get_system_instruction(),
+            description="Project manager that creates campaign timelines and task breakdowns",
+        )
+```
+
+### TODO 3 — Agent with Notion MCP
+
+In the `else` branch, first create the MCP toolset, then the agent:
+
+```python
+        from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
+        from mcp import StdioServerParameters
+
+        server_params = StdioServerParameters(
+            command="notion-mcp-server",
+            env={
+                "NOTION_TOKEN": notion_api_key,
+                "PATH": os.environ.get("PATH", ""),
+            }
+        )
+        notion_toolset = McpToolset(
+            connection_params=StdioConnectionParams(
+                server_params=server_params,
+                timeout=30.0
+            )
+        )
+
+        return Agent(
+            name="project_manager",
+            model="gemini-2.5-flash",
+            instruction=get_system_instruction(database_id=notion_database_id),
+            description="Project manager with Notion integration for task tracking",
+            tools=[notion_toolset],
+        )
 ```
 
 > **Best practice:** Never hard-fail on optional integrations. The text timeline is always the primary deliverable; Notion is supplementary.
@@ -506,77 +727,184 @@ else:
 ---
 
 ## Step 7: The Creative Director Orchestrator
-Duration: 10:00
+Duration: 15:00
 
-The Creative Director is the master orchestrator. It uses `RemoteA2aAgent` + `AgentTool` to delegate to specialists.
+The Creative Director is the master orchestrator. It reads specialist URLs from environment variables, wraps each one as a `RemoteA2aAgent`, and exposes them as `AgentTool`s the LLM can call.
+
+Open the file:
 
 ```bash
-cat agents/creative_director/agent.py
+cloudshell edit agents/creative_director/agent.py
 ```
 
-### The `RemoteA2aAgent` + `AgentTool` pattern
+This file has three TODOs. Work through them in order.
+
+### TODO 1 — Write the system instruction
+
+Replace `SYSTEM_INSTRUCTION_TEMPLATE` with:
 
 ```python
-from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
-from google.adk.tools.agent_tool import AgentTool
+SYSTEM_INSTRUCTION_TEMPLATE = """You are the Creative Director of an AI-powered creative studio.
+You orchestrate a team of specialist agents to produce complete Instagram campaigns.
 
-# 1. Wrap a remote A2A service as a local agent object
-strategist_agent = RemoteA2aAgent(
-    name="brand_strategist",
-    description="Market research and competitive insights",
-    agent_card=f"{strategist_url}/.well-known/agent.json",  # Discover via agent card
-)
+Your available specialists:
+{available_agents}
 
-# 2. Convert it to a tool the LLM can call
-agent_tools.append(AgentTool(agent=strategist_agent))
+## YOUR WORKFLOW
 
-# 3. Orchestrator decides when to call each tool based on the user request
-orchestrator = Agent(
-    name="creative_director",
-    model="gemini-2.5-flash",
-    instruction=system_instruction,   # Routing logic in the prompt
-    tools=agent_tools,                # All 5 specialist tools
-)
+**Step 1 — Classify the request**
+- Simple request (e.g., "just research", "write some captions") → call ONE relevant agent
+- Full campaign request → call ALL agents in this order:
+  Brand Strategist → Copywriter → Designer → Critic → Project Manager
+
+**Step 2 — Announce your plan**
+Before calling any agent, tell the user what you are going to do:
+"I'll coordinate our creative team. Here's my plan:
+1. Brand Strategist will research the market and audience
+2. Copywriter will create 5 Instagram captions using those insights
+3. ..."
+
+**Step 3 — Execute sequentially**
+For each agent:
+a) Call the tool. Include ALL relevant context from previous agents in your message.
+   Remote agents have NO shared memory — you must pass prior outputs explicitly.
+b) Wait for tool_output.
+c) Verify the output is complete (not an error).
+d) Confirm to the user: "✓ Brand Strategist complete."
+e) If the output contains an error or is empty: STOP and report the failure.
+   Never continue to the next agent after a failure.
+
+**Step 4 — Handle Critic feedback**
+After the Critic responds, parse its output:
+- Read "Status: APPROVED or NEEDS_REVISION" for POSTS REVIEW and VISUALS REVIEW
+- If POSTS → NEEDS_REVISION: call Copywriter again. Include the original brief +
+  previous captions + Critic's exact suggestions in your message.
+- If VISUALS → NEEDS_REVISION: call Designer again with the same context + feedback.
+- Maximum 1 revision per deliverable. After one revision, proceed regardless.
+- Pass the final (revised or original) versions to the Project Manager.
+
+**Step 5 — Never generate content yourself**
+You coordinate and delegate — you do NOT write captions, design concepts, or timelines.
+Only present what the tool_output actually returned.
+"""
 ```
 
-### Context compaction for long workflows
+### TODO 2 — Register each specialist as a RemoteA2aAgent + AgentTool
 
-A 5-agent workflow accumulates a lot of tokens. ADK's `EventsCompactionConfig` handles this:
+Find the `# TODO: For each specialist URL...` comment and replace it with:
 
 ```python
-from google.adk.apps import App
-from google.adk.apps.app import EventsCompactionConfig
-from google.adk.apps.llm_event_summarizer import LlmEventSummarizer
+    if strategist_url:
+        available_agents_list.append(
+            "- **brand_strategist**: Market research, competitor analysis, trend identification"
+        )
+        strategist_agent = RemoteA2aAgent(
+            name="brand_strategist",
+            description="Researches markets, competitors, and trends using Google Search",
+            agent_card=f"{strategist_url}/.well-known/agent.json",
+        )
+        agent_tools.append(AgentTool(agent=strategist_agent))
 
-compaction_config = EventsCompactionConfig(
-    summarizer=LlmEventSummarizer(llm=Gemini(model_id="gemini-2.5-flash")),
-    compaction_interval=3,   # Summarize after every 3 completed agents
-    overlap_size=1,          # Keep the last agent's output in full
-)
+    if copywriter_url:
+        available_agents_list.append(
+            "- **copywriter**: Instagram captions, hashtags, and CTAs"
+        )
+        copywriter_agent = RemoteA2aAgent(
+            name="copywriter",
+            description="Creates Instagram captions with hashtags and CTAs",
+            agent_card=f"{copywriter_url}/.well-known/agent.json",
+        )
+        agent_tools.append(AgentTool(agent=copywriter_agent))
 
-app = App(
-    name="creative_director",
-    root_agent=agent,
-    events_compaction_config=compaction_config,
-    plugins=[LoggingPlugin()],
-)
+    if designer_url:
+        available_agents_list.append(
+            "- **designer**: Visual concepts and Imagen image generation prompts"
+        )
+        designer_agent = RemoteA2aAgent(
+            name="designer",
+            description="Creates visual concepts and Imagen-ready image generation prompts",
+            agent_card=f"{designer_url}/.well-known/agent.json",
+        )
+        agent_tools.append(AgentTool(agent=designer_agent))
+
+    if critic_url:
+        available_agents_list.append(
+            "- **critic**: Quality review with APPROVED/NEEDS_REVISION scoring"
+        )
+        critic_agent = RemoteA2aAgent(
+            name="critic",
+            description="Reviews campaign materials and returns structured quality feedback",
+            agent_card=f"{critic_url}/.well-known/agent.json",
+        )
+        agent_tools.append(AgentTool(agent=critic_agent))
+
+    if pm_url:
+        available_agents_list.append(
+            "- **project_manager**: Project timelines, task breakdowns, Notion integration"
+        )
+        pm_agent = RemoteA2aAgent(
+            name="project_manager",
+            description="Creates project timelines and task breakdowns, optionally in Notion",
+            agent_card=f"{pm_url}/.well-known/agent.json",
+        )
+        agent_tools.append(AgentTool(agent=pm_agent))
 ```
 
-For a 5-agent workflow:
-- **Agents 1–3:** Full context preserved
-- **After Agent 3:** Agents 1–2 summarized, Agent 3 kept in full
-- **Agents 4–5:** See full recent context + summarized older context
+### TODO 3 — Wrap in an App with context compaction
 
-### The revision loop
+A full 5-agent campaign generates a lot of tokens. Without compaction the workflow will hit the model's context limit around Agent 4. Find the `# TODO: Wrap the agent in an App...` comment and replace the placeholder `App(...)` with:
 
-The orchestrator parses the Critic's structured output and triggers revisions automatically:
+```python
+    from google.adk.apps import App
+    from google.adk.apps.app import EventsCompactionConfig
+    from google.adk.apps.llm_event_summarizer import LlmEventSummarizer
+    from google.adk.models import Gemini
+
+    compaction_config = EventsCompactionConfig(
+        summarizer=LlmEventSummarizer(llm=Gemini(model_id="gemini-2.5-flash")),
+        compaction_interval=3,   # Summarize after every 3 agent completions
+        overlap_size=1,          # Keep the most recent agent's output in full
+    )
+
+    app = App(
+        name="creative_director",
+        root_agent=agent,
+        events_compaction_config=compaction_config,
+        plugins=[LoggingPlugin()],
+    )
+    return agent, app
+```
+
+**How compaction works in a 5-agent run:**
 
 ```
-Critic says:  POSTS: NEEDS_REVISION → call Copywriter again with feedback
-              VISUALS: APPROVED     → skip designer, proceed to PM
+Agent 1 (Strategist)  → full context
+Agent 2 (Copywriter)  → full context
+Agent 3 (Designer)    → full context
+                        ↓ compaction fires: summarizes agents 1-2, keeps 3 in full
+Agent 4 (Critic)      → sees summary of 1-2 + full output of 3
+Agent 5 (PM)          → sees summary of 1-3 + full output of 4
 ```
 
-Maximum **1 revision per deliverable** prevents infinite loops and runaway costs.
+### Understanding `RemoteA2aAgent` + `AgentTool`
+
+```
+RemoteA2aAgent("brand_strategist", agent_card=url)
+     │
+     │  wraps the remote service so ADK can call it
+     ▼
+AgentTool(agent=strategist_agent)
+     │
+     │  exposes it as a callable tool to the LLM
+     ▼
+Agent(tools=[...])
+     │
+     │  LLM calls tool("brand_strategist", message=...) when needed
+     ▼
+brand-strategist-agent.run.app  ← actual HTTP A2A call happens here
+```
+
+The LLM decides *when* to call each tool based on the system instruction and the user's request. The orchestrator never calls agents directly in code — it's all driven by the LLM's reasoning.
 
 ---
 
@@ -588,7 +916,7 @@ Before deploying to Cloud Run, test agents locally using the ADK web interface.
 ### Install dependencies
 
 ```bash
-cd ~/ai-creative-studio
+cd ~/ai-creative-studio/workshop/starter
 pip install -r agents/brand_strategist/requirements.txt
 ```
 
@@ -609,7 +937,7 @@ Try these test prompts:
 
 ```bash
 # From the project root
-cd ~/ai-creative-studio
+cd ~/ai-creative-studio/workshop/starter
 
 python3 - <<'EOF'
 import asyncio, os, sys
@@ -680,7 +1008,7 @@ CMD ["python", "agent.py"]
 ### Deploy all 5 specialists in parallel
 
 ```bash
-cd ~/ai-creative-studio
+cd ~/ai-creative-studio/workshop/starter
 source .env
 
 python deploy/deploy_all_specialists.py
@@ -815,7 +1143,7 @@ done
 ### Deploy the orchestrator
 
 ```bash
-cd ~/ai-creative-studio
+cd ~/ai-creative-studio/workshop/starter
 source .env
 
 python deploy/deploy_orchestrator.py --action deploy
