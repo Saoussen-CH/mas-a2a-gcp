@@ -1,48 +1,43 @@
 # AI Creative Studio — Workshop
 
-## GCP Cloud Shell Workshop Notebook
+## Google Codelab: Building a Multi-Agent AI Creative Studio
 
-This directory contains the workshop materials for **Building a Multi-Agent AI Creative Studio with Google ADK and A2A Protocol**.
+This directory contains the source for the workshop codelab.
 
-### How to Run
+### Files
 
-**Option 1 — GCP Cloud Shell (recommended)**
+| File | Purpose |
+|---|---|
+| `codelab.md` | Codelab source in `claat` Markdown format |
 
-1. Open [console.cloud.google.com](https://console.cloud.google.com)
-2. Click **Activate Cloud Shell** (`>_`) in the top toolbar
-3. Click **Open Editor** → Upload `ai_creative_studio_workshop.ipynb`
-4. Or clone the repo directly in Cloud Shell:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/ai-creative-studio
-   cd ai-creative-studio/workshop
-   cloudshell edit ai_creative_studio_workshop.ipynb
-   ```
+### Build & Serve the Codelab
 
-**Option 2 — Google Colab**
+Install the `claat` tool and serve locally:
 
-1. Go to [colab.research.google.com](https://colab.research.google.com)
-2. File → Open notebook → GitHub tab → paste the repo URL
-3. Select `workshop/ai_creative_studio_workshop.ipynb`
+```bash
+# Install claat
+go install github.com/googlecodelabs/tools/claat@latest
+# or download from https://github.com/googlecodelabs/tools/releases
 
-### Prerequisites
+# Export to HTML
+claat export codelab.md
+
+# Serve locally
+claat serve
+# Opens: http://localhost:9090/ai-creative-studio-adk-a2a
+```
+
+### Workshop Details
+
+| | |
+|---|---|
+| **Duration** | ~2.5 hours |
+| **Level** | Intermediate |
+| **Environment** | GCP Cloud Shell |
+| **Topics** | Google ADK, A2A Protocol, Cloud Run, Agent Engine, MCP |
+
+### Prerequisites for Participants
 
 - Google Cloud project with billing enabled
 - Owner or Editor IAM role
 - Gemini API key from [aistudio.google.com](https://aistudio.google.com/app/apikey)
-
-### Workshop Duration
-
-~2.5 hours (including deployment time)
-
-### What You'll Build
-
-A distributed multi-agent system with 6 AI agents:
-
-| Agent | Role | Deployment |
-|---|---|---|
-| Brand Strategist | Market research + Google Search | Cloud Run |
-| Copywriter | Instagram captions | Cloud Run |
-| Designer | Imagen prompt generation | Cloud Run |
-| Critic | Quality review loop | Cloud Run |
-| Project Manager | Timeline + Notion MCP | Cloud Run |
-| Creative Director | Orchestrator | Vertex AI Agent Engine |
