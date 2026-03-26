@@ -11,14 +11,6 @@ analytics account: UA-XXXXXXXXX-1
 ## Overview
 Duration: 5:00
 
-| | |
-|---|---|
-| **Author** | Saoussen Chaabnia |
-| **Last updated** | March 26, 2026 |
-| **Level** | Intermediate |
-| **Duration** | ~2 hours |
-| **Prerequisites** | Python, Google Cloud basics |
-
 ### What you'll learn
 
 - How to build multi-agent systems with Google ADK
