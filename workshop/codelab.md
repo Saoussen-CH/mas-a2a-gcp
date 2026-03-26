@@ -11,6 +11,29 @@ analytics account: UA-XXXXXXXXX-1
 ## Overview
 Duration: 5:00
 
+| | |
+|---|---|
+| **Author** | Saoussen Chaabnia |
+| **Last updated** | March 26, 2026 |
+| **Level** | Intermediate |
+| **Duration** | ~2 hours |
+| **Prerequisites** | Python, Google Cloud basics |
+
+### What you'll learn
+
+- How to build multi-agent systems with Google ADK
+- How agents communicate via the A2A protocol
+- How to integrate external tools using MCP
+- How to deploy agents to Cloud Run and Vertex AI Agent Engine
+
+### What you'll need
+
+- A Google Cloud project with billing enabled
+- Basic Python knowledge
+- A GitHub account
+
+---
+
 In this codelab you will build a **distributed multi-agent orchestration system** that creates complete social media campaigns from a single prompt.
 
 You will write **5 specialist AI agents**, connect them via the **Agent-to-Agent (A2A) protocol**, and deploy everything to **Google Cloud**. A sixth agent — the **Creative Director** — orchestrates the entire workflow automatically.
@@ -55,7 +78,7 @@ You will write **5 specialist AI agents**, connect them via the **Agent-to-Agent
 
 Click the button below to clone the starter repo and open this codelab automatically in Cloud Shell:
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://ssh.cloud.google.com/cloudshell/open?cloudshell_git_repo=https://github.com/YOUR_USERNAME/ai-creative-studio&cloudshell_tutorial=workshop/codelab.md&cloudshell_workspace=workshop/starter)
+[Open in Cloud Shell](https://ssh.cloud.google.com/cloudshell/open?cloudshell_git_repo=https://github.com/YOUR_USERNAME/ai-creative-studio&cloudshell_tutorial=workshop/codelab.md&cloudshell_workspace=workshop/starter)
 
 > Replace `YOUR_USERNAME` with your GitHub username before sharing this link with participants.
 
@@ -976,7 +999,7 @@ INFO: Uvicorn running on http://localhost:8000
 The server is now running inside Cloud Shell. To open it in your browser, use **Web Preview**:
 
 1. Look at the **Cloud Shell toolbar** at the top of the page
-2. Click the **Web Preview** icon ( ![web preview](https://cloud.google.com/static/shell/docs/images/web_preview_button.png) looks like a box with an upward arrow )
+2. Click the **Web Preview** icon (looks like a box with an upward arrow, top-right of the Cloud Shell toolbar)
 3. Click **"Preview on port 8000"**
 
 A new browser tab opens with the ADK web UI:
