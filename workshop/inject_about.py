@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inject an 'About this codelab' card into the claat-exported index.html."""
+"""Inject 'About this codelab' card and copy buttons into the claat-exported index.html."""
 
 import sys
 import re
@@ -9,7 +9,9 @@ AUTHOR = "Saoussen Chaabnia"
 UPDATED = date.today().strftime("%b %d, %Y")
 
 CARD_HTML = f"""
-        <div style="border:1px solid #dadce0;border-radius:8px;padding:32px 32px 28px;margin:0 0 32px 0;font-family:'Google Sans',Roboto,sans-serif;max-width:800px;">
+    <div style="background:#fff;padding:40px 48px 32px;border-bottom:1px solid #e0e0e0;">
+      <div style="max-width:800px;margin:0 auto;">
+        <div style="border:1px solid #dadce0;border-radius:8px;padding:32px;font-family:'Google Sans',Roboto,sans-serif;">
           <p style="font-size:20px;font-weight:400;margin:0 0 20px 0;color:#202124;">About this codelab</p>
           <hr style="border:none;border-top:1px solid #dadce0;margin:0 0 20px 0;">
           <div style="display:flex;align-items:center;margin-bottom:16px;color:#5f6368;font-size:14px;">
@@ -23,26 +25,80 @@ CARD_HTML = f"""
             <span>Written by {AUTHOR}</span>
           </div>
         </div>
+      </div>
+    </div>
+"""
+
+COPY_BUTTON_JS = """
+<style>
+  .code-copy-wrapper { position: relative; }
+  .code-copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: #fff; border: 1px solid #dadce0; border-radius: 4px;
+    padding: 4px 8px; font-size: 12px; cursor: pointer;
+    display: none; align-items: center; gap: 4px;
+    color: #5f6368; font-family: Roboto, sans-serif;
+    z-index: 10;
+  }
+  .code-copy-wrapper:hover .code-copy-btn { display: flex; }
+  .code-copy-btn:hover { background: #f1f3f4; }
+  .code-copy-btn.copied { color: #1e8e3e; border-color: #1e8e3e; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  function addCopyButtons() {
+    document.querySelectorAll('pre code[class*="language-bash"], pre code[class*="language-python"], pre code[class*="language-json"], pre code[class*="language-dockerfile"]').forEach(function(code) {
+      var pre = code.parentElement;
+      if (pre.parentElement && pre.parentElement.classList.contains('code-copy-wrapper')) return;
+      var wrapper = document.createElement('div');
+      wrapper.className = 'code-copy-wrapper';
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+      var btn = document.createElement('button');
+      btn.className = 'code-copy-btn';
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy';
+      btn.addEventListener('click', function() {
+        var text = code.innerText;
+        navigator.clipboard.writeText(text).then(function() {
+          btn.innerHTML = '&#10003; Copied';
+          btn.classList.add('copied');
+          setTimeout(function() {
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy';
+            btn.classList.remove('copied');
+          }, 2000);
+        });
+      });
+      wrapper.appendChild(btn);
+    });
+  }
+  // Run immediately and retry after web components load
+  addCopyButtons();
+  setTimeout(addCopyButtons, 1000);
+  setTimeout(addCopyButtons, 3000);
+});
+</script>
 """
 
 def inject(html_path: str) -> None:
     with open(html_path, encoding="utf-8") as f:
         content = f.read()
 
-    # Find the first <google-codelab-step> opening and inject the card right after it
+    # 1. Inject "About" card at the top of the first <google-codelab-step>
     pattern = r'(<google-codelab-step[^>]*>)'
     match = re.search(pattern, content)
     if not match:
         print("ERROR: could not find <google-codelab-step> in HTML", file=sys.stderr)
         sys.exit(1)
-
     insert_pos = match.end()
-    new_content = content[:insert_pos] + CARD_HTML + content[insert_pos:]
+    content = content[:insert_pos] + CARD_HTML + content[insert_pos:]
+
+    # 2. Inject copy button CSS+JS before </body>
+    content = content.replace('</body>', COPY_BUTTON_JS + '\n</body>')
 
     with open(html_path, "w", encoding="utf-8") as f:
-        f.write(new_content)
+        f.write(content)
 
-    print(f"Injected 'About this codelab' card into {html_path}")
+    print(f"Injected About card and copy buttons into {html_path}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
