@@ -64,20 +64,7 @@
 <p>In this codelab you will build a <strong>distributed multi-agent orchestration system</strong> that creates complete social media campaigns from a single prompt.</p>
 <p>You will write <strong>5 specialist AI agents</strong>, connect them via the <strong>Agent-to-Agent (A2A) protocol</strong>, and deploy everything to <strong>Google Cloud</strong>. A sixth agent — the <strong>Creative Director</strong> — orchestrates the entire workflow automatically.</p>
 <h2 is-upgraded>Architecture</h2>
-<pre><code language="language-text" class="language-text">                  ┌───────────────────────────────────────────┐
-                  │        Vertex AI Agent Engine              │
-  User ──────────►│         Creative Director                  │
-                  │    (Orchestrator — delegates via A2A)      │
-                  └───┬───────┬───────┬───────┬───────────────┘
-                      │ A2A   │ A2A   │ A2A   │ A2A   │ A2A
-                      ▼       ▼       ▼       ▼       ▼
-              ┌──────────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌─────────┐
-              │  Brand   │ │Copy- │ │Des-  │ │Critic│ │Project  │
-              │Strategist│ │writer│ │igner │ │      │ │Manager  │
-              │(+Search) │ │      │ │      │ │      │ │(+Notion)│
-              └──────────┘ └──────┘ └──────┘ └──────┘ └─────────┘
-               Cloud Run  Cloud Run Cloud Run Cloud Run Cloud Run
-</code></pre>
+<p class="image-container"><img alt="System Architecture" src="img/3a6dfb1da4bce062.png"></p>
 <h2 class="checklist" is-upgraded>What you&#39;ll learn</h2>
 <ul class="checklist">
 <li>Build LLM agents with <strong>Google ADK</strong> using <code>Agent</code>, tools, and system instructions</li>
