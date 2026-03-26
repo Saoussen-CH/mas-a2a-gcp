@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # export.sh — export the codelab and inject the "About this codelab" card
 set -euo pipefail
+export PATH=$PATH:$(go env GOPATH)/bin
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CODELAB_DIR="$SCRIPT_DIR/ai-creative-studio-adk-a2a"
