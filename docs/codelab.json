@@ -1,0 +1,26 @@
+{
+  "environment": "web",
+  "format": "html",
+  "prefix": "https://storage.googleapis.com",
+  "mainga": "UA-49880327-14",
+  "updated": "2026-03-26T13:31:40+01:00",
+  "id": "ai-creative-studio-adk-a2a",
+  "duration": 140,
+  "title": "Building a Multi-Agent AI Creative Studio with Google ADK and A2A",
+  "authors": "Saoussen Chaabnia",
+  "summary": "Building a Multi-Agent AI Creative Studio with Google ADK and A2A",
+  "source": "codelab.md",
+  "theme": "",
+  "status": [
+    "published"
+  ],
+  "category": [
+    "ai",
+    "googlecloud",
+    "adk"
+  ],
+  "tags": [],
+  "feedback": "https://github.com/YOUR_USERNAME/ai-creative-studio/issues",
+  "ga": "UA-XXXXXXXXX-1",
+  "url": "ai-creative-studio-adk-a2a"
+}
