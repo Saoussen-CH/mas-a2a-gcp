@@ -123,17 +123,17 @@
 <p><strong>Tip:</strong> If Cloud Shell goes idle for 20 minutes it will disconnect. If this happens, reconnect and re-run <code>set -a && source .env && set +a</code> to reload your environment variables.</p>
 <h2 is-upgraded>Authenticate and configure your project</h2>
 <p>Cloud Shell is already authenticated with your Google account. Just set your project:</p>
-<pre>gcloud auth list
-</pre>
+<pre><code language="language-bash" class="language-bash">gcloud auth list
+</code></pre>
 <p>Expected output:</p>
 <pre><code language="language-text" class="language-text">  ACCOUNT: your-email@example.com
   PROJECT: (unset)
 </code></pre>
 <p>Now set your project:</p>
-<pre>export PROJECT_ID=&#34;your-project-id&#34;   # &lt;-- CHANGE THIS
+<pre><code language="language-bash" class="language-bash">export PROJECT_ID=&#34;your-project-id&#34;   # &lt;-- CHANGE THIS
 export REGION=&#34;us-central1&#34;
 gcloud config set project $PROJECT_ID
-</pre>
+</code></pre>
 <p>Expected output:</p>
 <pre><code language="language-text" class="language-text">Updated property [core/project].
 </code></pre>
@@ -154,12 +154,12 @@ gcloud config set project $PROJECT_ID
     
       <google-codelab-step label="Step 2: Clone the Starter Repository" duration="3">
         <p>This codelab uses a <strong>starter repository</strong> — a skeleton project with all the infrastructure in place (Dockerfiles, requirements, deploy scripts) but with the agent logic left for you to write.</p>
-<pre>git clone https://github.com/YOUR_USERNAME/ai-creative-studio.git ~/ai-creative-studio
+<pre><code language="language-bash" class="language-bash">git clone https://github.com/YOUR_USERNAME/ai-creative-studio.git ~/ai-creative-studio
 cd ~/ai-creative-studio/workshop/starter
-</pre>
+</code></pre>
 <p>Explore the starter structure:</p>
-<pre>find . -name &#39;agent.py&#39; | sort
-</pre>
+<pre><code language="language-bash" class="language-bash">find . -name &#39;agent.py&#39; | sort
+</code></pre>
 <p>Expected output:</p>
 <pre><code language="language-text" class="language-text">./agents/brand_strategist/agent.py
 ./agents/copywriter/agent.py
@@ -170,17 +170,17 @@ cd ~/ai-creative-studio/workshop/starter
 </code></pre>
 <p>Each <code>agent.py</code> contains <code># TODO</code> placeholders where you will write the agent logic. The <code>Dockerfile</code>, <code>requirements.txt</code>, and deploy scripts are already complete.</p>
 <p>Open any skeleton file to see what&#39;s expected:</p>
-<pre>cat agents/brand_strategist/agent.py
-</pre>
+<pre><code language="language-bash" class="language-bash">cat agents/brand_strategist/agent.py
+</code></pre>
 <p>You&#39;ll see <code># TODO</code> comments explaining exactly what to add at each point.</p>
 <h2 is-upgraded>Configure environment variables</h2>
-<pre>cp .env.example .env
-</pre>
+<pre><code language="language-bash" class="language-bash">cp .env.example .env
+</code></pre>
 <p>Open <code>.env</code> in the Cloud Shell Editor and fill in:</p>
-<pre>GCP_PROJECT_ID=your-project-id        # same as $PROJECT_ID
+<pre><code language="language-bash" class="language-bash">GCP_PROJECT_ID=your-project-id        # same as $PROJECT_ID
 GCP_REGION=us-central1
 GOOGLE_API_KEY=your-gemini-api-key    # from aistudio.google.com
-</pre>
+</code></pre>
 <p>Load the variables:</p>
 <pre><code language="language-bash" class="language-bash">set -a &amp;&amp; source .env &amp;&amp; set +a
 echo &#34;Project: $GCP_PROJECT_ID&#34;
@@ -283,8 +283,8 @@ uvicorn.run(a2a_app, host=HOST, port=PORT)
       <google-codelab-step label="Step 4: The Brand Strategist Agent" duration="10">
         <p>The Brand Strategist researches markets, competitors, and trends using <strong>Google Search</strong>.</p>
 <p>Open the skeleton file in Cloud Shell Editor:</p>
-<pre>cloudshell edit agents/brand_strategist/agent.py
-</pre>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/brand_strategist/agent.py
+</code></pre>
 <p>You&#39;ll see two <code># TODO</code> sections. Fill them in now.</p>
 <h2 is-upgraded>TODO 1 — Write the system instruction</h2>
 <p>Replace the <code>SYSTEM_INSTRUCTION</code> placeholder with this:</p>
@@ -368,8 +368,8 @@ uvicorn.run(a2a_app, host=HOST, port=PORT)
         <p>These three specialists follow the same ADK pattern as the Brand Strategist, but without any tools — the LLM handles their tasks directly using the context passed by the orchestrator.</p>
 <h2 is-upgraded>Copywriter Agent</h2>
 <p>Open the file:</p>
-<pre>cloudshell edit agents/copywriter/agent.py
-</pre>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/copywriter/agent.py
+</code></pre>
 <p>Replace <code>SYSTEM_INSTRUCTION</code> with:</p>
 <pre><code language="language-python" class="language-python">SYSTEM_INSTRUCTION = &#34;&#34;&#34;You are an expert Social Media Copywriter specializing in Instagram content.
 
@@ -411,8 +411,8 @@ CTA: [Call to action]
 <p><strong>Key insight — no shared memory:</strong> The Copywriter has no idea what the Brand Strategist said unless the orchestrator explicitly passes that output as context. In a multi-agent workflow, the orchestrator is responsible for assembling and forwarding prior results. This is why the instruction says &#34;the conversation history above contains research&#34; — that context is injected by the Creative Director.</p>
 <h2 is-upgraded>Designer Agent</h2>
 <p>Open the file:</p>
-<pre>cloudshell edit agents/designer/agent.py
-</pre>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/designer/agent.py
+</code></pre>
 <p>Replace <code>SYSTEM_INSTRUCTION</code> with:</p>
 <pre><code language="language-python" class="language-python">SYSTEM_INSTRUCTION = &#34;&#34;&#34;You are a Visual Content Director specializing in Instagram aesthetics.
 
@@ -455,8 +455,8 @@ Concept B: [Alternative visual approach]
 </code></pre>
 <h2 is-upgraded>Critic Agent — Structured output is critical</h2>
 <p>Open the file:</p>
-<pre>cloudshell edit agents/critic/agent.py
-</pre>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/critic/agent.py
+</code></pre>
 <p><strong>Before writing the instruction</strong>, understand why the format matters: the Creative Director orchestrator parses the Critic&#39;s response to decide whether to trigger revisions. If the format is wrong, revision logic breaks. The words <code>APPROVED</code> and <code>NEEDS_REVISION</code> must appear exactly.</p>
 <p>Replace <code>SYSTEM_INSTRUCTION</code> with:</p>
 <pre><code language="language-python" class="language-python">SYSTEM_INSTRUCTION = &#34;&#34;&#34;You are a Creative Director and Quality Assurance Specialist.
@@ -517,8 +517,8 @@ Evaluation criteria:
       <google-codelab-step label="Step 6: The Project Manager Agent with MCP" duration="12">
         <p>The Project Manager introduces a new concept: <strong>MCP (Model Context Protocol)</strong>.</p>
 <p>Open the file:</p>
-<pre>cloudshell edit agents/project_manager/agent.py
-</pre>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/project_manager/agent.py
+</code></pre>
 <p>This file is more complex — it has a <code>create_project_manager_agent()</code> function with two branches: one without Notion (text-only timelines) and one with the Notion MCP toolset. You&#39;ll fill in both.</p>
 <h2 is-upgraded>The problem MCP solves</h2>
 <p>Your agent needs to call an external service — say, create a page in Notion. You could write Python code that calls the Notion REST API directly. But then:</p>
@@ -695,8 +695,8 @@ If Notion IS configured:
       <google-codelab-step label="Step 7: The Creative Director Orchestrator" duration="15">
         <p>The Creative Director is the master orchestrator. It reads specialist URLs from environment variables, wraps each one as a <code>RemoteA2aAgent</code>, and exposes them as <code>AgentTool</code>s the LLM can call.</p>
 <p>Open the file:</p>
-<pre>cloudshell edit agents/creative_director/agent.py
-</pre>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/creative_director/agent.py
+</code></pre>
 <p>This file has three TODOs. Work through them in order.</p>
 <h2 is-upgraded>TODO 1 — Write the system instruction</h2>
 <p>Replace <code>SYSTEM_INSTRUCTION_TEMPLATE</code> with:</p>
@@ -853,13 +853,13 @@ brand-strategist-agent.run.app  ← actual HTTP A2A call happens here
       <google-codelab-step label="Step 8: Test Locally with ADK Web" duration="8">
         <p>Before deploying to Cloud Run, test the Brand Strategist agent locally using the <strong>ADK web UI</strong> — a built-in chat interface for testing agents.</p>
 <h2 is-upgraded>Install dependencies</h2>
-<pre>cd ~/ai-creative-studio/workshop/starter
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
 pip install -r agents/brand_strategist/requirements.txt
-</pre>
+</code></pre>
 <h2 is-upgraded>Start the ADK web UI</h2>
-<pre>cd agents/brand_strategist
+<pre><code language="language-bash" class="language-bash">cd agents/brand_strategist
 adk web
-</pre>
+</code></pre>
 <p>You&#39;ll see:</p>
 <pre><code language="language-text" class="language-text">INFO: Started server process
 INFO: Uvicorn running on http://localhost:8000
@@ -955,11 +955,11 @@ EXPOSE 8080
 CMD [&#34;python&#34;, &#34;agent.py&#34;]
 </code></pre>
 <h2 is-upgraded>Deploy all 5 specialists in parallel</h2>
-<pre>cd ~/ai-creative-studio/workshop/starter
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
 source .env
 
 python deploy/deploy_all_specialists.py
-</pre>
+</code></pre>
 <p>This script deploys all 5 agents concurrently (~5–8 minutes total). When complete, it writes each agent&#39;s URL back to <code>.env</code>.</p>
 <h2 is-upgraded>What gets deployed per service</h2>
 <pre><code language="language-bash" class="language-bash"># Each service is deployed with these env vars:
@@ -1062,16 +1062,16 @@ for var in STRATEGIST_AGENT_URL COPYWRITER_AGENT_URL DESIGNER_AGENT_URL CRITIC_A
 done
 </code></pre>
 <h2 is-upgraded>Deploy the orchestrator</h2>
-<pre>cd ~/ai-creative-studio/workshop/starter
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
 source .env
 
 python deploy/deploy_orchestrator.py --action deploy
-</pre>
+</code></pre>
 <p>This takes ~5–10 minutes. When complete, the <code>AGENT_ENGINE_ID</code> and <code>AGENT_ENGINE_RESOURCE_NAME</code> are saved to <code>.env</code>.</p>
-<pre>source .env
+<pre><code language="language-bash" class="language-bash">source .env
 echo &#34;Agent Engine ID: $AGENT_ENGINE_ID&#34;
 echo &#34;Resource: $AGENT_ENGINE_RESOURCE_NAME&#34;
-</pre>
+</code></pre>
 
 
       </google-codelab-step>
@@ -1198,9 +1198,9 @@ for event in agent_engine.stream_query(
 <li>Copy the Projects database ID from the URL: <code>notion.so/{workspace}/{DATABASE_ID}?v=...</code></li>
 </ol>
 <h2 is-upgraded>Add credentials to .env</h2>
-<pre>echo &#34;NOTION_API_KEY=ntn_your-token&#34; &gt;&gt; .env      # &lt;-- replace
+<pre><code language="language-bash" class="language-bash">echo &#34;NOTION_API_KEY=ntn_your-token&#34; &gt;&gt; .env      # &lt;-- replace
 echo &#34;NOTION_DATABASE_ID=your-db-id&#34; &gt;&gt; .env       # &lt;-- replace
-</pre>
+</code></pre>
 <h2 is-upgraded>Redeploy Project Manager with Notion</h2>
 <pre><code language="language-bash" class="language-bash">source .env
 
@@ -1239,13 +1239,13 @@ for svc in brand-strategist-agent copywriter-agent designer-agent critic-agent p
 done
 </code></pre>
 <h2 is-upgraded>Delete the Agent Engine</h2>
-<pre>source .env
+<pre><code language="language-bash" class="language-bash">source .env
 
 python deploy/deploy_orchestrator.py --action cleanup
-</pre>
+</code></pre>
 <h2 is-upgraded>Verify everything is removed</h2>
-<pre>gcloud run services list --region=us-central1
-</pre>
+<pre><code language="language-bash" class="language-bash">gcloud run services list --region=us-central1
+</code></pre>
 <p>Expected output: an empty list or only your own services.</p>
 
 

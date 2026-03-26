@@ -114,7 +114,7 @@ Cloud Shell toolbar (top-right):
 
 Cloud Shell is already authenticated with your Google account. Just set your project:
 
-```console
+```bash
 gcloud auth list
 ```
 
@@ -126,7 +126,7 @@ Expected output:
 
 Now set your project:
 
-```console
+```bash
 export PROJECT_ID="your-project-id"   # <-- CHANGE THIS
 export REGION="us-central1"
 gcloud config set project $PROJECT_ID
@@ -159,14 +159,14 @@ Duration: 3:00
 
 This codelab uses a **starter repository** — a skeleton project with all the infrastructure in place (Dockerfiles, requirements, deploy scripts) but with the agent logic left for you to write.
 
-```console
+```bash
 git clone https://github.com/YOUR_USERNAME/ai-creative-studio.git ~/ai-creative-studio
 cd ~/ai-creative-studio/workshop/starter
 ```
 
 Explore the starter structure:
 
-```console
+```bash
 find . -name 'agent.py' | sort
 ```
 
@@ -184,7 +184,7 @@ Each `agent.py` contains `# TODO` placeholders where you will write the agent lo
 
 Open any skeleton file to see what's expected:
 
-```console
+```bash
 cat agents/brand_strategist/agent.py
 ```
 
@@ -192,13 +192,13 @@ You'll see `# TODO` comments explaining exactly what to add at each point.
 
 ### Configure environment variables
 
-```console
+```bash
 cp .env.example .env
 ```
 
 Open `.env` in the Cloud Shell Editor and fill in:
 
-```console
+```bash
 GCP_PROJECT_ID=your-project-id        # same as $PROJECT_ID
 GCP_REGION=us-central1
 GOOGLE_API_KEY=your-gemini-api-key    # from aistudio.google.com
@@ -320,7 +320,7 @@ The Brand Strategist researches markets, competitors, and trends using **Google 
 
 Open the skeleton file in Cloud Shell Editor:
 
-```console
+```bash
 cloudshell edit agents/brand_strategist/agent.py
 ```
 
@@ -423,7 +423,7 @@ These three specialists follow the same ADK pattern as the Brand Strategist, but
 
 Open the file:
 
-```console
+```bash
 cloudshell edit agents/copywriter/agent.py
 ```
 
@@ -479,7 +479,7 @@ root_agent = Agent(
 
 Open the file:
 
-```console
+```bash
 cloudshell edit agents/designer/agent.py
 ```
 
@@ -535,7 +535,7 @@ root_agent = Agent(
 
 Open the file:
 
-```console
+```bash
 cloudshell edit agents/critic/agent.py
 ```
 
@@ -608,7 +608,7 @@ The Project Manager introduces a new concept: **MCP (Model Context Protocol)**.
 
 Open the file:
 
-```console
+```bash
 cloudshell edit agents/project_manager/agent.py
 ```
 
@@ -788,7 +788,7 @@ The Creative Director is the master orchestrator. It reads specialist URLs from 
 
 Open the file:
 
-```console
+```bash
 cloudshell edit agents/creative_director/agent.py
 ```
 
@@ -970,14 +970,14 @@ Before deploying to Cloud Run, test the Brand Strategist agent locally using the
 
 ### Install dependencies
 
-```console
+```bash
 cd ~/ai-creative-studio/workshop/starter
 pip install -r agents/brand_strategist/requirements.txt
 ```
 
 ### Start the ADK web UI
 
-```console
+```bash
 cd agents/brand_strategist
 adk web
 ```
@@ -1097,7 +1097,7 @@ CMD ["python", "agent.py"]
 
 ### Deploy all 5 specialists in parallel
 
-```console
+```bash
 cd ~/ai-creative-studio/workshop/starter
 source .env
 
@@ -1232,7 +1232,7 @@ done
 
 ### Deploy the orchestrator
 
-```console
+```bash
 cd ~/ai-creative-studio/workshop/starter
 source .env
 
@@ -1241,7 +1241,7 @@ python deploy/deploy_orchestrator.py --action deploy
 
 This takes ~5–10 minutes. When complete, the `AGENT_ENGINE_ID` and `AGENT_ENGINE_RESOURCE_NAME` are saved to `.env`.
 
-```console
+```bash
 source .env
 echo "Agent Engine ID: $AGENT_ENGINE_ID"
 echo "Resource: $AGENT_ENGINE_RESOURCE_NAME"
@@ -1394,7 +1394,7 @@ Enable the Project Manager to create tasks directly in Notion.
 
 ### Add credentials to .env
 
-```console
+```bash
 echo "NOTION_API_KEY=ntn_your-token" >> .env      # <-- replace
 echo "NOTION_DATABASE_ID=your-db-id" >> .env       # <-- replace
 ```
@@ -1451,7 +1451,7 @@ done
 
 ### Delete the Agent Engine
 
-```console
+```bash
 source .env
 
 python deploy/deploy_orchestrator.py --action cleanup
@@ -1459,7 +1459,7 @@ python deploy/deploy_orchestrator.py --action cleanup
 
 ### Verify everything is removed
 
-```console
+```bash
 gcloud run services list --region=us-central1
 ```
 
