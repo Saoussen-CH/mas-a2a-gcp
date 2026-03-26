@@ -397,7 +397,7 @@ Keeping each agent strictly scoped prevents scope creep. If the Brand Strategist
 
 ## Step 5: The Copywriter, Designer, and Critic Agents
 
-These three specialists follow the same ADK pattern as the Brand Strategist, but without any tools — the LLM handles their tasks directly using the context passed by the orchestrator.
+These three specialists follow the same ADK pattern as the Brand Strategist. The `root_agent` constructor is already pre-filled in each starter file — **your only task is writing the system instruction** for each agent.
 
 ### Copywriter Agent
 
@@ -438,17 +438,6 @@ Format each caption as:
 [Hashtags]
 CTA: [Call to action]
 """
-```
-
-Replace the incomplete `root_agent` with:
-
-```python
-root_agent = Agent(
-    name="copywriter",
-    model="gemini-2.5-flash",
-    instruction=SYSTEM_INSTRUCTION,
-    description="Instagram copywriter that creates engaging captions, hashtags, and CTAs",
-)
 ```
 
 > **Key insight — no shared memory:** The Copywriter has no idea what the Brand Strategist said unless the orchestrator explicitly passes that output as context. In a multi-agent workflow, the orchestrator is responsible for assembling and forwarding prior results. This is why the instruction says "the conversation history above contains research" — that context is injected by the Creative Director.
@@ -496,17 +485,6 @@ Concept A: [Visual Theme Name]
 Concept B: [Alternative visual approach]
 [Same format]
 """
-```
-
-Replace the incomplete `root_agent` with:
-
-```python
-root_agent = Agent(
-    name="designer",
-    model="gemini-2.5-flash",
-    instruction=SYSTEM_INSTRUCTION,
-    description="Visual content director that creates Imagen-ready image generation prompts",
-)
 ```
 
 ---
@@ -566,17 +544,6 @@ Evaluation criteria:
 - CTA strength and clarity
 - Engagement potential
 """
-```
-
-Replace the incomplete `root_agent` with:
-
-```python
-root_agent = Agent(
-    name="critic",
-    model="gemini-2.5-flash",
-    instruction=SYSTEM_INSTRUCTION,
-    description="Quality assurance specialist that reviews and scores campaign materials",
-)
 ```
 
 ---

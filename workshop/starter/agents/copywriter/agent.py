@@ -25,13 +25,17 @@ SYSTEM_INSTRUCTION = """
 # TODO: Write the Copywriter system instruction here
 """
 
-# TODO: Create the root_agent
-# No tools needed — the LLM handles this task directly
+# =============================================================================
+# PROVIDED — do not modify
+#
+# Same Agent pattern you used in Step 4. The only difference between
+# specialist agents is the name, description, and instruction.
+# =============================================================================
 root_agent = Agent(
     name="copywriter",
     model="gemini-2.5-flash",
-    # TODO: add instruction=SYSTEM_INSTRUCTION
-    # TODO: add description=
+    instruction=SYSTEM_INSTRUCTION,
+    description="Expert social media copywriter for creating engaging captions and copy",
 )
 
 logger.info("Copywriter agent created")

@@ -42,12 +42,17 @@ SYSTEM_INSTRUCTION = """
 # TODO: Write the Critic system instruction here
 """
 
-# TODO: Create the root_agent
+# =============================================================================
+# PROVIDED — do not modify
+#
+# Same Agent pattern you used in Step 4. The only difference between
+# specialist agents is the name, description, and instruction.
+# =============================================================================
 root_agent = Agent(
     name="critic",
     model="gemini-2.5-flash",
-    # TODO: add instruction=SYSTEM_INSTRUCTION
-    # TODO: add description=
+    instruction=SYSTEM_INSTRUCTION,
+    description="Creative critic for reviewing campaign materials and providing constructive feedback",
 )
 
 logger.info("Critic agent created")
