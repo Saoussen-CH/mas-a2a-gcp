@@ -31,6 +31,8 @@ You will write **5 specialist AI agents**, connect them via the **Agent-to-Agent
 
 ### Architecture
 
+![System Overview](diagrams/00-system-overview.png)
+
 ![System Architecture](diagrams/01-system-architecture.png)
 
 ### What you'll learn
