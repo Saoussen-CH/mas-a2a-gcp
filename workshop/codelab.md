@@ -1254,6 +1254,80 @@ for p in parts:
 
 ---
 
+## Step 10b: Test Agents with A2A Inspector
+
+The **A2A Inspector** is an interactive web UI for testing any A2A-compliant agent — it validates the agent card, lets you chat with the agent, and shows the raw JSON-RPC request/response. Use it to verify agents work correctly both locally and after deployment.
+
+### Install the inspector
+
+A setup script is included in the repo:
+
+```bash
+cd tools/a2a-inspector
+./setup_inspector.sh
+```
+
+This clones the inspector into `~/a2a-inspector`, installs the Python backend (with `uv` or `pip`), and installs the frontend npm dependencies.
+
+---
+
+### Testing locally (Brand Strategist example)
+
+**Terminal 1 — start the agent:**
+
+```bash
+cd agents/brand_strategist
+python agent.py
+# Agent runs on http://localhost:8082
+```
+
+**Terminal 2 — start the inspector:**
+
+```bash
+cd ~/a2a-inspector
+bash scripts/run.sh
+# Inspector UI at http://localhost:5001
+```
+
+Open `http://localhost:5001`, enter `http://localhost:8082` in the connection field, and click **Connect**.
+
+The inspector will:
+- Fetch and validate the agent card at `/.well-known/agent.json`
+- Show available skills and capabilities
+- Let you start a chat session
+
+**Example prompt to try:**
+
+```
+Research the market for eco-friendly water bottles targeting millennials
+```
+
+---
+
+### Testing after deploying to Cloud Run (Brand Strategist example)
+
+Cloud Run services require an identity token:
+
+```bash
+export TOKEN=$(gcloud auth print-identity-token)
+```
+
+Open `http://localhost:5001`, enter your Cloud Run URL:
+
+```
+https://brand-strategist-xxxx.us-central1.run.app
+```
+
+Then add an auth header before connecting:
+- **Name:** `Authorization`
+- **Value:** `Bearer <paste your token>`
+
+Everything works the same as local — the inspector connects, validates the agent card, and you can chat interactively.
+
+> The steps above are the same for every specialist agent (Copywriter, Designer, Critic, Project Manager) — just point the inspector at the agent's local port or Cloud Run URL.
+
+---
+
 ## Step 11: Deploy the Creative Director to Agent Engine
 
 The orchestrator is deployed to **Vertex AI Agent Engine**, which provides managed session state, automatic scaling, and built-in tracing.
