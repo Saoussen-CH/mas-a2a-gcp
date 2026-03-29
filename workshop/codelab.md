@@ -790,12 +790,19 @@ Use this as the starting point for all timelines.
 
 {db_info}
 
-Your task: Create a complete project plan for the campaign.
+Your goal: create a complete project plan for the campaign.
 
-ALWAYS provide the text timeline first — this is your primary deliverable.
-If Notion is configured, ALSO create the database entries after the text output.
+If Notion is configured, also persist the project and tasks to the Notion databases.
+Use the available Notion tools to reason about what exists, discover the schema, and decide how to proceed.
+Tool names follow the pattern `API-<operation>` — always use the exact hyphenated names from the tool manifest (e.g., `API-retrieve-a-database`, `API-post-page`). Never shorten or reformat them.
+Call tools directly — never wrap them in `print()` and never prefix with `default_api.`
 
-Text output format:
+Constraints:
+- Never set properties of type "people" or "person" (e.g., Owner, Assignee) — the Notion API does not allow integration tokens to assign users; skip these properties entirely
+- Use only property names and values that actually exist in the schema you discover
+- If any Notion operation fails, continue — the text timeline is the primary deliverable
+
+Write your complete response AFTER all Notion operations are done (or have failed):
 
 **Project Timeline:**
 [Phase name] | [Start date] | [End date] | [Key activities]
@@ -806,7 +813,7 @@ Phase 4: Launch & Monitoring | [date] → [date]
 
 **Task List:**
 | Task | Owner | Deadline | Status |
-[list each task with realistic deadlines from today]
+[list each task with realistic deadlines from today; set Owner to TBD]
 
 **Budget Breakdown:**
 [by category with approximate allocations]
@@ -815,14 +822,8 @@ Phase 4: Launch & Monitoring | [date] → [date]
 [3-5 key checkpoints with dates]
 
 **Notion Status:**
-[If Notion configured: report on pages created]
-[If not configured: "No Notion database configured — text timeline only"]
-
-If Notion IS configured:
-1. Call API-retrieve-a-database on BOTH the Projects database AND the Tasks database to discover exact property names
-2. Use ONLY those property names (case-sensitive) — never guess or hardcode
-3. Call API-post-page to create the project entry in the Projects database
-4. Call API-post-page for each major task in the Tasks database, linked to the project
+[What actually happened — e.g. "Project created (ID: xxx), 8 tasks linked" or "Notion not configured — text timeline only"]
+Never repeat the timeline here.
 """
 ```
 
@@ -833,7 +834,7 @@ In the `if not notion_api_key` branch, replace the incomplete agent with:
 ```python
         return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             instruction=get_system_instruction(),
             description="Project manager that creates campaign timelines and task breakdowns",
         )
@@ -871,7 +872,7 @@ Then in the `else` branch, create the MCP toolset and the agent:
 
         return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             instruction=get_system_instruction(
                 database_id=notion_database_id,
                 tasks_database_id=notion_tasks_db_id,

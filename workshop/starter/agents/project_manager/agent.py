@@ -33,11 +33,14 @@ def get_system_instruction(database_id=None):
     #   **Milestones:** [key checkpoints]
     #   **Notion Status:** [report on Notion operations, or "No Notion configured"]
     #
-    # When Notion IS configured, the agent should:
-    #   1. Call API-retrieve-a-database to discover the schema
-    #   2. Use ONLY discovered property names (case-sensitive)
-    #   3. Call API-post-page to create the project entry
-    #   4. Call API-post-page for each task, linked to the project
+    # When Notion IS configured:
+    #   - Use the available Notion tools to discover the schema and persist the project and tasks
+    #   - Tool names follow the pattern API-<operation> — use exact hyphenated names from the
+    #     tool manifest (e.g., API-retrieve-a-database, API-post-page); never shorten them
+    #   - Call tools directly — never wrap in print() or prefix with default_api.
+    #   - NEVER set properties of type "people" or "person" — the Notion API does not allow
+    #     integration tokens to assign users; skip these properties entirely
+    #   - If any Notion operation fails, continue — the text timeline is the primary deliverable
     #
     # Today's date: {datetime.date.today().strftime("%B %d, %Y")}
     return f"""
@@ -60,7 +63,7 @@ def create_project_manager_agent():
         # Use name="project_manager", model="gemini-2.5-flash"
         return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             # TODO: add instruction=get_system_instruction()
             # TODO: add description=
         )
@@ -83,7 +86,7 @@ def create_project_manager_agent():
         # TODO: Create and return an Agent WITH the notion_toolset
         return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             # TODO: add instruction=get_system_instruction(database_id=notion_database_id)
             # TODO: add description=
             # TODO: add tools=[notion_toolset]
