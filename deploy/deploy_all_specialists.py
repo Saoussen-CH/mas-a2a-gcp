@@ -110,14 +110,14 @@ async def deploy_single_agent(
     # Add Notion credentials for project-manager agent
     if name == "project-manager":
         notion_api_key = os.getenv("NOTION_API_KEY")
-        notion_database_id = os.getenv("NOTION_DATABASE_ID")
+        notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
 
         if notion_api_key and notion_database_id:
             print(f"   Adding Notion MCP credentials to {name}...")
-            env_vars += f",NOTION_API_KEY={notion_api_key},NOTION_DATABASE_ID={notion_database_id}"
+            env_vars += f",NOTION_API_KEY={notion_api_key},NOTION_PROJECT_DATABASE_ID={notion_database_id}"
         else:
             print(
-                f"   Warning: NOTION_API_KEY or NOTION_DATABASE_ID not set - {name} will work without Notion integration"
+                f"   Warning: NOTION_API_KEY or NOTION_PROJECT_DATABASE_ID not set - {name} will work without Notion integration"
             )
 
     cmd = [
@@ -221,14 +221,14 @@ async def update_agent_a2a_config(
     # Add Notion credentials for project-manager agent
     if service_name == "project-manager":
         notion_api_key = os.getenv("NOTION_API_KEY")
-        notion_database_id = os.getenv("NOTION_DATABASE_ID")
+        notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
 
         if notion_api_key and notion_database_id:
             print(f"   Adding Notion MCP credentials to {service_name}...")
-            env_vars_update += f",NOTION_API_KEY={notion_api_key},NOTION_DATABASE_ID={notion_database_id}"
+            env_vars_update += f",NOTION_API_KEY={notion_api_key},NOTION_PROJECT_DATABASE_ID={notion_database_id}"
         else:
             print(
-                f"   Warning: NOTION_API_KEY or NOTION_DATABASE_ID not set - {service_name} will work without Notion integration"
+                f"   Warning: NOTION_API_KEY or NOTION_PROJECT_DATABASE_ID not set - {service_name} will work without Notion integration"
             )
 
     cmd = [

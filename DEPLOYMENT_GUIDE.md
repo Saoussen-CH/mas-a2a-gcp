@@ -182,7 +182,7 @@ GOOGLE_API_KEY=your-gemini-api-key
 # 1. Projects Database (provide ID here)
 # 2. Tasks Database (update hardcoded ID in agents/project_manager/agent.py:59)
 NOTION_API_KEY=your-notion-integration-token
-NOTION_DATABASE_ID=your-projects-database-id
+NOTION_PROJECT_DATABASE_ID=your-projects-database-id
 
 # Agent URLs (will be auto-filled during deployment)
 STRATEGIST_AGENT_URL=
@@ -278,7 +278,7 @@ This deploys all 5 agents to Cloud Run in parallel.
 - Deploys to Cloud Run with:
   - `GOOGLE_API_KEY` (all agents)
   - `NOTION_API_KEY` (Project Manager only)
-  - `NOTION_DATABASE_ID` (Project Manager only)
+  - `NOTION_PROJECT_DATABASE_ID` (Project Manager only)
 - Returns agent URLs
 
 **Copy the URLs** and update your `.env`:

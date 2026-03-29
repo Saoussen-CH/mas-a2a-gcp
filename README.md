@@ -490,7 +490,7 @@ User: "Create complete campaign with posts and timeline"
 
 **TWO DATABASES REQUIRED:**
 
-1. **Projects Database** (ID from `NOTION_DATABASE_ID` environment variable)
+1. **Projects Database** (ID from `NOTION_PROJECT_DATABASE_ID` environment variable)
    - **"Project name"**: title (required - campaign name)
    - **"Status"**: status (e.g., "In progress", "Completed")
    - **"Priority"**: select (options: "High", "Medium", "Low")
@@ -506,7 +506,7 @@ User: "Create complete campaign with posts and timeline"
 
 **Environment Variables**:
 - `NOTION_API_KEY`: Notion integration token (passed as `NOTION_TOKEN` to MCP server)
-- `NOTION_DATABASE_ID`: Database ID for the **Projects** database (Tasks DB ID is hardcoded)
+- `NOTION_PROJECT_DATABASE_ID`: Database ID for the **Projects** database (Tasks DB ID is hardcoded)
 
 **Workflow**:
 1. Agent generates text-based project timeline (primary deliverable)
@@ -652,7 +652,7 @@ GOOGLE_API_KEY="your-gemini-api-key"
 # 1. Projects Database (provide ID here)
 # 2. Tasks Database (hardcoded in agent.py:59 - update if different)
 NOTION_API_KEY="your-notion-integration-token"
-NOTION_DATABASE_ID="your-projects-database-id"
+NOTION_PROJECT_DATABASE_ID="your-projects-database-id"
 
 # Agent URLs (will be filled after deployment)
 STRATEGIST_AGENT_URL=""
@@ -815,7 +815,7 @@ python3 deploy_orchestrator.py --action deploy
   - `GOOGLE_GENAI_USE_VERTEXAI=true`
   - `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`
   - `NOTION_API_KEY` (Project Manager only - for Notion MCP integration)
-  - `NOTION_DATABASE_ID` (Project Manager only - Projects database ID)
+  - `NOTION_PROJECT_DATABASE_ID` (Project Manager only - Projects database ID)
 
 **Creative Director** → Vertex AI Agent Engine:
 - Managed agent runtime
@@ -1226,7 +1226,7 @@ agent = Agent(
     name="project_manager",
     model="gemini-2.5-flash",
     tools=[notion_toolset],
-    instruction=get_system_instruction(database_id=os.getenv("NOTION_DATABASE_ID"))
+    instruction=get_system_instruction(database_id=os.getenv("NOTION_PROJECT_DATABASE_ID"))
 )
 ```
 
@@ -1242,7 +1242,7 @@ RUN npm install -g @notionhq/notion-mcp-server@1.9.1
 
 **Environment Variables Required**:
 - `NOTION_API_KEY`: Your Notion integration token (passed as `NOTION_TOKEN` to MCP server)
-- `NOTION_DATABASE_ID`: The **Projects** database ID
+- `NOTION_PROJECT_DATABASE_ID`: The **Projects** database ID
 - **Tasks Database ID**: Hardcoded in `agent.py:59` (default: `2ceb1b31123181508894ddb3c597dc48`)
 
 **Available MCP Operations**:

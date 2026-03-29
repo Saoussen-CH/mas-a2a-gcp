@@ -51,7 +51,7 @@ Today's date: {datetime.date.today().strftime("%B %d, %Y")}
 def create_project_manager_agent():
     """Create the Project Manager agent, with Notion MCP if credentials are set."""
     notion_api_key = os.getenv("NOTION_API_KEY")
-    notion_database_id = os.getenv("NOTION_DATABASE_ID")
+    notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
 
     if not notion_api_key or not notion_database_id:
         logger.warning("Notion credentials not set — running without Notion integration")

@@ -190,16 +190,16 @@ def create_project_manager_agent():
 
     # Get Notion credentials from environment
     notion_api_key = os.getenv("NOTION_API_KEY")
-    notion_database_id = os.getenv("NOTION_DATABASE_ID")
+    notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
 
     logger.info(
         f"NOTION_API_KEY from env: {notion_api_key[:20] if notion_api_key else 'None'}..."
     )
-    logger.info(f"NOTION_DATABASE_ID from env: {notion_database_id}")
+    logger.info(f"NOTION_PROJECT_DATABASE_ID from env: {notion_database_id}")
 
     if not notion_api_key or not notion_database_id:
         logger.warning(
-            "NOTION_API_KEY or NOTION_DATABASE_ID not set - agent will work without Notion integration"
+            "NOTION_API_KEY or NOTION_PROJECT_DATABASE_ID not set - agent will work without Notion integration"
         )
         # Create agent without Notion tools
         agent = Agent(
