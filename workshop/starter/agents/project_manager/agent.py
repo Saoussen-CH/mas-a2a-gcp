@@ -60,7 +60,7 @@ def create_project_manager_agent():
         logger.warning("Notion credentials not set — running without Notion integration")
 
         # TODO: Create and return an Agent without tools
-        # Use name="project_manager", model="gemini-2.5-pro"
+        # Use name="project_manager", model="gemini-2.5-flash"
         return Agent(
             name="project_manager",
             model="gemini-2.5-flash",
