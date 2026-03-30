@@ -93,6 +93,13 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# Videos
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
 # Temporary files
 *.tmp
 *.bak

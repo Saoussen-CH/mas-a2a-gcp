@@ -1,7 +1,10 @@
 import logging
 import os
 
+from dotenv import load_dotenv
 from google.adk.agents import Agent
+
+load_dotenv()
 
 logger = logging.getLogger("ai_creative_studio.designer")
 

@@ -93,7 +93,7 @@ def create_project_manager_agent():
         )
         agent = Agent(
             name="project_manager",
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             instruction=get_system_instruction(),
             description="Project manager for creating timelines, tasks, and organizing campaign deliverables",
         )
@@ -123,7 +123,7 @@ def create_project_manager_agent():
         # Use Pro for reliable multi-step tool calling with MCP
         agent = Agent(
             name="project_manager",
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             instruction=get_system_instruction(
                 database_id=notion_database_id,
                 tasks_database_id=notion_tasks_db_id,

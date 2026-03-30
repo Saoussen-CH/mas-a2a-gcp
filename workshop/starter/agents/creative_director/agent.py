@@ -6,50 +6,13 @@ from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.plugins.logging_plugin import LoggingPlugin
 from google.adk.tools.agent_tool import AgentTool
 
+try:
+    from .prompt import SYSTEM_INSTRUCTION_TEMPLATE
+except ImportError:
+    from prompt import SYSTEM_INSTRUCTION_TEMPLATE  # direct execution fallback
+
 logger = logging.getLogger("ai_creative_studio.creative_director")
 logger.setLevel(logging.INFO)
-
-# TODO: Define SYSTEM_INSTRUCTION_TEMPLATE
-# The Creative Director orchestrates all specialist agents. It must:
-#
-# 1. CLASSIFY the request:
-#    - Simple (e.g., "just research") → call ONE agent
-#    - Complex (e.g., "full campaign") → call ALL 5 agents sequentially
-#
-# 2. PLAN before acting — announce the execution plan to the user:
-#    "I'll coordinate our team. Here's my plan:
-#     1. Brand Strategist will research...
-#     2. Copywriter will create...
-#     ..."
-#
-# 3. EXECUTE — for each agent:
-#    a) Call the tool with full context (remote agents have no shared memory!)
-#    b) Wait for tool_output
-#    c) Verify success (check for errors)
-#    d) Confirm to user: "✓ [Agent] complete."
-#    e) If error: STOP and report — never continue after failure
-#
-# 4. REVISION LOOP — after the Critic:
-#    - Parse Status: APPROVED or NEEDS_REVISION for posts and visuals
-#    - If NEEDS_REVISION: call the relevant agent again with the critic's feedback
-#    - Maximum 1 revision per deliverable (prevent infinite loops)
-#    - Pass REVISED versions to the Project Manager
-#
-# 5. RULES:
-#    - NEVER generate content yourself — always delegate to specialists
-#    - NEVER skip agents in a planned workflow
-#    - NEVER invent results — only report what tool_output actually contained
-#    - ALWAYS pass prior agent outputs as context to the next agent
-#
-# The template uses {available_agents} which is injected at runtime
-# with the list of configured specialist agents.
-SYSTEM_INSTRUCTION_TEMPLATE = """
-# TODO: Write the Creative Director system instruction here.
-# Use {available_agents} as a placeholder where the agent list will be injected.
-
-Available specialists:
-{available_agents}
-"""
 
 
 def create_creative_director():
@@ -105,7 +68,7 @@ def create_creative_director():
 
     agent = Agent(
         name="creative_director",
-        model="gemini-2.5-flash",
+        model="gemini-2.5-pro",
         description="Creative Director orchestrator that coordinates specialist agents",
         instruction=system_instruction,
         tools=agent_tools,

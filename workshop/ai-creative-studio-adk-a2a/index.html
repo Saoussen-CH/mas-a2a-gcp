@@ -36,7 +36,7 @@
           <hr style="border:none;border-top:1px solid #dadce0;margin:0 0 20px 0;">
           <div style="display:flex;align-items:center;margin-bottom:16px;color:#5f6368;font-size:14px;">
             <svg style="margin-right:16px;flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-            <span>Last updated Mar 29, 2026</span>
+            <span>Last updated Mar 30, 2026</span>
           </div>
           <div style="display:flex;align-items:center;color:#5f6368;font-size:14px;">
             <div style="margin-right:16px;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#bdc1c6;display:flex;align-items:center;justify-content:center;overflow:hidden;">
@@ -101,7 +101,7 @@
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 1: Set Up Your Cloud Shell Environment" duration="0">
+      <google-codelab-step label="Set Up Your Cloud Shell Environment" duration="0">
         <h2 is-upgraded>What is Cloud Shell?</h2>
 <p>Cloud Shell is a free browser-based Linux environment with everything pre-installed: <code>gcloud</code>, <code>git</code>, Python, Docker, and more. You don&#39;t need to install anything locally.</p>
 <p>To open Cloud Shell, click the terminal icon in the top-right toolbar of the GCP Console:</p>
@@ -169,7 +169,7 @@ gcloud config set project $PROJECT_ID
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 2: Clone the Starter Repository" duration="0">
+      <google-codelab-step label="Clone the Starter Repository" duration="0">
         <p>This codelab uses a <strong>starter repository</strong> — a skeleton project with all the infrastructure in place (Dockerfiles, requirements, deploy scripts) but with the agent logic left for you to write.</p>
 <pre><code language="language-bash" class="language-bash">git clone -b workshop/colab https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git ~/ai-creative-studio
 cd ~/ai-creative-studio/workshop/starter
@@ -211,7 +211,7 @@ GOOGLE_GENAI_USE_VERTEXAI=TRUE
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 3: Understand Google ADK" duration="0">
+      <google-codelab-step label="Understand Google ADK" duration="0">
         <p>Before writing code, let&#39;s understand <strong>ADK</strong> — the framework you&#39;ll use to build every agent in this codelab.</p>
 <h2 is-upgraded>What is ADK?</h2>
 <p><em>&#34;ADK is a flexible and modular open-source framework for developing and deploying AI agents. While optimized for Gemini and the Google ecosystem, ADK is model-agnostic, deployment-agnostic, and is built for compatibility with other frameworks.&#34;</em></p>
@@ -284,7 +284,7 @@ root_agent = Agent(
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 4: Build the Brand Strategist Agent" duration="0">
+      <google-codelab-step label="Build the Brand Strategist Agent" duration="0">
         <p>The Brand Strategist researches markets, competitors, and trends using <strong>Google Search</strong>.</p>
 <p>Open the skeleton file in Cloud Shell Editor:</p>
 <pre><code language="language-bash" class="language-bash">cloudshell edit agents/brand_strategist/agent.py
@@ -348,7 +348,7 @@ Format your output as:
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 5: Test the Brand Strategist Locally with ADK Web" duration="0">
+      <google-codelab-step label="Test the Brand Strategist Locally with ADK Web" duration="0">
         <p>Before deploying to Cloud Run, test the Brand Strategist agent locally using the <strong>ADK web UI</strong> — a built-in chat interface for testing agents.</p>
 <h2 is-upgraded>Create a virtual environment and install dependencies</h2>
 <p>Using a virtual environment is best practice — it isolates project dependencies and avoids conflicts with system packages.</p>
@@ -396,7 +396,7 @@ INFO: Uvicorn running on http://localhost:8000
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 6: Build the Copywriter, Designer, and Critic Agents" duration="0">
+      <google-codelab-step label="Build the Copywriter, Designer, and Critic Agents" duration="0">
         <p>These three specialists follow the same ADK pattern as the Brand Strategist. The <code>root_agent</code> constructor is already pre-filled in each starter file — <strong>your only task is writing the system instruction</strong> for each agent.</p>
 <h2 is-upgraded>Copywriter Agent</h2>
 <p>Open the file:</p>
@@ -522,7 +522,7 @@ Evaluation criteria:
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 7: Test Copywriter, Designer, and Critic Locally with ADK Web (Optional)" duration="0">
+      <google-codelab-step label="Test Copywriter, Designer, and Critic Locally with ADK Web (Optional)" duration="0">
         <p>The same <code>adk web</code> workflow applies to every agent. Skip this step if you&#39;re short on time — you can always come back to test individual agents later.</p>
 <h2 is-upgraded>Copywriter</h2>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents
@@ -559,7 +559,7 @@ Score it and indicate APPROVED or NEEDS_REVISION with specific feedback.
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 8: Build the Project Manager Agent with MCP" duration="0">
+      <google-codelab-step label="Build the Project Manager Agent with MCP" duration="0">
         <p>The Project Manager introduces a new concept: <strong>MCP (Model Context Protocol)</strong>.</p>
 <p>Open the file:</p>
 <pre><code language="language-bash" class="language-bash">cloudshell edit agents/project_manager/agent.py
@@ -777,15 +777,24 @@ Never repeat the timeline here.
 <p>We use the official <strong>Notion Projects &amp; Tasks</strong> template as our database. We chose this template deliberately to demonstrate a complex, real-world setting — it has multiple property types (status, date ranges, relations, selects) with non-obvious names. This is a great test of MCP&#39;s dynamic schema discovery: the agent must figure out the exact property names at runtime rather than having them hardcoded.</p>
 <p>Click the link below to add the template to your Notion workspace:</p>
 <p><a href="https://www.notion.so/marketplace/templates/notion-projects-and-tasks?cr=pro%3Anotion" target="_blank"><strong>→ Add &#34;Projects &amp; Tasks&#34; template to Notion</strong></a></p>
+<p>![Notion Projects &amp; Tasks template in the Marketplace](diagrams/Screenshot 2026-03-29 172913.jpg)</p>
 <p>Once added, you&#39;ll have two linked databases: <strong>Projects</strong> and <strong>Tasks</strong>. The template comes with sample entries — <strong>delete them all</strong> before proceeding so the agent starts with a clean workspace (select all → Delete).</p>
 <h3 is-upgraded>Step 2 — Create a Notion integration</h3>
 <ol type="1">
 <li>Go to <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a></li>
 <li>Click <strong>New Integration</strong> → name it <code>AI Creative Studio</code></li>
+<li>Make sure <strong>Read content</strong>, <strong>Update content</strong>, and <strong>Insert content</strong> capabilities are checked</li>
 <li>Copy the <strong>Internal Integration Token</strong> (<code>ntn_...</code>)</li>
-<li>Open the <strong>Projects</strong> database → click <strong>Share</strong> → <strong>Invite</strong> → select your integration</li>
+</ol>
+<p>![Notion integration settings — name it &#34;AI Creative Studio&#34; and copy the token](diagrams/Screenshot 2026-03-29 173753.jpg)</p>
+<ol type="1" start="5">
+<li>Open the <strong>Projects</strong> database → click the <code>...</code> menu (top right) → <strong>Connections</strong> → <strong>Add a connection</strong> → select <code>AI Creative Studio</code></li>
+</ol>
+<p>![Click Connections in the database menu to share with your integration](diagrams/Screenshot 2026-03-29 173413.jpg)</p>
+<p>![AI Creative Studio appears as an active connection](diagrams/Screenshot 2026-03-29 173457.jpg)</p>
+<ol type="1" start="6">
 <li>Do the same for the <strong>Tasks</strong> database</li>
-<li>Copy the Projects database ID from the URL: <code>notion.so/{workspace}/{DATABASE_ID}?v=...</code></li>
+<li>Copy each database ID from the URL: <code>notion.so/{workspace}/{DATABASE_ID}?v=...</code></li>
 </ol>
 <h3 is-upgraded>Step 3 — Install the Notion MCP server</h3>
 <p>The Project Manager connects to Notion via the official <code>@notionhq/notion-mcp-server</code> Node.js package. Install it globally:</p>
@@ -829,7 +838,7 @@ Budget: $3,000. Launch in 2 weeks. Include phases, tasks with deadlines from tod
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 9: Understand the A2A Protocol" duration="0">
+      <google-codelab-step label="Understand the A2A Protocol" duration="0">
         <p>Before writing code, let&#39;s understand <strong>A2A</strong> — the communication backbone of this system.</p>
 <h2 is-upgraded>The problem A2A solves</h2>
 <p>Imagine you have a Brand Strategist agent built with ADK and a Copywriter agent built with LangGraph. How does one call the other? They speak different internal languages. You&#39;d need to write custom glue code every time.</p>
@@ -931,7 +940,7 @@ uvicorn.run(a2a_app, host=HOST, port=PORT)
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 10: Expose Agents as A2A Services and Test Locally" duration="0">
+      <google-codelab-step label="Expose Agents as A2A Services and Test Locally" duration="0">
         <p>Each specialist&#39;s skeleton already includes a <code>__main__</code> block that wraps the agent in an A2A server using <code>to_a2a()</code>. You don&#39;t need to write this code — it&#39;s provided. This step runs all 5 specialists as A2A servers simultaneously, then tests the Creative Director locally pointing at them.</p>
 <h2 is-upgraded>How <code>to_a2a()</code> works</h2>
 <pre><code language="language-python" class="language-python">from google.adk.a2a.utils.agent_to_a2a import to_a2a
@@ -974,25 +983,39 @@ uvicorn.run(a2a_app, host=HOST, port=PORT)
 </table>
 <p>Locally both point to the same machine. On Cloud Run, the container listens internally on <code>8080</code> but the agent card must advertise the public HTTPS URL — otherwise the Creative Director can&#39;t reach the specialist from outside the container.</p>
 <h2 is-upgraded>Start all 5 specialist A2A servers</h2>
-<p>Open <strong>5 separate Cloud Shell terminals</strong> (click the <code>+</code> icon in the terminal tab bar) and run one agent per terminal:</p>
+<p>Open <strong>5 separate Cloud Shell terminals</strong> (click the <code>+</code> icon in the terminal tab bar) and run one agent per terminal.</p>
+<p><strong>Each new terminal needs the venv activated and credentials set.</strong> Run these two commands first in every terminal before the agent command:</p>
+<pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
+gcloud auth application-default login
+</code></pre>
 <p><strong>Terminal 1 — Brand Strategist (port 8082):</strong></p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents/brand_strategist
+<pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
+gcloud auth application-default login
+cd ~/ai-creative-studio/workshop/starter/agents/brand_strategist
 python agent.py
 </code></pre>
 <p><strong>Terminal 2 — Copywriter (port 8083):</strong></p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents/copywriter
+<pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
+gcloud auth application-default login
+cd ~/ai-creative-studio/workshop/starter/agents/copywriter
 PORT=8083 python agent.py
 </code></pre>
 <p><strong>Terminal 3 — Designer (port 8084):</strong></p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents/designer
+<pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
+gcloud auth application-default login
+cd ~/ai-creative-studio/workshop/starter/agents/designer
 PORT=8084 python agent.py
 </code></pre>
 <p><strong>Terminal 4 — Critic (port 8085):</strong></p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents/critic
+<pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
+gcloud auth application-default login
+cd ~/ai-creative-studio/workshop/starter/agents/critic
 PORT=8085 python agent.py
 </code></pre>
 <p><strong>Terminal 5 — Project Manager (port 8086):</strong></p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents/project_manager
+<pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
+gcloud auth application-default login
+cd ~/ai-creative-studio/workshop/starter/agents/project_manager
 PORT=8086 python agent.py
 </code></pre>
 <h2 is-upgraded>Set localhost URLs in .env</h2>
@@ -1007,22 +1030,12 @@ sed -i \
   -e &#39;s|PM_AGENT_URL=.*|PM_AGENT_URL=http://localhost:8086|&#39; \
   .env
 </code></pre>
-<h2 is-upgraded>Test the Creative Director locally</h2>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents
-adk web
-</code></pre>
-<p>Open Web Preview on port 8000. Use the <strong>agent dropdown</strong> to select <strong><code>creative_director</code></strong>, then try:</p>
-<pre><code>Research the eco-friendly water bottle market for health-conscious millennials
-</code></pre>
-<p>The Creative Director will route this to the Brand Strategist only. Then try a full campaign:</p>
-<pre><code>Create a complete Instagram campaign for EcoFlow Smart Water Bottle targeting health-conscious millennials aged 25-35. Budget $3,000, launch in 2 weeks.
-</code></pre>
-<p>You&#39;ll see the Creative Director coordinate all 5 specialists in sequence, with each agent&#39;s output flowing into the next.</p>
-<p>Stop the Creative Director (<code>Ctrl+C</code> in terminal 6) before proceeding — the inspector backend also uses port 8000.</p>
-<p>Stop the 5 specialist servers (<code>Ctrl+C</code> in each terminal) when done with local testing.</p>
 <h2 is-upgraded>Install the A2A Inspector and verify agent cards</h2>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/tools/a2a-inspector
 ./setup_inspector.sh
+</code></pre>
+<p><strong>Download timeout?</strong> Cloud Shell has intermittent outbound bandwidth limits. Retry with a longer timeout:</p>
+<pre><code language="language-bash" class="language-bash">UV_HTTP_TIMEOUT=120 ./setup_inspector.sh
 </code></pre>
 <p>In a new terminal, start the inspector:</p>
 <pre><code language="language-bash" class="language-bash">cd ~/a2a-inspector
@@ -1035,60 +1048,20 @@ bash scripts/run.sh
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 11: Build the Creative Director Orchestrator" duration="0">
+      <google-codelab-step label="Build the Creative Director Orchestrator" duration="0">
         <p>The Creative Director is the master orchestrator. It reads specialist URLs from environment variables, wraps each one as a <code>RemoteA2aAgent</code>, and exposes them as <code>AgentTool</code>s the LLM can call.</p>
 <p>Open the file:</p>
 <pre><code language="language-bash" class="language-bash">cloudshell edit agents/creative_director/agent.py
 </code></pre>
 <p>This file has three TODOs. Work through them in order.</p>
-<h2 is-upgraded>TODO 1 — Write the system instruction</h2>
-<p>Replace <code>SYSTEM_INSTRUCTION_TEMPLATE</code> with:</p>
-<pre><code language="language-python" class="language-python">SYSTEM_INSTRUCTION_TEMPLATE = &#34;&#34;&#34;You are the Creative Director of an AI-powered creative studio.
-You orchestrate a team of specialist agents to produce complete Instagram campaigns.
-
-Your available specialists:
-{available_agents}
-
-## YOUR WORKFLOW
-
-**Step 1 — Classify the request**
-- Simple request (e.g., &#34;just research&#34;, &#34;write some captions&#34;) → call ONE relevant agent
-- Full campaign request → call ALL agents in this order:
-  Brand Strategist → Copywriter → Designer → Critic → Project Manager
-
-**Step 2 — Announce your plan**
-Before calling any agent, tell the user what you are going to do:
-&#34;I&#39;ll coordinate our creative team. Here&#39;s my plan:
-1. Brand Strategist will research the market and audience
-2. Copywriter will create 5 Instagram captions using those insights
-3. ...&#34;
-
-**Step 3 — Execute sequentially**
-For each agent:
-a) Call the tool. Include ALL relevant context from previous agents in your message.
-   Remote agents have NO shared memory — you must pass prior outputs explicitly.
-b) Wait for tool_output.
-c) Verify the output is complete (not an error).
-d) Confirm to the user: &#34;✓ Brand Strategist complete.&#34;
-e) If the output contains an error or is empty: STOP and report the failure.
-   Never continue to the next agent after a failure.
-
-**Step 4 — Handle Critic feedback**
-After the Critic responds, parse its output:
-- Read &#34;Status: APPROVED or NEEDS_REVISION&#34; for POSTS REVIEW and VISUALS REVIEW
-- If POSTS → NEEDS_REVISION: call Copywriter again. Include the original brief +
-  previous captions + Critic&#39;s exact suggestions in your message.
-- If VISUALS → NEEDS_REVISION: call Designer again with the same context + feedback.
-- Maximum 1 revision per deliverable. After one revision, proceed regardless.
-- Pass the final (revised or original) versions to the Project Manager.
-
-**Step 5 — Never generate content yourself**
-You coordinate and delegate — you do NOT write captions, design concepts, or timelines.
-Only present what the tool_output actually returned.
-&#34;&#34;&#34;
+<h2 is-upgraded>TODO 1 — The system instruction is already written</h2>
+<p>The system instruction lives in <code>prompt.py</code> in the same directory — it&#39;s imported automatically:</p>
+<pre><code language="language-python" class="language-python">from .prompt import SYSTEM_INSTRUCTION_TEMPLATE
 </code></pre>
-<h2 is-upgraded>Why the orchestrator prompt is structured this way</h2>
-<p>The prompt above is not just documentation — it&#39;s the control plane of the entire system. A poorly structured orchestrator prompt produces: agents called out of order, content generated by the orchestrator instead of specialists, workflows that continue after failures, and context silently dropped between agents. These five elements prevent the most common failures:</p>
+<p>Open <code>prompt.py</code> to read it before moving on. Understanding it is important because it controls the entire orchestration behavior.</p>
+<h2 is-upgraded>Why the orchestrator prompt controls everything</h2>
+<p>Open <code>prompt.py</code> alongside this section — the examples below reference specific parts of it.</p>
+<p>The prompt in <code>prompt.py</code> is not just documentation — it&#39;s the control plane of the entire system. A poorly structured orchestrator prompt produces: agents called out of order, content generated by the orchestrator instead of specialists, workflows that continue after failures, and context silently dropped between agents. These five elements prevent the most common failures:</p>
 <p><strong>Element 1 — Explicit role definition</strong></p>
 <pre><code language="language-text" class="language-text">❌ &#34;You are a helpful creative assistant.&#34;
 ✅ &#34;You orchestrate specialists. You do NOT write captions, designs, or timelines yourself.&#34;
@@ -1183,7 +1156,7 @@ Turn 7:  designer tool_call                    ~500 tokens
 Turn 8:  designer tool_output                  ~1,500 tokens
 ...
 </code></pre>
-<p>By Agent 4 (Critic), the context window contains the full output of all three previous agents — often 8,000–12,000 tokens just in tool responses. Gemini 2.5 Flash supports a large context window, but the orchestrator&#39;s reasoning quality degrades as it has to attend over an ever-growing history. Without compaction, long workflows hit practical limits around Agent 4.</p>
+<p>By Agent 4 (Critic), the context window contains the full output of all three previous agents — often 8,000–12,000 tokens just in tool responses. Even with Gemini 2.5 Pro&#39;s large context window, the orchestrator&#39;s reasoning quality degrades as it has to attend over an ever-growing history. Without compaction, long workflows hit practical limits around Agent 4.</p>
 <h3 is-upgraded>What compaction does</h3>
 <p>Instead of keeping every event in full, ADK periodically calls an LLM to summarize older events into a compact representation. Only the summary of past events + the full output of the most recent agent are kept in context.</p>
 <pre><code language="language-text" class="language-text">Without compaction:
@@ -1241,11 +1214,29 @@ Agent(tools=[...])
 brand-strategist-xxxx.run.app  ← actual HTTP A2A call happens here
 </code></pre>
 <p>The LLM decides <em>when</em> to call each tool based on the system instruction and the user&#39;s request. The orchestrator never calls agents directly in code — it&#39;s all driven by the LLM&#39;s reasoning.</p>
+<h2 is-upgraded>Test the Creative Director locally</h2>
+<p>Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10). Then in a new terminal:</p>
+<pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
+cd ~/ai-creative-studio/workshop/starter/agents
+adk web
+</code></pre>
+<p>Open Web Preview on port 8000. Use the <strong>agent dropdown</strong> to select <strong><code>creative_director</code></strong>, then try:</p>
+<pre><code>Research the eco-friendly water bottle market for health-conscious millennials
+</code></pre>
+<p>The Creative Director will route this to the Brand Strategist only. Then try a full campaign:</p>
+<pre><code>Create a complete Instagram campaign for EcoFlow Smart Water Bottle targeting health-conscious millennials aged 25-35. Budget $3,000, launch in 2 weeks.
+</code></pre>
+<p>You&#39;ll see the Creative Director coordinate all 5 specialists in sequence, with each agent&#39;s output flowing into the next.</p>
+<p class="image-container"><img alt="Demo: End-to-End Campaign Run" src="img/61d31718553a5172.gif"></p>
+<p><strong><code>service account info is missing 'email' field</code></strong></p>
+<p><strong>?</strong> Your Application Default Credentials expired (Cloud Shell sessions reset after ~12 hours). Run <code>gcloud auth application-default login</code>, then <strong>restart all running agents</strong> — existing processes don&#39;t pick up new credentials automatically.</p>
+<p>Stop the Creative Director (<code>Ctrl+C</code>) before proceeding — the A2A inspector also uses port 8000.</p>
+<p>Stop the 5 specialist servers (<code>Ctrl+C</code> in each terminal) when done with local testing.</p>
 
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 12: Deploy Specialists to Cloud Run" duration="0">
+      <google-codelab-step label="Deploy Specialists to Cloud Run" duration="0">
         <p>Each specialist agent is deployed as an independent Cloud Run service. Cloud Run automatically builds a Docker container from source using Cloud Build.</p>
 <h2 is-upgraded>Deployment configuration</h2>
 <p>The <code>Dockerfile</code> for each specialist follows this pattern:</p>
@@ -1267,7 +1258,8 @@ EXPOSE 8080
 CMD [&#34;python&#34;, &#34;agent.py&#34;]
 </code></pre>
 <h2 is-upgraded>Deploy all 5 specialists in parallel</h2>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
+<pre><code language="language-bash" class="language-bash">gcloud auth login
+cd ~/ai-creative-studio/workshop/starter
 source .env
 
 python deploy/deploy_all_specialists.py
@@ -1299,7 +1291,7 @@ echo &#34;  Project Manager:  $PM_AGENT_URL&#34;
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 13: Verify and Test Deployed Agents" duration="0">
+      <google-codelab-step label="Verify and Test Deployed Agents" duration="0">
         <h2 is-upgraded>Verify Agent Cards</h2>
 <p>Each deployed agent exposes an agent card at <code>/.well-known/agent.json</code>. Fetch them to confirm everything is live:</p>
 <pre><code language="language-bash" class="language-bash">source .env
@@ -1355,7 +1347,7 @@ bash scripts/run.sh
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 14: Deploy the Creative Director to Agent Engine" duration="0">
+      <google-codelab-step label="Deploy the Creative Director to Agent Engine" duration="0">
         <p>The orchestrator is deployed to <strong>Vertex AI Agent Engine</strong>, which provides managed session state, automatic scaling, and built-in tracing.</p>
 <h2 is-upgraded>Why Agent Engine for the orchestrator?</h2>
 <p>The five specialists are deployed to Cloud Run — lightweight, stateless, each handling one task. The Creative Director has different requirements:</p>
@@ -1452,10 +1444,51 @@ echo &#34;Resource: $AGENT_ENGINE_RESOURCE_NAME&#34;
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 15: Run an End-to-End Campaign" duration="0">
-        <p>The entire system is deployed. Let&#39;s create a complete campaign!</p>
-<h2 is-upgraded>Connect to Agent Engine and run a campaign</h2>
-<p>Save the following to a file and run it:</p>
+      <google-codelab-step label="Run an End-to-End Campaign" duration="0">
+        <p>The entire system is deployed. Run a complete campaign from the Agent Engine playground.</p>
+<h2 is-upgraded>Open the Agent Engine playground</h2>
+<ol type="1">
+<li>Go to <a href="https://console.cloud.google.com/vertex-ai/agents" target="_blank">console.cloud.google.com/vertex-ai/agents</a></li>
+<li>Select your deployed Agent Engine (<code>creative-director</code>)</li>
+<li>Click <strong>Playground</strong> in the left sidebar</li>
+<li>Click <strong>New session</strong> to open a fresh conversation</li>
+</ol>
+<h2 is-upgraded>Run a full campaign</h2>
+<p>Paste this brief into the chat and send:</p>
+<pre><code language="language-text" class="language-text">Create a complete Instagram campaign for:
+- Product: EcoFlow Smart Water Bottle (tracks hydration, keeps drinks cold 24h)
+- Target Audience: Health-conscious millennials, 25-35 years old
+- Platform: Instagram
+- Goal: Brand awareness + drive website traffic
+- Brand Voice: Motivational, clean, science-backed
+- Budget: $3,000
+- Timeline: Launch in 2 weeks
+</code></pre>
+<p>The Creative Director will execute all 5 agents in sequence:</p>
+<ol type="1">
+<li><strong>Brand Strategist</strong> → market research, competitor analysis, audience insights</li>
+<li><strong>Copywriter</strong> → 5 Instagram posts with captions, hashtags, CTAs</li>
+<li><strong>Designer</strong> → visual concepts and Imagen prompts for each post</li>
+<li><strong>Critic</strong> → quality review with APPROVED / NEEDS_REVISION scores</li>
+<li><em>(Revision if needed)</em> → Copywriter or Designer called again with feedback</li>
+<li><strong>Project Manager</strong> → 2-week timeline, task breakdown, budget allocation</li>
+</ol>
+<p class="image-container"><img alt="Demo: End-to-End Campaign Run" src="img/8a81578343bfd8c2.gif"></p>
+<h2 is-upgraded>Test single-agent routing</h2>
+<p>Send this shorter request in a new session:</p>
+<pre><code language="language-text" class="language-text">Research the luxury skincare market — top brands and trends in 2025
+</code></pre>
+<p>Notice the Creative Director routes this to <strong>only the Brand Strategist</strong> — no other agents are called. This is the request classification logic from the system instruction working correctly.</p>
+<h2 is-upgraded>Inspect execution traces</h2>
+<p>While still in the console:</p>
+<ol type="1">
+<li>Click <strong>Traces</strong> in the left sidebar (next to Playground)</li>
+<li>Select the session you just ran</li>
+<li>Expand the trace tree to see each agent call, its inputs/outputs, latency, and token usage</li>
+</ol>
+<p>Each A2A call to a specialist appears as a separate span. You can see exactly what context the Creative Director passed to each agent and what it received back.</p>
+<h2 is-upgraded>Optional: run from the terminal</h2>
+<p>If you prefer a terminal-based workflow, create and run this script:</p>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
 cat &gt; run_campaign.py &lt;&lt; &#39;EOF&#39;
 import vertexai
@@ -1504,101 +1537,16 @@ EOF
 
 python3 run_campaign.py
 </code></pre>
-<p>The Creative Director will:</p>
-<ol type="1">
-<li>Announce its plan (5 steps)</li>
-<li>Call Brand Strategist → confirm with &#34;✓ Research complete&#34;</li>
-<li>Call Copywriter with strategist insights → confirm</li>
-<li>Call Designer with copy → confirm</li>
-<li>Call Critic → check for NEEDS_REVISION</li>
-<li>(If needed) Revise copy or visuals</li>
-<li>Call Project Manager → confirm</li>
-<li>Present the complete campaign</li>
-</ol>
-<h2 is-upgraded>Test single-agent routing</h2>
-<pre><code language="language-bash" class="language-bash">cat &gt; test_routing.py &lt;&lt; &#39;EOF&#39;
-import vertexai
-from vertexai import Client
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-PROJECT_ID = os.getenv(&#34;GCP_PROJECT_ID&#34;) or os.getenv(&#34;PROJECT_ID&#34;)
-LOCATION   = os.getenv(&#34;GCP_REGION&#34;) or os.getenv(&#34;LOCATION&#34;, &#34;us-central1&#34;)
-
-vertexai.init(project=PROJECT_ID, location=LOCATION)
-client = Client(project=PROJECT_ID, location=LOCATION)
-
-resource_name = (
-    f&#34;projects/{PROJECT_ID}/locations/{LOCATION}/&#34;
-    f&#34;reasoningEngines/{os.getenv(&#39;AGENT_ENGINE_ID&#39;)}&#34;
-)
-
-agent_engine = client.agent_engines.get(resource_name)
-session = agent_engine.create_session(user_id=&#34;workshop-user&#34;)
-
-for event in agent_engine.stream_query(
-    user_id=&#34;workshop-user&#34;,
-    session_id=session[&#34;id&#34;],
-    message=&#34;Research the luxury skincare market — top brands and trends in 2025&#34;,
-):
-    if &#34;content&#34; in event and &#34;parts&#34; in event[&#34;content&#34;]:
-        for part in event[&#34;content&#34;][&#34;parts&#34;]:
-            if &#34;text&#34; in part:
-                print(part[&#34;text&#34;], end=&#34;&#34;, flush=True)
-EOF
-
-python3 test_routing.py
-</code></pre>
-<p>Notice the Creative Director routes this to <strong>only the Brand Strategist</strong> — no Copywriter, Designer, Critic, or PM.</p>
 
 
       </google-codelab-step>
     
-      <google-codelab-step label="Step 16: Observe the System in Action" duration="0">
-        <h2 is-upgraded>View Cloud Run logs</h2>
-<p>While a campaign is running, stream logs from the Brand Strategist:</p>
-<pre><code language="language-bash" class="language-bash">gcloud logging read \
-    &#39;resource.type=&#34;cloud_run_revision&#34; AND resource.labels.service_name=&#34;brand-strategist&#34;&#39; \
-    --limit=20 \
-    --format=&#39;value(timestamp, textPayload)&#39; \
-    --freshness=10m
-</code></pre>
-<h2 is-upgraded>View deployed Cloud Run services</h2>
-<pre><code language="language-bash" class="language-bash">gcloud run services list \
-    --region=us-central1 \
-    --format=&#39;table(metadata.name,status.url,status.conditions[0].status)&#39;
-</code></pre>
-<h2 is-upgraded>Inspect Agent Engine tracing</h2>
-<ol type="1">
-<li>Go to <a href="https://console.cloud.google.com/vertex-ai/agents" target="_blank">console.cloud.google.com/vertex-ai/agents</a></li>
-<li>Select your Agent Engine</li>
-<li>Click <strong>Traces</strong> to see the full execution tree of each campaign run</li>
-</ol>
-<p>You&#39;ll see each agent call, its inputs/outputs, latency, and token usage.</p>
-
-
-      </google-codelab-step>
-    
-      <google-codelab-step label="Step 17: Clean Up" duration="0">
+      <google-codelab-step label="Clean Up" duration="0">
         <p>Clean up GCP resources to avoid ongoing charges.</p>
-<h2 is-upgraded>Delete Cloud Run services</h2>
-<pre><code language="language-bash" class="language-bash">REGION=&#34;us-central1&#34;
-
-for svc in brand-strategist copywriter designer critic project-manager; do
-    gcloud run services delete $svc \
-        --region=$REGION \
-        --quiet \
-        &amp;&amp; echo &#34;Deleted: $svc&#34; \
-        || echo &#34;Not found: $svc&#34;
-done
+<p>Run the teardown script — it reads your <code>.env</code>, deletes all 5 Cloud Run services and the Agent Engine, then prints links to verify:</p>
+<pre><code language="language-bash" class="language-bash">bash deploy/teardown_gcp.sh
 </code></pre>
-<h2 is-upgraded>Delete the Agent Engine</h2>
-<pre><code language="language-bash" class="language-bash">source .env
-
-python deploy/deploy_orchestrator.py --action cleanup
-</code></pre>
+<p>The script will prompt you to confirm before deleting anything.</p>
 <h2 is-upgraded>Verify everything is removed</h2>
 <pre><code language="language-bash" class="language-bash">gcloud run services list --region=us-central1
 </code></pre>
