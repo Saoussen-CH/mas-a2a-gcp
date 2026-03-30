@@ -834,7 +834,7 @@ In the `if not notion_api_key` branch, replace the incomplete agent with:
 ```python
         return Agent(
             name="project_manager",
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             instruction=get_system_instruction(),
             description="Project manager that creates campaign timelines and task breakdowns",
         )
@@ -872,7 +872,7 @@ Then in the `else` branch, create the MCP toolset and the agent:
 
         return Agent(
             name="project_manager",
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             instruction=get_system_instruction(
                 database_id=notion_database_id,
                 tasks_database_id=notion_tasks_db_id,

@@ -730,7 +730,7 @@ Never repeat the timeline here.
 <p>In the <code>if not notion_api_key</code> branch, replace the incomplete agent with:</p>
 <pre><code language="language-python" class="language-python">        return Agent(
             name=&#34;project_manager&#34;,
-            model=&#34;gemini-2.5-pro&#34;,
+            model=&#34;gemini-2.5-flash&#34;,
             instruction=get_system_instruction(),
             description=&#34;Project manager that creates campaign timelines and task breakdowns&#34;,
         )
@@ -761,7 +761,7 @@ Never repeat the timeline here.
 
         return Agent(
             name=&#34;project_manager&#34;,
-            model=&#34;gemini-2.5-pro&#34;,
+            model=&#34;gemini-2.5-flash&#34;,
             instruction=get_system_instruction(
                 database_id=notion_database_id,
                 tasks_database_id=notion_tasks_db_id,

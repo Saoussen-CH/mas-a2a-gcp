@@ -96,7 +96,7 @@ def create_project_manager_agent():
         )
         return Agent(
             name="project_manager",
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             instruction=get_system_instruction(),
             description="Project manager that creates campaign timelines and task breakdowns",
         )
@@ -120,7 +120,7 @@ def create_project_manager_agent():
 
         return Agent(
             name="project_manager",
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             instruction=get_system_instruction(
                 database_id=notion_database_id,
                 tasks_database_id=notion_tasks_db_id,
