@@ -48,6 +48,21 @@ The 5 specialists are deployed as independent **Cloud Run** microservices. They 
 - **Owner** or **Editor** IAM role
 - Basic Python knowledge
 
+### Need Google Cloud Credits?
+
+If you are attending an **instructor-led workshop**: Your instructor will provide you with a credit code. Please use the one they provide.
+
+If you are working through this Codelab **on your own**: You must use a personal account (e.g., `name@gmail.com`). Corporate or school-managed accounts will not work.
+
+👉 Steps:
+
+1. Go to the credit claim site: *Not available at the moment*
+2. Paste the link into the address bar and sign in with your personal Gmail
+3. Accept the Google Cloud Platform Terms of Service
+4. Look for a message confirming that the credit has been applied
+
+> **Note:** If you are prompted to enter credit card information, you can safely ignore it and close the window.
+
 ### Run this codelab in Cloud Shell
 
 Click the button below to clone the starter repo and open this codelab automatically in Cloud Shell:
