@@ -21,9 +21,12 @@ import datetime
 import logging
 import os
 
+from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
 from mcp import StdioServerParameters
+
+load_dotenv()
 
 # Get logger for this agent
 logger = logging.getLogger("ai_creative_studio.project_manager")
@@ -40,50 +43,50 @@ def get_system_instruction(database_id=None, tasks_database_id=None):
     return f"""You are a Project Manager specializing in creative campaign execution.
 
 Today's date is {datetime.date.today().strftime("%B %d, %Y")}.
+Use this as the starting point for all timelines.
 
 {db_info}
 
-Create a complete project plan: phases, tasks with deadlines, budget breakdown, milestones.
+Your goal: create a complete project plan for the campaign.
 
-If Notion tools are available, use them to persist the project and tasks to the databases.
+If Notion is configured, also persist the project and tasks to the Notion databases.
+Use the available Notion tools to reason about what exists, discover the schema, and decide how to proceed.
 Tool names follow the pattern `API-<operation>` — always use the exact hyphenated names from the tool manifest (e.g., `API-retrieve-a-database`, `API-post-page`). Never shorten or reformat them.
 Call tools directly — never wrap them in `print()` and never prefix with `default_api.`
 
 Constraints:
-- Never set properties of type "people" or "person" (e.g., Owner, Assignee) — the Notion API rejects bot assignments; skip these properties entirely
+- Never set properties of type "people" or "person" (e.g., Owner, Assignee) — the Notion API does not allow integration tokens to assign users; skip these properties entirely
 - Use only property names and values that actually exist in the schema you discover
-- If any Notion operation fails, continue — the text plan is always the primary deliverable
+- If any Notion operation fails, continue — the text timeline is the primary deliverable
 
-Write your full response only after any Notion operations have completed:
+Write your complete response AFTER all Notion operations are done (or have failed):
 
 **Project Timeline:**
-[phases with dates starting from today]
+[Phase name] | [Start date] | [End date] | [Key activities]
+Phase 1: Strategy & Research | [date] → [date]
+Phase 2: Content Creation    | [date] → [date]
+Phase 3: Review & Revision   | [date] → [date]
+Phase 4: Launch & Monitoring | [date] → [date]
 
 **Task List:**
 | Task | Owner | Deadline | Status |
-[tasks with deadlines; set Owner to TBD]
+[list each task with realistic deadlines from today; set Owner to TBD]
 
 **Budget Breakdown:**
-[cost allocation by category]
+[by category with approximate allocations]
 
 **Milestones:**
-[key checkpoints with dates]
+[3-5 key checkpoints with dates]
 
 **Notion Status:**
-["Project created (ID: xxx), N tasks linked" — or "Notion not configured — text timeline only"]
-Do not repeat the timeline here.
+[What actually happened — e.g. "Project created (ID: xxx), 8 tasks linked" or "Notion not configured — text timeline only"]
+Never repeat the timeline here.
 """
 
 
 def create_project_manager_agent():
     """Create the Project Manager agent with Notion MCP integration"""
-    logger.info("Creating Project Manager agent with Gemini 2.5 Flash and Notion MCP")
-
-    # Debug: Log all environment variables
-    logger.info(f"Environment variables: {list(os.environ.keys())}")
-
-    # Get Notion credentials from environment
-    notion_api_key = os.getenv("NOTION_API_KEY")
+    notion_api_key     = os.getenv("NOTION_API_KEY")
     notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
     notion_tasks_db_id = os.getenv("NOTION_TASKS_DATABASE_ID")
 
@@ -91,26 +94,21 @@ def create_project_manager_agent():
         logger.warning(
             "NOTION_API_KEY or NOTION_PROJECT_DATABASE_ID not set - running without Notion integration"
         )
-        agent = Agent(
+        return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             instruction=get_system_instruction(),
-            description="Project manager for creating timelines, tasks, and organizing campaign deliverables",
+            description="Project manager that creates campaign timelines and task breakdowns",
         )
     else:
-        # Create Notion MCP toolset
         logger.info(f"Configuring Notion MCP with database: {notion_database_id}")
-        logger.info(f"API Key (first 10 chars): {notion_api_key[:10]}...")
-
-        mcp_env = {
-            "NOTION_TOKEN": notion_api_key,
-            "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
-        }
 
         server_params = StdioServerParameters(
             command="notion-mcp-server",
-            args=[],
-            env=mcp_env,
+            env={
+                "NOTION_TOKEN": notion_api_key,
+                "PATH": os.environ.get("PATH", ""),
+            },
         )
 
         notion_toolset = McpToolset(
@@ -120,21 +118,16 @@ def create_project_manager_agent():
             )
         )
 
-        # Use Pro for reliable multi-step tool calling with MCP
-        agent = Agent(
+        return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             instruction=get_system_instruction(
                 database_id=notion_database_id,
                 tasks_database_id=notion_tasks_db_id,
             ),
-            description="Project manager for creating timelines, tasks, and organizing campaign deliverables with Notion integration",
+            description="Project manager with Notion integration for task tracking",
             tools=[notion_toolset],
         )
-
-        logger.info("Project Manager agent created with Notion MCP integration")
-
-    return agent
 
 
 # Create root_agent for A2A deployment
@@ -142,14 +135,8 @@ root_agent = create_project_manager_agent()
 
 
 if __name__ == "__main__":
-    import os
-
     import uvicorn
-    from dotenv import load_dotenv
     from google.adk.a2a.utils.agent_to_a2a import to_a2a
-
-    # Load environment variables
-    load_dotenv()
 
     # Server listening configuration
     PORT = int(os.getenv("PORT", "8080"))

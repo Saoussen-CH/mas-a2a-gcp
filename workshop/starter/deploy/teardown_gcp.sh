@@ -58,6 +58,8 @@ fi
 
 echo -e "${YELLOW}The following resources will be deleted:${NC}"
 echo -e "  Cloud Run services: brand-strategist, copywriter, designer, critic, project-manager"
+echo -e "  Artifact Registry: cloud-run-source-deploy ($REGION)"
+echo -e "  GCS buckets: gs://${PROJECT_ID}-agent-staging, gs://run-sources-${PROJECT_ID}-${REGION}"
 if [ -n "$AGENT_ENGINE_RESOURCE_NAME" ]; then
     echo -e "  Agent Engine: $AGENT_ENGINE_RESOURCE_NAME"
 else
@@ -96,17 +98,65 @@ echo -e "\n${YELLOW}Deleting Agent Engine...${NC}"
 
 if [ -z "$AGENT_ENGINE_RESOURCE_NAME" ]; then
     echo -e "  ${YELLOW}AGENT_ENGINE_RESOURCE_NAME not set — skipping Agent Engine deletion${NC}"
-    echo -e "  To delete manually, run:"
-    echo -e "    python3 deploy/deploy_orchestrator.py --action cleanup"
 else
-    python3 "$(dirname "$0")/deploy_orchestrator.py" \
-        --action cleanup \
-        --resource_name "$AGENT_ENGINE_RESOURCE_NAME"
-    echo -e "  ${GREEN}✓ Agent Engine deleted${NC}"
+    python3 - <<PYEOF
+import os, sys
+try:
+    import vertexai
+except ImportError:
+    print("  vertexai not installed — skipping Agent Engine deletion")
+    sys.exit(0)
+
+project  = os.environ.get("GCP_PROJECT_ID") or os.environ.get("PROJECT_ID", "")
+location = os.environ.get("GCP_REGION") or os.environ.get("LOCATION", "us-central1")
+resource = os.environ.get("AGENT_ENGINE_RESOURCE_NAME", "")
+
+if not resource:
+    print("  AGENT_ENGINE_RESOURCE_NAME not set — skipping")
+    sys.exit(0)
+
+try:
+    client = vertexai.Client(project=project, location=location)
+    client.agent_engines.delete(name=resource, force=True)
+    print(f"  ✓ Agent Engine deleted: {resource}")
+except Exception as e:
+    print(f"  Warning: could not delete Agent Engine: {e}")
+    print(f"  Delete manually: https://console.cloud.google.com/vertex-ai/reasoning-engines?project={project}")
+PYEOF
 fi
+
+# ─── Delete Artifact Registry repository ─────────────────────────────────────
+echo -e "\n${YELLOW}Deleting Artifact Registry repository...${NC}"
+
+if gcloud artifacts repositories describe cloud-run-source-deploy \
+    --location="$REGION" \
+    --project="$PROJECT_ID" &>/dev/null; then
+    gcloud artifacts repositories delete cloud-run-source-deploy \
+        --location="$REGION" \
+        --project="$PROJECT_ID" \
+        --quiet
+    echo -e "  ${GREEN}✓ Deleted: cloud-run-source-deploy${NC}"
+else
+    echo -e "  ${YELLOW}Not found, skipping: cloud-run-source-deploy${NC}"
+fi
+
+# ─── Delete GCS buckets ───────────────────────────────────────────────────────
+echo -e "\n${YELLOW}Deleting GCS buckets...${NC}"
+
+for BUCKET in \
+    "gs://${PROJECT_ID}-agent-staging" \
+    "gs://run-sources-${PROJECT_ID}-${REGION}"; do
+    if gcloud storage buckets describe "$BUCKET" --project="$PROJECT_ID" &>/dev/null; then
+        gcloud storage rm -r "$BUCKET" --quiet
+        echo -e "  ${GREEN}✓ Deleted: $BUCKET${NC}"
+    else
+        echo -e "  ${YELLOW}Not found, skipping: $BUCKET${NC}"
+    fi
+done
 
 # ─── Summary ──────────────────────────────────────────────────────────────────
 echo -e "\n${GREEN}=== Teardown Complete ===${NC}"
 echo -e "\nVerify everything is removed:"
 echo -e "  gcloud run services list --region=$REGION"
+echo -e "  gcloud storage buckets list --project=$PROJECT_ID"
 echo -e "  https://console.cloud.google.com/vertex-ai/reasoning-engines?project=$PROJECT_ID"

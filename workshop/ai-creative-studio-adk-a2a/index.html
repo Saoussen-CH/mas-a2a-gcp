@@ -1543,14 +1543,32 @@ python3 run_campaign.py
     
       <google-codelab-step label="Clean Up" duration="0">
         <p>Clean up GCP resources to avoid ongoing charges.</p>
-<p>Run the teardown script — it reads your <code>.env</code>, deletes all 5 Cloud Run services and the Agent Engine, then prints links to verify:</p>
+<p>Run the teardown script — it reads your <code>.env</code> and deletes everything created during this codelab:</p>
 <pre><code language="language-bash" class="language-bash">bash deploy/teardown_gcp.sh
 </code></pre>
-<p>The script will prompt you to confirm before deleting anything.</p>
+<p>The script will show you exactly what it will delete and prompt for confirmation before doing anything:</p>
+<table>
+<tr><td colspan="1" rowspan="1"><p>Resource</p>
+</td><td colspan="1" rowspan="1"><p>What gets deleted</p>
+</td></tr>
+<tr><td colspan="1" rowspan="1"><p>Cloud Run services</p>
+</td><td colspan="1" rowspan="1"><p>brand-strategist, copywriter, designer, critic, project-manager</p>
+</td></tr>
+<tr><td colspan="1" rowspan="1"><p>Agent Engine</p>
+</td><td colspan="1" rowspan="1"><p>Creative Director reasoning engine + all sessions</p>
+</td></tr>
+<tr><td colspan="1" rowspan="1"><p>Artifact Registry</p>
+</td><td colspan="1" rowspan="1"><p><code>cloud-run-source-deploy</code> repository + all Docker images</p>
+</td></tr>
+<tr><td colspan="1" rowspan="1"><p>GCS buckets</p>
+</td><td colspan="1" rowspan="1"><p><code>{PROJECT_ID}-agent-staging</code>, <code>run-sources-{PROJECT_ID}-{REGION}</code></p>
+</td></tr>
+</table>
 <h2 is-upgraded>Verify everything is removed</h2>
 <pre><code language="language-bash" class="language-bash">gcloud run services list --region=us-central1
+gcloud storage buckets list --project=$GCP_PROJECT_ID
 </code></pre>
-<p>Expected output: an empty list or only your own services.</p>
+<p>Expected output: empty lists or only your own pre-existing resources.</p>
 
 
       </google-codelab-step>

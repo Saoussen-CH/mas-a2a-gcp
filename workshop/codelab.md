@@ -1866,21 +1866,29 @@ python3 run_campaign.py
 
 Clean up GCP resources to avoid ongoing charges.
 
-Run the teardown script — it reads your `.env`, deletes all 5 Cloud Run services and the Agent Engine, then prints links to verify:
+Run the teardown script — it reads your `.env` and deletes everything created during this codelab:
 
 ```bash
 bash deploy/teardown_gcp.sh
 ```
 
-The script will prompt you to confirm before deleting anything.
+The script will show you exactly what it will delete and prompt for confirmation before doing anything:
+
+| Resource | What gets deleted |
+|---|---|
+| Cloud Run services | brand-strategist, copywriter, designer, critic, project-manager |
+| Agent Engine | Creative Director reasoning engine + all sessions |
+| Artifact Registry | `cloud-run-source-deploy` repository + all Docker images |
+| GCS buckets | `{PROJECT_ID}-agent-staging`, `run-sources-{PROJECT_ID}-{REGION}` |
 
 ### Verify everything is removed
 
 ```bash
 gcloud run services list --region=us-central1
+gcloud storage buckets list --project=$GCP_PROJECT_ID
 ```
 
-Expected output: an empty list or only your own services.
+Expected output: empty lists or only your own pre-existing resources.
 
 ---
 
