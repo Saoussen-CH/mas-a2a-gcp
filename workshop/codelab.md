@@ -1315,6 +1315,82 @@ The instruction says this explicitly: *"Remote agents have NO shared memory — 
 
 ---
 
+### The Quality Control Loop
+
+The revision workflow is the most complex part of `prompt.py`. Open the `## REVISION WORKFLOW` section and follow along.
+
+#### How it works
+
+After the Critic responds, the Creative Director does not blindly continue to the Project Manager. It reads the Critic's output and branches:
+
+```text
+Critic output
+      │
+      ├── "All Approved: YES"
+      │         └──► proceed to Project Manager
+      │
+      └── "Status: NEEDS_REVISION"
+                │
+                ├── posts fail   → call copywriter again with feedback
+                ├── visuals fail → call designer again with feedback
+                └── both fail    → call copywriter, then designer
+                          │
+                          └──► revised output → Project Manager
+                               (1 revision max per deliverable)
+```
+
+#### This is LLM-driven, not code-driven
+
+The codelab mentioned earlier that the orchestrator "parses" the Critic's response. There is no Python code doing this parsing — no regex, no string matching. The Creative Director is an LLM reading its own instruction. That instruction says:
+
+```text
+Look for "Status: NEEDS_REVISION" in the critic's response.
+Posts need revision  → call copywriter
+Visuals need revision → call designer
+```
+
+The LLM reads those exact strings in the Critic's output and follows the branch. This is why the Critic format is non-negotiable: if the Critic writes "needs some work" instead of `NEEDS_REVISION`, the LLM finds no match in its instruction and silently skips the revision step.
+
+#### How context is forwarded in a revision call
+
+The revision call follows the same context-passing rule from Element 5 — the orchestrator must include everything explicitly because the Copywriter has no memory of its first version:
+
+```text
+"I need you to revise the Instagram posts based on critic feedback.
+
+ORIGINAL BRIEF:
+[the original user request]
+
+YOUR FIRST VERSION:
+[the posts the copywriter created]
+
+CRITIC FEEDBACK (Score: 6/10 - NEEDS_REVISION):
+[the critic's specific suggestions]
+
+Please revise the posts addressing this feedback while maintaining
+the strengths the critic identified."
+```
+
+Without the "YOUR FIRST VERSION" section, the Copywriter would write from scratch instead of improving what it already produced.
+
+#### The 1-revision limit and why it matters
+
+After one revision round, the orchestrator proceeds to the Project Manager regardless of the score. The instruction tracks this mentally:
+
+```text
+After calling copywriter for revision once:
+→ mark "copywriter_revised = true" in context
+→ even if the critic still suggests changes, proceed to PM
+```
+
+Without this limit, the loop could run indefinitely: Critic flags an issue → Copywriter revises → Critic flags again → Copywriter revises again. Each round costs tokens and time. One revision is enough to improve quality without risk of a runaway cycle.
+
+#### What gets passed to the Project Manager
+
+The Project Manager always receives the final approved versions, not the originals. If revisions happened, the orchestrator passes the revised copy and visuals. If everything was approved on the first pass, it passes those directly. The PM never sees rejected drafts.
+
+---
+
 ### TODO 2 — Register each specialist as a RemoteA2aAgent + AgentTool
 
 Find the `# TODO: For each specialist URL...` comment and replace it with:
