@@ -3,6 +3,7 @@ id: ai-creative-studio-adk-a2a
 categories: AI, Google Cloud, ADK
 status: Published
 authors: Saoussen Chaabnia
+updated: 2026-03-31
 feedback link: https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun/issues
 analytics account: G-XXXXXXXXXX
 

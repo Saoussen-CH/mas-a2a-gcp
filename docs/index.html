@@ -36,7 +36,7 @@
           <hr style="border:none;border-top:1px solid #dadce0;margin:0 0 20px 0;">
           <div style="display:flex;align-items:center;margin-bottom:16px;color:#5f6368;font-size:14px;">
             <svg style="margin-right:16px;flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-            <span>Last updated Mar 30, 2026</span>
+            <span>Last updated Mar 31, 2026</span>
           </div>
           <div style="display:flex;align-items:center;color:#5f6368;font-size:14px;">
             <div style="margin-right:16px;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#bdc1c6;display:flex;align-items:center;justify-content:center;overflow:hidden;">
@@ -1097,6 +1097,57 @@ Use these insights from the Brand Strategist: [paste full strategist output here
 Create engaging captions with hashtags.&#34;)
 </code></pre>
 <p>The instruction says this explicitly: <em>&#34;Remote agents have NO shared memory — you must pass prior outputs explicitly.&#34;</em> Without this, each agent works blind.</p>
+<h2 is-upgraded>The Quality Control Loop</h2>
+<p>The revision workflow is the most complex part of <code>prompt.py</code>. Open the <code>## REVISION WORKFLOW</code> section and follow along.</p>
+<h3 is-upgraded>How it works</h3>
+<p>After the Critic responds, the Creative Director does not blindly continue to the Project Manager. It reads the Critic&#39;s output and branches:</p>
+<pre><code language="language-text" class="language-text">Critic output
+      │
+      ├── &#34;All Approved: YES&#34;
+      │         └──► proceed to Project Manager
+      │
+      └── &#34;Status: NEEDS_REVISION&#34;
+                │
+                ├── posts fail   → call copywriter again with feedback
+                ├── visuals fail → call designer again with feedback
+                └── both fail    → call copywriter, then designer
+                          │
+                          └──► revised output → Project Manager
+                               (1 revision max per deliverable)
+</code></pre>
+<h3 is-upgraded>This is LLM-driven, not code-driven</h3>
+<p>The codelab mentioned earlier that the orchestrator &#34;parses&#34; the Critic&#39;s response. There is no Python code doing this parsing — no regex, no string matching. The Creative Director is an LLM reading its own instruction. That instruction says:</p>
+<pre><code language="language-text" class="language-text">Look for &#34;Status: NEEDS_REVISION&#34; in the critic&#39;s response.
+Posts need revision  → call copywriter
+Visuals need revision → call designer
+</code></pre>
+<p>The LLM reads those exact strings in the Critic&#39;s output and follows the branch. This is why the Critic format is non-negotiable: if the Critic writes &#34;needs some work&#34; instead of <code>NEEDS_REVISION</code>, the LLM finds no match in its instruction and silently skips the revision step.</p>
+<h3 is-upgraded>How context is forwarded in a revision call</h3>
+<p>The revision call follows the same context-passing rule from Element 5 — the orchestrator must include everything explicitly because the Copywriter has no memory of its first version:</p>
+<pre><code language="language-text" class="language-text">&#34;I need you to revise the Instagram posts based on critic feedback.
+
+ORIGINAL BRIEF:
+[the original user request]
+
+YOUR FIRST VERSION:
+[the posts the copywriter created]
+
+CRITIC FEEDBACK (Score: 6/10 - NEEDS_REVISION):
+[the critic&#39;s specific suggestions]
+
+Please revise the posts addressing this feedback while maintaining
+the strengths the critic identified.&#34;
+</code></pre>
+<p>Without the &#34;YOUR FIRST VERSION&#34; section, the Copywriter would write from scratch instead of improving what it already produced.</p>
+<h3 is-upgraded>The 1-revision limit and why it matters</h3>
+<p>After one revision round, the orchestrator proceeds to the Project Manager regardless of the score. The instruction tracks this mentally:</p>
+<pre><code language="language-text" class="language-text">After calling copywriter for revision once:
+→ mark &#34;copywriter_revised = true&#34; in context
+→ even if the critic still suggests changes, proceed to PM
+</code></pre>
+<p>Without this limit, the loop could run indefinitely: Critic flags an issue → Copywriter revises → Critic flags again → Copywriter revises again. Each round costs tokens and time. One revision is enough to improve quality without risk of a runaway cycle.</p>
+<h3 is-upgraded>What gets passed to the Project Manager</h3>
+<p>The Project Manager always receives the final approved versions, not the originals. If revisions happened, the orchestrator passes the revised copy and visuals. If everything was approved on the first pass, it passes those directly. The PM never sees rejected drafts.</p>
 <h2 is-upgraded>TODO 2 — Register each specialist as a RemoteA2aAgent + AgentTool</h2>
 <p>Find the <code># TODO: For each specialist URL...</code> comment and replace it with:</p>
 <pre><code language="language-python" class="language-python">    if strategist_url:
