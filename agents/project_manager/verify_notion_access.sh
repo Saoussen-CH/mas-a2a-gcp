@@ -9,7 +9,7 @@ echo ""
 
 # Try to retrieve the database
 RESPONSE=$(curl -s -X GET "https://api.notion.com/v1/databases/$NOTION_PROJECT_DATABASE_ID" \
-	-H "Authorization: Bearer $NOTION_API_KEY" \
+	-H "Authorization: Bearer $NOTION_TOKEN" \
 	-H 'Notion-Version: 2022-06-28')
 
 # Check if we got an error

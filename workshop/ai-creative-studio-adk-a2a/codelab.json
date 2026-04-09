@@ -3,24 +3,26 @@
   "format": "html",
   "prefix": "https://storage.googleapis.com",
   "mainga": "UA-49880327-14",
-  "updated": "2026-03-31T21:30:59+01:00",
+  "updated": "2026-04-09T10:34:11+01:00",
   "id": "ai-creative-studio-adk-a2a",
-  "duration": 0,
-  "title": "Building a Multi-Agent AI Creative Studio with Google ADK and A2A",
-  "authors": "Saoussen Chaabnia",
-  "summary": "Building a Multi-Agent AI Creative Studio with Google ADK and A2A",
-  "source": "codelab.md",
+  "duration": 107,
+  "title": "Build a Multi-Agent AI Creative Studio with ADK and A2A",
+  "authors": "Saoussen Chaabnia \u0026 Mete Atamel",
+  "summary": "This codelabs guides you to build a Multi-Agent AI Creative Studio with ADK and A2A",
+  "source": "index.lab.md",
   "theme": "",
   "status": [
-    "published"
+    "draft"
   ],
   "category": [
     "ai",
     "googlecloud",
     "adk"
   ],
-  "tags": [],
-  "feedback": "https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun/issues",
-  "ga": "G-XXXXXXXXXX",
+  "tags": [
+    "web"
+  ],
+  "feedback": "https://github.com/googlecodelabs/feedback/issues/new?title=[ai-creative-studio-adk-a2a]",
+  "ga": "UA-52746336-1",
   "url": "ai-creative-studio-adk-a2a"
 }

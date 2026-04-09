@@ -50,7 +50,7 @@ else
 	echo -e "${GREEN}Environment variables loaded${NC}"
 
 	# Display key configuration (without exposing sensitive data)
-	if [[ -n "$NOTION_API_KEY" ]] && [[ -n "$NOTION_PROJECT_DATABASE_ID" ]]; then
+	if [[ -n "$NOTION_TOKEN" ]] && [[ -n "$NOTION_PROJECT_DATABASE_ID" ]]; then
 		echo -e "${GREEN}✓ Notion credentials found - project-manager will have Notion integration${NC}"
 	else
 		echo -e "${YELLOW}⚠ Notion credentials not found - project-manager will work without Notion integration${NC}"

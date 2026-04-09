@@ -19,4 +19,9 @@ echo "Copying to docs/..."
 mkdir -p "$DOCS_DIR"
 cp -r "$CODELAB_DIR/." "$DOCS_DIR/"
 
-echo "Done. Files are in docs/"
+echo "Exporting Mete's codelabs version (index.lab.md)..."
+claat export index.lab.md
+mkdir -p "$DOCS_DIR/codelabs"
+cp -r "$CODELAB_DIR/." "$DOCS_DIR/codelabs/"
+
+echo "Done. Workshop: docs/  |  Codelabs: docs/codelabs/"
