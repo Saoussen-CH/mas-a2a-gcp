@@ -36,7 +36,7 @@
           <hr style="border:none;border-top:1px solid #dadce0;margin:0 0 20px 0;">
           <div style="display:flex;align-items:center;margin-bottom:16px;color:#5f6368;font-size:14px;">
             <svg style="margin-right:16px;flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-            <span>Last updated Mar 31, 2026</span>
+            <span>Last updated Apr 09, 2026</span>
           </div>
           <div style="display:flex;align-items:center;color:#5f6368;font-size:14px;">
             <div style="margin-right:16px;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#bdc1c6;display:flex;align-items:center;justify-content:center;overflow:hidden;">
@@ -105,9 +105,6 @@
 <li>Look for a message confirming that the credit has been applied</li>
 </ol>
 <p><strong>Note:</strong> If you are prompted to enter credit card information, you can safely ignore it and close the window.</p>
-<h2 is-upgraded>Run this codelab in Cloud Shell</h2>
-<p>Click the button below to clone the starter repo and open this codelab automatically in Cloud Shell:</p>
-<p><a href="https://ssh.cloud.google.com/cloudshell/open?cloudshell_git_repo=https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun&cloudshell_tutorial=workshop/codelab.md&cloudshell_workspace=workshop/starter" target="_blank">Open in Cloud Shell</a></p>
 
 
       </google-codelab-step>
@@ -199,7 +196,7 @@ PM_AGENT_URL=
 STRATEGIST_AGENT_URL=
 AGENT_ENGINE_ID=
 AGENT_ENGINE_RESOURCE_NAME=
-NOTION_API_KEY=
+NOTION_TOKEN=
 NOTION_PROJECT_DATABASE_ID=
 NOTION_TASKS_DATABASE_ID=
 EOF
@@ -402,7 +399,9 @@ INFO: Uvicorn running on http://localhost:8000
 </ul>
 <p>You should see the agent call Google Search and return structured research with Audience Insights, Competitive Analysis, and Trending Topics sections.</p>
 <h2 is-upgraded>Stop the server and return to the terminal</h2>
-<p>When you&#39;re done testing, go back to the Cloud Shell terminal and press <code>Ctrl+C</code> to stop the server.</p>
+<p>When you&#39;re done testing, press <code>Ctrl+C</code> to stop the server, then return to the starter directory:</p>
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
+</code></pre>
 
 
       </google-codelab-step>
@@ -564,7 +563,9 @@ adk web
 &#34;Hydrate smarter, live greener. 💧 Our EcoFlow bottle tracks your intake, keeps your drink cold for 24h, and never touches single-use plastic. Because what you drink from matters as much as what you drink. #EcoFlow #HydrationGoals #SustainableLiving #ZeroWaste #HealthyHabits — Shop link in bio.&#34;
 Score it and indicate APPROVED or NEEDS_REVISION with specific feedback.
 </code></pre>
-<p>Stop the server with <code>Ctrl+C</code> when done.</p>
+<p>Stop the server with <code>Ctrl+C</code> when done, then return to the starter directory:</p>
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
+</code></pre>
 <p>Each agent works in isolation at this stage — it has no awareness of the other agents&#39; outputs. Context passing between agents is the Creative Director&#39;s job, which you&#39;ll build in Step 9.</p>
 
 
@@ -684,12 +685,95 @@ Billing Agent ─┘                        → check_eligibility()
                                      → API-post-database-query()
 </code></pre>
 <p>This is the pattern we use for Notion. The official <code>@notionhq/notion-mcp-server</code> package does the database access. Our agent never handles the Notion API key or writes raw API calls — the MCP server manages everything.</p>
+<h2 is-upgraded>(Optional) Enable Notion Integration</h2>
+<p>Before writing the agent code, decide whether you want to use Notion. <strong>The Notion integration is optional</strong> — the agent always produces a full text timeline regardless. If you skip this, go straight to TODO 1.</p>
+<p>If you have a Notion account, complete the setup below now. The TODOs that follow reference Notion database IDs — this is where you get them.</p>
+<h3 is-upgraded>Step 1 — Create the Notion database from a template</h3>
+<p>We use the official <strong>Notion Projects &amp; Tasks</strong> template as our database. We chose this template deliberately to demonstrate a complex, real-world setting — it has multiple property types (status, date ranges, relations, selects) with non-obvious names. This is a great test of MCP&#39;s dynamic schema discovery: the agent must figure out the exact property names at runtime rather than having them hardcoded.</p>
+<p>Click the link below to add the template to your Notion workspace:</p>
+<p><a href="https://www.notion.so/marketplace/templates/notion-projects-and-tasks?cr=pro%3Anotion" target="_blank"><strong>→ Add &#34;Projects &amp; Tasks&#34; template to Notion</strong></a></p>
+<p class="image-container"><img alt="Notion Projects &amp; Tasks template in the Marketplace" src="img/ea163bfdb5b560db.jpg"></p>
+<p>Once added, you&#39;ll have two linked databases: <strong>Projects</strong> and <strong>Tasks</strong>. The template comes with sample entries — <strong>delete them all</strong> before proceeding so the agent starts with a clean workspace (select all → Delete).</p>
+<h3 is-upgraded>Step 2 — Create a Notion integration</h3>
+<p><strong>Create the integration:</strong></p>
+<ol type="1">
+<li>Go to <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a></li>
+<li>Click <strong>New Integration</strong> → name it <code>AI Creative Studio</code></li>
+<li>Associate it with your workspace</li>
+<li>Click <strong>Configure settings</strong> → make sure <strong>Read content</strong>, <strong>Update content</strong>, and <strong>Insert content</strong> capabilities are all checked</li>
+</ol>
+<p class="image-container"><img alt="Notion integration settings — name it &amp;ldquo;AI Creative Studio&amp;rdquo; and copy the token" src="img/4f1902b3f8a1a80c.jpg"></p>
+<ol type="1" start="5">
+<li>Copy the <strong>Internal Integration Token</strong> (<code>ntn_...</code>) and paste it into your <code>.env</code> file:</li>
+</ol>
+<pre><code language="language-bash" class="language-bash">NOTION_TOKEN=ntn_your-token-here
+</code></pre>
+<p><strong>Connect the integration to your databases:</strong></p>
+<ol type="1" start="6">
+<li>Open the template page you just duplicated, then click into the <strong>Projects</strong> database</li>
+<li>Click the <code>...</code> menu (top right) → <strong>Connections</strong> → <strong>Add a connection</strong> → select <code>AI Creative Studio</code></li>
+</ol>
+<p class="image-container"><img alt="Click Connections in the database menu to share with your integration" src="img/479fe7c28fab7132.jpg"></p>
+<p class="image-container"><img alt="AI Creative Studio appears as an active connection" src="img/3cf439a4c33fd42c.jpg"></p>
+<ol type="1" start="8">
+<li>Do the same for the <strong>Tasks</strong> database</li>
+</ol>
+<p><strong>Get the database IDs:</strong></p>
+<ol type="1" start="9">
+<li>Click the <strong>Projects</strong> database link to open it — it opens in its own page with a URL like:</li>
+</ol>
+<pre><code>https://www.notion.so/9887b6a94f7f83f68f8581e038d1aaa4?v=2c37b6a94f7f838685f1086e312c7278
+</code></pre>
+<p class="image-container"><img alt="Opening the Projects database from the template page" src="img/427ecbe78396d8ba.jpg"></p>
+<p>The database ID is the first UUID in the URL — everything before the <code>?v=</code>:</p>
+<pre><code>https://www.notion.so/{DATABASE_ID}?v=...
+                       ^^^^^^^^^^^^^^^^
+                       9887b6a94f7f83f68f8581e038d1aaa4  ← this is your DATABASE_ID
+</code></pre>
+<ol type="1" start="10">
+<li>Do the same for the <strong>Tasks</strong> database link to get its database ID</li>
+<li>Add all three values to your <code>.env</code>:</li>
+</ol>
+<pre><code language="language-bash" class="language-bash">NOTION_TOKEN=ntn_your-token-here
+NOTION_PROJECT_DATABASE_ID=9887b6a94f7f83f68f8581e038d1aaa4   # &lt;-- your Projects DB ID
+NOTION_TASKS_DATABASE_ID=your-tasks-db-id                      # &lt;-- your Tasks DB ID
+</code></pre>
+<h3 is-upgraded>Step 3 — Install the Notion MCP server</h3>
+<p>The Project Manager connects to Notion via the official <code>@notionhq/notion-mcp-server</code> Node.js package. Install it globally:</p>
+<pre><code language="language-bash" class="language-bash">npm install -g @notionhq/notion-mcp-server@1.9.1
+</code></pre>
+<p>Verify the install:</p>
+<pre><code language="language-bash" class="language-bash">npm list -g @notionhq/notion-mcp-server
+</code></pre>
+<p>Expected output:</p>
+<pre><code language="language-text" class="language-text">└── @notionhq/notion-mcp-server@1.9.1
+</code></pre>
+<p><strong><code>notion-mcp-server: command not found</code></strong></p>
+<p><strong>?</strong> Make sure Node.js is installed (<code>node --version</code>) and that your npm global bin is on your PATH (<code>export PATH=$PATH:$(npm bin -g)</code>).</p>
+<h3 is-upgraded>Step 4 — Verify your .env</h3>
+<p>Open <code>.env</code> and confirm all three Notion values are set (you added them in Step 2):</p>
+<pre><code language="language-bash" class="language-bash">cloudshell edit .env
+</code></pre>
+<pre><code language="language-bash" class="language-bash">NOTION_TOKEN=ntn_...                           # integration token
+NOTION_PROJECT_DATABASE_ID=...                 # Projects database ID
+NOTION_TASKS_DATABASE_ID=...                   # Tasks database ID
+</code></pre>
+<p>The Project Manager agent automatically detects these variables at startup and enables the Notion MCP toolset.</p>
+<h3 is-upgraded>How schema discovery works</h3>
+<p>The Project Manager uses <strong>dynamic schema discovery</strong> — it never hardcodes Notion property names:</p>
+<pre><code language="language-text" class="language-text">Step 1: Call API-retrieve-a-database to discover exact property names
+Step 2: Read the &#34;properties&#34; object in the response
+Step 3: Use ONLY discovered property names (case-sensitive) in API calls
+Step 4: For select/status fields, use only values from the options array
+</code></pre>
+<p>This means the agent adapts to any Notion database structure automatically — rename your properties to French, Arabic, or anything else, and the agent still works.</p>
 <h2 is-upgraded>TODO 1 — Write the system instruction</h2>
-<p>First, update the function signature to accept both database IDs:</p>
-<pre><code language="language-python" class="language-python">def get_system_instruction(database_id=None, tasks_database_id=None):
+<p>The function accepts two optional Notion database IDs. If Notion is not configured, <code>db_info</code> tells the agent to produce a text-only timeline.</p>
+<p>Update the function signature:</p>
+<pre><code language="language-python" class="language-python">def get_system_instruction(database_project_id=None, tasks_database_id=None):
     db_info = (
-        f&#34;Projects database ID: {database_id}\nTasks database ID: {tasks_database_id}&#34;
-        if database_id
+        f&#34;Projects database ID: {database_project_id}\nTasks database ID: {tasks_database_id}&#34;
+        if database_project_id
         else &#34;No Notion database configured.&#34;
     )
 </code></pre>
@@ -738,7 +822,7 @@ Never repeat the timeline here.
 &#34;&#34;&#34;
 </code></pre>
 <h2 is-upgraded>TODO 2 — Agent without Notion</h2>
-<p>In the <code>if not notion_api_key</code> branch, replace the incomplete agent with:</p>
+<p>In the <code>if not notion_token</code> branch, replace the incomplete agent with:</p>
 <pre><code language="language-python" class="language-python">        return Agent(
             name=&#34;project_manager&#34;,
             model=&#34;gemini-2.5-flash&#34;,
@@ -748,9 +832,9 @@ Never repeat the timeline here.
 </code></pre>
 <h2 is-upgraded>TODO 3 — Agent with Notion MCP</h2>
 <p>First, read both database IDs at the top of <code>create_project_manager_agent()</code>:</p>
-<pre><code language="language-python" class="language-python">    notion_api_key         = os.getenv(&#34;NOTION_API_KEY&#34;)
-    notion_database_id     = os.getenv(&#34;NOTION_PROJECT_DATABASE_ID&#34;)        # Projects DB
-    notion_tasks_db_id     = os.getenv(&#34;NOTION_TASKS_DATABASE_ID&#34;)  # Tasks DB
+<pre><code language="language-python" class="language-python">    notion_token         = os.getenv(&#34;NOTION_TOKEN&#34;)
+    notion_database_project_id = os.getenv(&#34;NOTION_PROJECT_DATABASE_ID&#34;)   # Projects DB
+    notion_tasks_db_id         = os.getenv(&#34;NOTION_TASKS_DATABASE_ID&#34;)     # Tasks DB
 </code></pre>
 <p>Then in the <code>else</code> branch, create the MCP toolset and the agent:</p>
 <pre><code language="language-python" class="language-python">        from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
@@ -759,7 +843,7 @@ Never repeat the timeline here.
         server_params = StdioServerParameters(
             command=&#34;notion-mcp-server&#34;,
             env={
-                &#34;NOTION_TOKEN&#34;: notion_api_key,
+                &#34;NOTION_TOKEN&#34;: notion_token,
                 &#34;PATH&#34;: os.environ.get(&#34;PATH&#34;, &#34;&#34;),
             }
         )
@@ -774,7 +858,7 @@ Never repeat the timeline here.
             name=&#34;project_manager&#34;,
             model=&#34;gemini-2.5-flash&#34;,
             instruction=get_system_instruction(
-                database_id=notion_database_id,
+                database_project_id=notion_database_project_id,
                 tasks_database_id=notion_tasks_db_id,
             ),
             description=&#34;Project manager with Notion integration for task tracking&#34;,
@@ -782,59 +866,6 @@ Never repeat the timeline here.
         )
 </code></pre>
 <p><strong>Best practice:</strong> Never hard-fail on optional integrations. The text timeline is always the primary deliverable; Notion is supplementary.</p>
-<h2 is-upgraded>(Optional) Enable Notion Integration</h2>
-<p>If you have a Notion account, set up the integration now so the Project Manager can create tasks and timelines directly in Notion when you test it later.</p>
-<h3 is-upgraded>Step 1 — Create the Notion database from a template</h3>
-<p>We use the official <strong>Notion Projects &amp; Tasks</strong> template as our database. We chose this template deliberately to demonstrate a complex, real-world setting — it has multiple property types (status, date ranges, relations, selects) with non-obvious names. This is a great test of MCP&#39;s dynamic schema discovery: the agent must figure out the exact property names at runtime rather than having them hardcoded.</p>
-<p>Click the link below to add the template to your Notion workspace:</p>
-<p><a href="https://www.notion.so/marketplace/templates/notion-projects-and-tasks?cr=pro%3Anotion" target="_blank"><strong>→ Add &#34;Projects &amp; Tasks&#34; template to Notion</strong></a></p>
-<p>![Notion Projects &amp; Tasks template in the Marketplace](diagrams/Screenshot 2026-03-29 172913.jpg)</p>
-<p>Once added, you&#39;ll have two linked databases: <strong>Projects</strong> and <strong>Tasks</strong>. The template comes with sample entries — <strong>delete them all</strong> before proceeding so the agent starts with a clean workspace (select all → Delete).</p>
-<h3 is-upgraded>Step 2 — Create a Notion integration</h3>
-<ol type="1">
-<li>Go to <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a></li>
-<li>Click <strong>New Integration</strong> → name it <code>AI Creative Studio</code></li>
-<li>Make sure <strong>Read content</strong>, <strong>Update content</strong>, and <strong>Insert content</strong> capabilities are checked</li>
-<li>Copy the <strong>Internal Integration Token</strong> (<code>ntn_...</code>)</li>
-</ol>
-<p>![Notion integration settings — name it &#34;AI Creative Studio&#34; and copy the token](diagrams/Screenshot 2026-03-29 173753.jpg)</p>
-<ol type="1" start="5">
-<li>Open the <strong>Projects</strong> database → click the <code>...</code> menu (top right) → <strong>Connections</strong> → <strong>Add a connection</strong> → select <code>AI Creative Studio</code></li>
-</ol>
-<p>![Click Connections in the database menu to share with your integration](diagrams/Screenshot 2026-03-29 173413.jpg)</p>
-<p>![AI Creative Studio appears as an active connection](diagrams/Screenshot 2026-03-29 173457.jpg)</p>
-<ol type="1" start="6">
-<li>Do the same for the <strong>Tasks</strong> database</li>
-<li>Copy each database ID from the URL: <code>notion.so/{workspace}/{DATABASE_ID}?v=...</code></li>
-</ol>
-<h3 is-upgraded>Step 3 — Install the Notion MCP server</h3>
-<p>The Project Manager connects to Notion via the official <code>@notionhq/notion-mcp-server</code> Node.js package. Install it globally:</p>
-<pre><code language="language-bash" class="language-bash">npm install -g @notionhq/notion-mcp-server@1.9.1
-</code></pre>
-<p>Verify the install:</p>
-<pre><code language="language-bash" class="language-bash">notion-mcp-server --version
-</code></pre>
-<p><strong><code>notion-mcp-server: command not found</code></strong></p>
-<p><strong>?</strong> Make sure Node.js is installed (<code>node --version</code>) and that your npm global bin is on your PATH (<code>export PATH=$PATH:$(npm bin -g)</code>).</p>
-<h3 is-upgraded>Step 4 — Add credentials to .env</h3>
-<p>Open <code>.env</code> and fill in your Notion credentials:</p>
-<pre><code language="language-bash" class="language-bash">cloudshell edit .env
-</code></pre>
-<p>Set all three values:</p>
-<pre><code language="language-bash" class="language-bash">NOTION_API_KEY=ntn_your-token             # &lt;-- your integration token
-NOTION_PROJECT_DATABASE_ID=your-projects-db-id   # &lt;-- Projects database ID (from URL)
-NOTION_TASKS_DATABASE_ID=your-tasks-db-id # &lt;-- Tasks database ID (from URL)
-</code></pre>
-<p>To find each database ID: open the database in Notion → copy the ID from the URL: <code>notion.so/{workspace}/{DATABASE_ID}?v=...</code></p>
-<p>The Project Manager agent automatically detects these variables at startup and enables the Notion MCP toolset.</p>
-<h3 is-upgraded>How schema discovery works</h3>
-<p>The Project Manager uses <strong>dynamic schema discovery</strong> — it never hardcodes Notion property names:</p>
-<pre><code language="language-text" class="language-text">Step 1: Call API-retrieve-a-database to discover exact property names
-Step 2: Read the &#34;properties&#34; object in the response
-Step 3: Use ONLY discovered property names (case-sensitive) in API calls
-Step 4: For select/status fields, use only values from the options array
-</code></pre>
-<p>This means the agent adapts to any Notion database structure automatically — rename your properties to French, Arabic, or anything else, and the agent still works.</p>
 <h2 is-upgraded>Test the Project Manager Locally with ADK Web</h2>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents
 adk web
@@ -844,7 +875,9 @@ adk web
 Budget: $3,000. Launch in 2 weeks. Include phases, tasks with deadlines from today, and milestones.
 </code></pre>
 <p>You should see a structured text timeline with phases, task list, and milestones. If Notion credentials are set in <code>.env</code>, the agent will also create entries in your Notion workspace.</p>
-<p>Stop the server with <code>Ctrl+C</code> when done.</p>
+<p>Stop the server with <code>Ctrl+C</code> when done, then return to the starter directory:</p>
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
+</code></pre>
 
 
       </google-codelab-step>
@@ -995,37 +1028,31 @@ uvicorn.run(a2a_app, host=HOST, port=PORT)
 <p>Locally both point to the same machine. On Cloud Run, the container listens internally on <code>8080</code> but the agent card must advertise the public HTTPS URL — otherwise the Creative Director can&#39;t reach the specialist from outside the container.</p>
 <h2 is-upgraded>Start all 5 specialist A2A servers</h2>
 <p>Open <strong>5 separate Cloud Shell terminals</strong> (click the <code>+</code> icon in the terminal tab bar) and run one agent per terminal.</p>
-<p><strong>Each new terminal needs the venv activated and credentials set.</strong> Run these two commands first in every terminal before the agent command:</p>
+<p><strong>Each new terminal needs the venv activated.</strong> Run these two commands first in every terminal before the agent command:</p>
 <pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-gcloud auth application-default login
 </code></pre>
 <p><strong>Terminal 1 — Brand Strategist (port 8082):</strong></p>
 <pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-gcloud auth application-default login
 cd ~/ai-creative-studio/workshop/starter/agents/brand_strategist
 python agent.py
 </code></pre>
 <p><strong>Terminal 2 — Copywriter (port 8083):</strong></p>
 <pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-gcloud auth application-default login
 cd ~/ai-creative-studio/workshop/starter/agents/copywriter
 PORT=8083 python agent.py
 </code></pre>
 <p><strong>Terminal 3 — Designer (port 8084):</strong></p>
 <pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-gcloud auth application-default login
 cd ~/ai-creative-studio/workshop/starter/agents/designer
 PORT=8084 python agent.py
 </code></pre>
 <p><strong>Terminal 4 — Critic (port 8085):</strong></p>
 <pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-gcloud auth application-default login
 cd ~/ai-creative-studio/workshop/starter/agents/critic
 PORT=8085 python agent.py
 </code></pre>
 <p><strong>Terminal 5 — Project Manager (port 8086):</strong></p>
 <pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-gcloud auth application-default login
 cd ~/ai-creative-studio/workshop/starter/agents/project_manager
 PORT=8086 python agent.py
 </code></pre>
@@ -1041,7 +1068,27 @@ sed -i \
   -e &#39;s|PM_AGENT_URL=.*|PM_AGENT_URL=http://localhost:8086|&#39; \
   .env
 </code></pre>
-<h2 is-upgraded>Install the A2A Inspector and verify agent cards</h2>
+<h2 is-upgraded>Inspect agents with the A2A Inspector</h2>
+<p>The <strong>A2A Inspector</strong> is an open-source developer tool that speaks the A2A protocol natively. It lets you connect directly to any running A2A agent, read its agent card, and send tasks — all without writing any client code.</p>
+<p><strong>What it shows you:</strong></p>
+<ul>
+<li><strong>Agent card</strong> — the structured metadata your agent advertises: its name, description, supported input/output modes, and the endpoint URL. This is what the Creative Director reads when it discovers a specialist.</li>
+<li><strong>Chat interface</strong> — send any message to the agent over A2A and see the raw response. You can test prompts in isolation before wiring agents together.</li>
+<li><strong>Protocol validation</strong> — the inspector checks that the agent card conforms to the A2A spec, surfacing missing fields or malformed responses early.</li>
+</ul>
+<p><strong>Why this matters:</strong> When you deploy to Cloud Run later, the Creative Director discovers each specialist by fetching its agent card from <code>/.well-known/agent.json</code>. If that card is wrong — bad URL, missing capabilities — the orchestrator silently fails. The inspector lets you catch these issues locally before any cloud deployment.</p>
+<p class="image-container"><img alt="Brand Strategist agent card" src="img/59c8d03209629552.jpg"></p>
+<p>The agent card shows the specialist&#39;s identity and capabilities exactly as other agents see them.</p>
+<p class="image-container"><img alt="Agent card details" src="img/84d60bca5b93c2ea.jpg"></p>
+<h3 is-upgraded>Install and start the inspector</h3>
+<p><strong>Cloud Shell disk space:</strong> The A2A Inspector installation requires ~500MB. Cloud Shell&#39;s home directory has a 5GB limit shared across all your projects. If you hit an &#34;out of space&#34; error, free up space first:</p>
+<pre><code language="language-bash" class="language-bash"># Check available space
+df -h ~
+
+# Clear pip and uv caches
+pip cache purge
+rm -rf ~/.cache/uv
+</code></pre>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/tools/a2a-inspector
 ./setup_inspector.sh
 </code></pre>
@@ -1053,8 +1100,19 @@ sed -i \
 bash scripts/run.sh
 </code></pre>
 <p>To open the inspector UI, use <strong>Web Preview</strong> → <strong>Change port</strong> → type <code>5001</code>.</p>
-<p>Connect to <code>http://localhost:8082</code> to inspect the Brand Strategist. The inspector will validate the agent card and let you chat directly with the agent over A2A.</p>
+<h3 is-upgraded>Connect to the Brand Strategist</h3>
+<p>Enter <code>http://localhost:8082</code> in the inspector&#39;s URL field and click <strong>Connect</strong>. The inspector fetches the agent card and displays the specialist&#39;s metadata.</p>
+<p class="image-container"><img alt="A2A Inspector connected to Brand Strategist" src="img/c098940a3d63688e.jpg"></p>
+<h3 is-upgraded>Send a test message</h3>
+<p>Once connected, type a prompt in the chat panel and send it. The inspector submits it as an A2A task and streams the response back — the same way the Creative Director will call this agent in production.</p>
+<p class="image-container"><img alt="Chat with Brand Strategist via A2A Inspector" src="img/bc0432851decd335.jpg"></p>
 <p>Point the inspector at any local port (8082–8086) to test each specialist individually.</p>
+<h3 is-upgraded>Stop all local servers before continuing</h3>
+<p>Once you&#39;ve finished testing locally, stop all running servers before moving to the Cloud Run deployment step. In each of the 5 agent terminals and the A2A Inspector terminal, press <strong>Ctrl+C</strong> to stop the process. You can then close those terminals — Cloud Run will handle serving the agents from here on.</p>
+<h3 is-upgraded>Inspect agents deployed to Cloud Run</h3>
+<p>After deploying to Cloud Run in the next step, you can point the inspector at the public HTTPS URL to verify the cloud deployment is working:</p>
+<p class="image-container"><img alt="A2A Inspector connected to Cloud Run agent" src="img/6c703250c62df77f.jpg"></p>
+<p>The workflow is identical — paste the Cloud Run URL, connect, and send a test message. If the agent card loads and the chat responds, the specialist is correctly deployed and reachable.</p>
 
 
       </google-codelab-step>
@@ -1072,14 +1130,31 @@ bash scripts/run.sh
 <p>Open <code>prompt.py</code> to read it before moving on. Understanding it is important because it controls the entire orchestration behavior.</p>
 <h2 is-upgraded>Why the orchestrator prompt controls everything</h2>
 <p>Open <code>prompt.py</code> alongside this section — the examples below reference specific parts of it.</p>
-<p>The prompt in <code>prompt.py</code> is not just documentation — it&#39;s the control plane of the entire system. A poorly structured orchestrator prompt produces: agents called out of order, content generated by the orchestrator instead of specialists, workflows that continue after failures, and context silently dropped between agents. These five elements prevent the most common failures:</p>
+<p>The prompt in <code>prompt.py</code> is not just documentation — it&#39;s the control plane of the entire system. A poorly structured orchestrator prompt produces: agents called out of order, content generated by the orchestrator instead of specialists, workflows that continue after failures, and context silently dropped between agents. These nine elements prevent the most common failures:</p>
+<p><strong>Element 0 — Plan first, then execute</strong></p>
+<p>This is the most critical element. Before calling any specialist, the orchestrator is instructed to output a numbered plan:</p>
+<pre><code language="language-text" class="language-text">I&#39;ll create your campaign by coordinating the specialist agents in sequence:
+1. Brand Strategist — develop positioning and audience insights
+2. Copywriter — write captions using those insights
+3. Visual Designer — create image prompts aligned with the copy
+4. Critic — review and score the full package
+5. Project Manager — build the timeline and task breakdown
+</code></pre>
+<p>Without this step, the LLM jumps straight into tool calls and loses track of where it is in the workflow — especially after receiving a long response from a specialist. Outlining the plan first anchors the orchestrator: it knows what step it&#39;s on, what comes next, and what a complete run looks like. Skipping this causes the orchestrator to stall mid-workflow or repeat steps.</p>
 <p><strong>Element 1 — Explicit role definition</strong></p>
 <pre><code language="language-text" class="language-text">❌ &#34;You are a helpful creative assistant.&#34;
 ✅ &#34;You orchestrate specialists. You do NOT write captions, designs, or timelines yourself.&#34;
 </code></pre>
 <p>Without the explicit prohibition, the LLM will sometimes skip calling specialists and generate content directly — it&#39;s faster and it &#34;knows&#34; how to do it. The instruction must make this wrong.</p>
 <p><strong>Element 2 — Tool calling syntax with wrong patterns listed</strong></p>
-<p>Showing only correct syntax isn&#39;t enough. The LLM can generate calls like <code>print(copywriter(...))</code> or <code>default_api.copywriter(...)</code> that look plausible but fail silently. Listing the wrong patterns explicitly reduced malformed tool calls by ~95% in production.</p>
+<p>Showing only correct syntax isn&#39;t enough. The LLM can generate calls that look plausible but fail silently. The prompt explicitly lists both the correct pattern and the ones that must never be used:</p>
+<pre><code language="language-text" class="language-text">✅ copywriter(request=&#34;...&#34;)          ← correct
+❌ print(copywriter(...))             ← breaks silently
+❌ default_api.copywriter(...)        ← breaks silently
+❌ copywriter.run(...)                ← breaks silently
+❌ agents.copywriter(...)             ← breaks silently
+</code></pre>
+<p>Listing the wrong patterns explicitly reduced malformed tool calls by ~95% in production.</p>
 <p><strong>Element 3 — Sequential execution spelled out step by step</strong></p>
 <pre><code language="language-text" class="language-text">a) Call the tool
 b) Wait for tool_output
@@ -1097,6 +1172,34 @@ Use these insights from the Brand Strategist: [paste full strategist output here
 Create engaging captions with hashtags.&#34;)
 </code></pre>
 <p>The instruction says this explicitly: <em>&#34;Remote agents have NO shared memory — you must pass prior outputs explicitly.&#34;</em> Without this, each agent works blind.</p>
+<p><strong>Element 6 — Request classification: simple vs. complex</strong></p>
+<p>Not every request needs all five agents. The prompt instructs the orchestrator to classify the request before planning:</p>
+<pre><code language="language-text" class="language-text">SIMPLE  → one agent needed
+  &#34;Research the eco-friendly water bottle market&#34; → brand_strategist only
+  &#34;Write 3 Instagram captions&#34;                    → copywriter only
+
+COMPLEX → all agents sequentially
+  &#34;Create a complete campaign with timeline&#34;      → all 5 agents
+</code></pre>
+<p>Without this classification, the orchestrator would run all five agents for every request — including &#34;just give me 3 post ideas&#34; — adding unnecessary latency and cost.</p>
+<p><strong>Element 7 — Communication rules: show full outputs, no filtering</strong></p>
+<p>The prompt is explicit that the orchestrator must not summarize or edit what specialists return:</p>
+<pre><code language="language-text" class="language-text">- DO NOT summarize unless the output exceeds 2000 words
+- DO NOT filter or edit agent responses
+- Show the user exactly what each specialist produced
+- NEVER say results are ready unless you received them in tool_output
+</code></pre>
+<p>Without this, the orchestrator rewrites specialist outputs in its own words — losing detail, introducing errors, and defeating the purpose of having specialists at all.</p>
+<p><strong>Element 8 — Workflow completion: never stop early</strong></p>
+<p>A subtle but critical failure mode: the orchestrator announces a 5-step plan, completes 3 steps, then presents results as if done. The prompt prevents this with an explicit checklist that must pass before the orchestrator can finish:</p>
+<pre><code language="language-text" class="language-text">✓ Did I announce a plan with N agents?
+✓ Have I called ALL N agents from my plan?
+✓ Did each agent respond successfully?
+✓ Am I presenting complete results from ALL agents?
+
+If any answer is NO → continue executing the remaining agents.
+</code></pre>
+<p>This stops the orchestrator from treating a partial run as complete.</p>
 <h2 is-upgraded>The Quality Control Loop</h2>
 <p>The revision workflow is the most complex part of <code>prompt.py</code>. Open the <code>## REVISION WORKFLOW</code> section and follow along.</p>
 <h3 is-upgraded>How it works</h3>
@@ -1320,6 +1423,10 @@ EXPOSE 8080
 CMD [&#34;python&#34;, &#34;agent.py&#34;]
 </code></pre>
 <h2 is-upgraded>Deploy all 5 specialists in parallel</h2>
+<p><strong>Open a new terminal for this step.</strong> The terminals running the local A2A servers are still active. Open a fresh Cloud Shell terminal, activate the virtual environment, and return to the starter directory:</p>
+<pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
+cd ~/ai-creative-studio/workshop/starter
+</code></pre>
 <pre><code language="language-bash" class="language-bash">gcloud auth login
 cd ~/ai-creative-studio/workshop/starter
 source .env
@@ -1368,31 +1475,6 @@ done
 <pre><code language="language-json" class="language-json">&#34;name&#34;: &#34;brand_strategist&#34;,
 &#34;url&#34;: &#34;https://brand-strategist-xxxx.run.app&#34;,
 &#34;description&#34;: &#34;Brand strategist for market research and competitive insights&#34;
-</code></pre>
-<h2 is-upgraded>Quick A2A smoke test</h2>
-<p>Send a direct A2A message to the Brand Strategist:</p>
-<pre><code language="language-bash" class="language-bash">source .env
-
-curl -s -X POST &#34;${STRATEGIST_AGENT_URL}/&#34; \
-  -H &#34;Content-Type: application/json&#34; \
-  -d &#39;{
-    &#34;jsonrpc&#34;: &#34;2.0&#34;,
-    &#34;method&#34;: &#34;tasks/send&#34;,
-    &#34;id&#34;: &#34;smoke-test-1&#34;,
-    &#34;params&#34;: {
-      &#34;message&#34;: {
-        &#34;role&#34;: &#34;user&#34;,
-        &#34;parts&#34;: [{&#34;text&#34;: &#34;In one sentence, describe what you do.&#34;}]
-      }
-    }
-  }&#39; | python3 -c &#34;
-import sys, json
-r = json.load(sys.stdin)
-parts = r.get(&#39;result&#39;, {}).get(&#39;status&#39;, {}).get(&#39;message&#39;, {}).get(&#39;parts&#39;, [])
-for p in parts:
-    if &#39;text&#39; in p:
-        print(p[&#39;text&#39;])
-&#34;
 </code></pre>
 <h2 is-upgraded>Test with A2A Inspector (Cloud Run)</h2>
 <p>The A2A Inspector is already installed from Step 10. Start it:</p>
@@ -1492,6 +1574,11 @@ for var in STRATEGIST_AGENT_URL COPYWRITER_AGENT_URL DESIGNER_AGENT_URL CRITIC_A
 done
 </code></pre>
 <h2 is-upgraded>Deploy the orchestrator</h2>
+<p><strong>Open a new terminal for this step</strong> and re-export your project variables — after working across multiple terminals, the shell environment may not have them set:</p>
+<pre><code language="language-bash" class="language-bash">export PROJECT_ID=&#34;your-project-id&#34;   # &lt;-- CHANGE THIS
+export REGION=&#34;us-central1&#34;
+gcloud config set project $PROJECT_ID
+</code></pre>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
 source .env
 
@@ -1550,53 +1637,8 @@ echo &#34;Resource: $AGENT_ENGINE_RESOURCE_NAME&#34;
 </ol>
 <p>Each A2A call to a specialist appears as a separate span. You can see exactly what context the Creative Director passed to each agent and what it received back.</p>
 <h2 is-upgraded>Optional: run from the terminal</h2>
-<p>If you prefer a terminal-based workflow, create and run this script:</p>
+<p>A <code>run_campaign.py</code> script is already included in the starter. Run it directly:</p>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-cat &gt; run_campaign.py &lt;&lt; &#39;EOF&#39;
-import vertexai
-from vertexai import Client
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-PROJECT_ID = os.getenv(&#34;GCP_PROJECT_ID&#34;) or os.getenv(&#34;PROJECT_ID&#34;)
-LOCATION   = os.getenv(&#34;GCP_REGION&#34;) or os.getenv(&#34;LOCATION&#34;, &#34;us-central1&#34;)
-
-vertexai.init(project=PROJECT_ID, location=LOCATION)
-client = Client(project=PROJECT_ID, location=LOCATION)
-
-resource_name = (
-    f&#34;projects/{PROJECT_ID}/locations/{LOCATION}/&#34;
-    f&#34;reasoningEngines/{os.getenv(&#39;AGENT_ENGINE_ID&#39;)}&#34;
-)
-
-agent_engine = client.agent_engines.get(resource_name)
-session = agent_engine.create_session(user_id=&#34;workshop-user&#34;)
-print(f&#34;Session: {session[&#39;id&#39;]}\n&#34;)
-
-campaign_brief = &#34;&#34;&#34;
-Create a complete Instagram campaign for:
-- Product: EcoFlow Smart Water Bottle (tracks hydration, keeps drinks cold 24h)
-- Target Audience: Health-conscious millennials, 25-35 years old
-- Platform: Instagram
-- Goal: Brand awareness + drive website traffic
-- Brand Voice: Motivational, clean, science-backed
-- Budget: $3,000
-- Timeline: Launch in 2 weeks
-&#34;&#34;&#34;
-
-for event in agent_engine.stream_query(
-    user_id=&#34;workshop-user&#34;,
-    session_id=session[&#34;id&#34;],
-    message=campaign_brief,
-):
-    if &#34;content&#34; in event and &#34;parts&#34; in event[&#34;content&#34;]:
-        for part in event[&#34;content&#34;][&#34;parts&#34;]:
-            if &#34;text&#34; in part:
-                print(part[&#34;text&#34;], end=&#34;&#34;, flush=True)
-EOF
-
 python3 run_campaign.py
 </code></pre>
 

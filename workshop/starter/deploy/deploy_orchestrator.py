@@ -186,6 +186,8 @@ def deploy_orchestrator(auto_deploy_specialists=False):
                     "CRITIC_AGENT_URL": CRITIC_URL,
                     "PM_AGENT_URL": PM_URL,
                     # Note: GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION are auto-set
+                    "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
+                    "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true",
                 },
             },
         )

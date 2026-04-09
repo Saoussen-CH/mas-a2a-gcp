@@ -53,10 +53,10 @@ Today's date: {datetime.date.today().strftime("%B %d, %Y")}
 
 def create_project_manager_agent():
     """Create the Project Manager agent, with Notion MCP if credentials are set."""
-    notion_api_key = os.getenv("NOTION_API_KEY")
+    notion_token = os.getenv("NOTION_TOKEN")
     notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
 
-    if not notion_api_key or not notion_database_id:
+    if not notion_token or not notion_database_id:
         logger.warning("Notion credentials not set — running without Notion integration")
 
         # TODO: Create and return an Agent without tools
@@ -77,7 +77,7 @@ def create_project_manager_agent():
         #
         # server_params = StdioServerParameters(
         #     command="notion-mcp-server",
-        #     env={"NOTION_TOKEN": notion_api_key, "PATH": os.environ.get("PATH", "")}
+        #     env={"NOTION_TOKEN": notion_token, "PATH": os.environ.get("PATH", "")}
         # )
         # notion_toolset = McpToolset(
         #     connection_params=StdioConnectionParams(server_params=server_params, timeout=30.0)

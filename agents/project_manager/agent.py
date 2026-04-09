@@ -32,11 +32,11 @@ load_dotenv()
 logger = logging.getLogger("ai_creative_studio.project_manager")
 
 
-def get_system_instruction(database_id=None, tasks_database_id=None):
+def get_system_instruction(database_project_id=None, tasks_database_id=None):
     """Generate system instruction with current date and Notion database IDs."""
     db_info = (
-        f"Projects database ID: {database_id}\nTasks database ID: {tasks_database_id}"
-        if database_id
+        f"Projects database ID: {database_project_id}\nTasks database ID: {tasks_database_id}"
+        if database_project_id
         else "No Notion database configured."
     )
 
@@ -86,13 +86,13 @@ Never repeat the timeline here.
 
 def create_project_manager_agent():
     """Create the Project Manager agent with Notion MCP integration"""
-    notion_api_key     = os.getenv("NOTION_API_KEY")
+    notion_token     = os.getenv("NOTION_TOKEN")
     notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
     notion_tasks_db_id = os.getenv("NOTION_TASKS_DATABASE_ID")
 
-    if not notion_api_key or not notion_database_id:
+    if not notion_token or not notion_database_id:
         logger.warning(
-            "NOTION_API_KEY or NOTION_PROJECT_DATABASE_ID not set - running without Notion integration"
+            "NOTION_TOKEN or NOTION_PROJECT_DATABASE_ID not set - running without Notion integration"
         )
         return Agent(
             name="project_manager",
@@ -106,7 +106,7 @@ def create_project_manager_agent():
         server_params = StdioServerParameters(
             command="notion-mcp-server",
             env={
-                "NOTION_TOKEN": notion_api_key,
+                "NOTION_TOKEN": notion_token,
                 "PATH": os.environ.get("PATH", ""),
             },
         )
@@ -122,7 +122,7 @@ def create_project_manager_agent():
             name="project_manager",
             model="gemini-2.5-flash",
             instruction=get_system_instruction(
-                database_id=notion_database_id,
+                database_project_id=notion_database_id,
                 tasks_database_id=notion_tasks_db_id,
             ),
             description="Project manager with Notion integration for task tracking",
