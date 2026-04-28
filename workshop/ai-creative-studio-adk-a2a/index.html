@@ -55,7 +55,7 @@
 </td><td colspan="1" rowspan="1"><p>Orchestrates all five specialists in sequence - you give it one prompt, it coordinates the rest</p>
 </td></tr>
 </table>
-<p>The 5 agents are deployed as independent <strong>Cloud Run</strong> microservices. They communicate over the <strong>A2A protocol</strong> - a language-agnostic open standard so any agent can call any other agent regardless of framework. The Creative Director runs on <strong>Vertex AI Agent Engine</strong> and connects to each specialist remotely.</p>
+<p>The 5 agents are deployed as independent <strong>Cloud Run</strong> microservices. They communicate over the <strong>A2A protocol</strong> - a language-agnostic open standard so any agent can call any other agent regardless of framework. The Creative Director runs on <strong>Agent Runtime</strong> and connects to each specialist remotely.</p>
 <h2 is-upgraded>Architecture</h2>
 <p class="image-container"><img alt="System Overview" src="img/f5aecd15e12f53b9.png"></p>
 <h2 class="checklist" is-upgraded>What you&#39;ll learn</h2>
@@ -65,7 +65,7 @@
 <li>Turn any agent into a network-callable service using the <strong>Agent to Agent Protocol (A2A)</strong> over HTTPS.</li>
 <li>Orchestrate distributed agents with <code>RemoteA2aAgent</code> and <code>AgentTool</code>.</li>
 <li>Package and deploy independent agents as <strong>Cloud Run</strong> microservices.</li>
-<li>Host a stateful orchestrator on <strong>Vertex AI Agent Engine</strong>.</li>
+<li>Host a stateful orchestrator on <strong>Agent Runtime</strong>.</li>
 <li>Keep long multi-agent workflows within context limits using <strong>context compaction</strong>.</li>
 <li>Build a <strong>quality control loop</strong>: Critic reviews output → automatic revision when needed.</li>
 </ul>
@@ -132,7 +132,7 @@ gcloud config set project $PROJECT_ID
 <pre><code language="language-text" class="language-text">Updated property [core/project].
 </code></pre>
 <h2 is-upgraded>Set up Application Default Credentials (ADC)</h2>
-<p>The agents will call Vertex AI using the <strong>Google Auth library</strong>, which requires Application Default Credentials - separate from the <code>gcloud</code> CLI authentication.</p>
+<p>The agents will call Gemini Enterprise Agent Platform using the <strong>Google Auth library</strong>, which requires Application Default Credentials - separate from the <code>gcloud</code> CLI authentication.</p>
 <p>Run this once:</p>
 <pre><code language="language-bash" class="language-bash">gcloud auth application-default login
 </code></pre>
@@ -224,7 +224,7 @@ GOOGLE_GENAI_USE_VERTEXAI=TRUE
 <h2 is-upgraded>Agent definition</h2>
 <p>Each of the 5 agents in this codelab is defined the same way:</p>
 <pre><code language="language-python" class="language-python">from google.adk.agents import Agent
-from google.adk.tools import google_search
+from google.adk.tools.google_search_tool import google_search
 
 root_agent = Agent(
     name=&#34;brand_strategist&#34;,         # unique identifier
@@ -353,16 +353,18 @@ Format your output as:
       <google-codelab-step label="Test the Brand Strategist locally" duration="3">
         <p>Before deploying the agent to cloud, let&#39;s test the Brand Strategist agent locally using the <strong>ADK web UI</strong> - a built-in chat interface for testing agents.</p>
 <h2 is-upgraded>Create a virtual environment and install dependencies</h2>
-<p>Using a virtual environment is best practice - it isolates project dependencies and avoids conflicts with system packages.</p>
-<p>All agents share the same dependencies, so <strong>install once</strong> and it works for every agent in this codelab:</p>
+<p>We use <a href="https://docs.astral.sh/uv/" target="_blank"><code>uv</code></a> - a fast, modern Python package manager that handles virtual environments and installs in a single tool. It&#39;s ~10-100x faster than <code>pip</code> and is the recommended way to manage Python projects.</p>
+<p>Cloud Shell already has <code>uv</code> installed. All agents share the same dependencies, so <strong>install once</strong> and it works for every agent in this codelab:</p>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-python3 -m venv .venv
+uv venv
 source .venv/bin/activate
-pip install -r agents/brand_strategist/requirements.txt
+uv pip install -r agents/brand_strategist/requirements.txt
 </code></pre>
+<p>The <code>uv venv</code> command creates a <code>.venv/</code> directory next to your code. <code>uv pip install</code> works exactly like <code>pip install</code> but is much faster.</p>
 <aside class="warning"><p><strong>Important:</strong> Whenever you open a <strong>new terminal</strong> (or a new Cloud Shell tab) during this codelab, activate the virtual environment first:</p>
 <pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
 </code></pre>
+<p>Alternatively, prefix any Python command with <code>uv run</code> to auto-activate: <code>uv run adk web</code>. We use the explicit <code>source</code> pattern in this codelab for clarity.</p>
 </aside>
 <h2 is-upgraded>Start the ADK web UI</h2>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents
@@ -1502,7 +1504,7 @@ echo &#34;  Designer:         $DESIGNER_AGENT_URL&#34;
 echo &#34;  Critic:           $CRITIC_AGENT_URL&#34;
 echo &#34;  Project Manager:  $PM_AGENT_URL&#34;
 </code></pre>
-<p>The Creative Director will automatically use these Cloud Run URLs when deployed to Agent Engine in Step 13.</p>
+<p>The Creative Director will automatically use these Cloud Run URLs when deployed to Agent Runtime in Step 13.</p>
 
 
       </google-codelab-step>
@@ -1568,28 +1570,28 @@ bash scripts/run.sh
 
       </google-codelab-step>
     
-      <google-codelab-step label="Deploy the Creative Director to Agent Engine" duration="8">
-        <p>The orchestrator is deployed to <strong>Vertex AI Agent Engine</strong>, which provides managed session state, automatic scaling, and built-in tracing.</p>
-<h2 is-upgraded>Why Agent Engine for the orchestrator?</h2>
+      <google-codelab-step label="Deploy the Creative Director to Agent Runtime" duration="8">
+        <p>The orchestrator is deployed to <strong>Agent Runtime</strong>, which provides managed session state, automatic scaling, and built-in tracing.</p>
+<h2 is-upgraded>Why Agent Runtime for the orchestrator?</h2>
 <p>The five specialists are deployed to Cloud Run - lightweight, stateless, each handling one task. The Creative Director has different requirements:</p>
 <table>
 <tr><td colspan="1" rowspan="1"><p>Requirement</p>
 </td><td colspan="1" rowspan="1"><p>Why it matters</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p><strong>Session state</strong></p>
-</td><td colspan="1" rowspan="1"><p>A multi-step workflow takes 45+ seconds. Agent Engine maintains the conversation state between the orchestrator&#39;s tool calls so nothing is lost mid-pipeline.</p>
+</td><td colspan="1" rowspan="1"><p>A multi-step workflow takes 45+ seconds. Agent Runtime maintains the conversation state between the orchestrator&#39;s tool calls so nothing is lost mid-pipeline.</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p><strong>Variable load</strong></p>
-</td><td colspan="1" rowspan="1"><p>Sometimes one campaign per hour, sometimes many in parallel. Agent Engine scales to zero when idle and scales out automatically - you don&#39;t pay for idle capacity.</p>
+</td><td colspan="1" rowspan="1"><p>Sometimes one campaign per hour, sometimes many in parallel. Agent Runtime scales to zero when idle and scales out automatically - you don&#39;t pay for idle capacity.</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p><strong>Observability</strong></p>
 </td><td colspan="1" rowspan="1"><p>Cloud Logging, Cloud Monitoring, and Cloud Trace come built in. You can see every A2A call, every token used, every latency spike - without adding any instrumentation.</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p><strong>Long-running workflows</strong></p>
-</td><td colspan="1" rowspan="1"><p>Cloud Run has a 3600s request timeout. Agent Engine is designed for workflows that can take minutes, with managed retries and state persistence.</p>
+</td><td colspan="1" rowspan="1"><p>Cloud Run has a 3600s request timeout. Agent Runtime is designed for workflows that can take minutes, with managed retries and state persistence.</p>
 </td></tr>
 </table>
-<p>Cloud Run is the right platform for stateless specialists. Agent Engine is the right platform for the stateful orchestrator.</p>
+<p>Cloud Run is the right platform for stateless specialists. Agent Runtime is the right platform for the stateful orchestrator.</p>
 <h2 is-upgraded>How the deployment works</h2>
 <p><code>client.agent_engines.create()</code> packages your <code>App</code> object, uploads it with its dependencies, and deploys it to managed infrastructure. Here&#39;s what each parameter does:</p>
 <pre><code language="language-python" class="language-python">import vertexai
@@ -1610,8 +1612,8 @@ agent_engine_resource = client.agent_engines.create(
         &#34;display_name&#34;: &#34;Creative Director&#34;,
         # Python packages installed in the managed runtime - pin for reproducibility
         &#34;requirements&#34;: [
-            &#34;google-cloud-aiplatform[agent_engines]&gt;=1.112&#34;,
-            &#34;google-adk[a2a]==1.20.0&#34;,
+            &#34;google-cloud-aiplatform[agent_engines]&gt;=1.132.0,&lt;2.0.0&#34;,
+            &#34;google-adk[a2a]==1.31.1&#34;,
             &#34;google-genai&gt;=1.51.0&#34;,
             &#34;python-dotenv&gt;=1.0.0&#34;,
         ],
@@ -1675,11 +1677,11 @@ echo &#34;Resource: $AGENT_ENGINE_RESOURCE_NAME&#34;
       </google-codelab-step>
     
       <google-codelab-step label="Run an end-to-end campaign" duration="5">
-        <p>The entire system is deployed. Run a complete campaign from the Agent Engine playground.</p>
-<h2 is-upgraded>Open the Agent Engine playground</h2>
+        <p>The entire system is deployed. Run a complete campaign from the Agent Runtime playground.</p>
+<h2 is-upgraded>Open the Agent Runtime playground</h2>
 <ol type="1">
 <li>Go to <a href="https://console.cloud.google.com/vertex-ai/agents" target="_blank">console.cloud.google.com/vertex-ai/agents</a></li>
-<li>Select your deployed Agent Engine (<code>creative-director</code>)</li>
+<li>Select your deployed Agent Runtime (<code>creative-director</code>)</li>
 <li>Click <strong>Playground</strong> in the left sidebar</li>
 <li>Click <strong>New session</strong> to open a fresh conversation</li>
 </ol>
@@ -1739,7 +1741,7 @@ python3 run_campaign.py
 <tr><td colspan="1" rowspan="1"><p>Cloud Run services</p>
 </td><td colspan="1" rowspan="1"><p>brand-strategist, copywriter, designer, critic, project-manager</p>
 </td></tr>
-<tr><td colspan="1" rowspan="1"><p>Agent Engine</p>
+<tr><td colspan="1" rowspan="1"><p>Agent Runtime</p>
 </td><td colspan="1" rowspan="1"><p>Creative Director reasoning engine + all sessions</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p>Artifact Registry</p>
@@ -1788,7 +1790,7 @@ gcloud storage buckets list --project=$GCP_PROJECT_ID
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p>Creative Director</p>
 </td><td colspan="1" rowspan="1"><p>Full orchestration via A2A</p>
-</td><td colspan="1" rowspan="1"><p>Vertex AI Agent Engine</p>
+</td><td colspan="1" rowspan="1"><p>Agent Runtime</p>
 </td></tr>
 </table>
 <h2 is-upgraded>Key patterns you learned</h2>
@@ -1801,7 +1803,7 @@ gcloud storage buckets list --project=$GCP_PROJECT_ID
 <li><strong><code>EventsCompactionConfig</code></strong> - handle token limits in long multi-agent workflows</li>
 <li><strong>Structured critic output</strong> - machine-readable quality control with automatic revision</li>
 <li><strong>Cloud Run</strong> - deploy containerized agents at scale</li>
-<li><strong>Vertex AI Agent Engine</strong> - host orchestrators with managed sessions and tracing</li>
+<li><strong>Agent Runtime</strong> - host orchestrators with managed sessions and tracing</li>
 </ol>
 <h2 is-upgraded>Next steps</h2>
 <ul>
@@ -1809,13 +1811,13 @@ gcloud storage buckets list --project=$GCP_PROJECT_ID
 <li>Add <strong>IAM authentication</strong> to Cloud Run services (remove <code>--allow-unauthenticated</code>)</li>
 <li>Replace one specialist with a <strong>LangGraph or CrewAI</strong> agent - A2A is framework agnostic</li>
 <li>Add <strong>user feedback</strong> as a tool so participants can rate and iterate on outputs</li>
-<li>Explore <strong>Vertex AI Agent Engine tracing</strong> in the Cloud Console</li>
+<li>Explore <strong>Agent Runtime tracing</strong> in the Cloud Console</li>
 </ul>
 <h2 is-upgraded>Resources</h2>
 <ul>
 <li><a href="https://google.github.io/adk-docs/" target="_blank">Google ADK Documentation</a></li>
 <li><a href="https://google.github.io/A2A/" target="_blank">A2A Protocol Specification</a></li>
-<li><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview" target="_blank">Vertex AI Agent Engine Docs</a></li>
+<li><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview" target="_blank">Agent Runtime Docs</a></li>
 <li><a href="https://codelabs.developers.google.com/?cat=aiml&text=adk" target="_blank">ADK Codelabs</a></li>
 </ul>
 

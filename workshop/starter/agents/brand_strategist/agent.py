@@ -4,7 +4,7 @@ import os
 
 from dotenv import load_dotenv
 from google.adk.agents import Agent
-from google.adk.tools import google_search
+from google.adk.tools.google_search_tool import google_search
 
 load_dotenv()
 

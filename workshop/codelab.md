@@ -26,7 +26,7 @@ Type one sentence. Get back audience research, 5 captions, visual concepts, qual
 | **Project Manager** | Builds a project timeline and task breakdown, optionally synced to Notion via MCP |
 | **Creative Director** | Orchestrates all five specialists in sequence - you give it one prompt, it coordinates the rest |
 
-The 5 specialists are deployed as independent **Cloud Run** microservices. They communicate over the **A2A protocol** - a language-agnostic open standard so any agent can call any other agent regardless of framework. The Creative Director runs on **Vertex AI Agent Engine** and connects to each specialist remotely.
+The 5 specialists are deployed as independent **Cloud Run** microservices. They communicate over the **A2A protocol** - a language-agnostic open standard so any agent can call any other agent regardless of framework. The Creative Director runs on **Agent Runtime** and connects to each specialist remotely.
 
 ### Architecture
 
@@ -39,7 +39,7 @@ The 5 specialists are deployed as independent **Cloud Run** microservices. They 
 - Turn any agent into a network-callable service using the **A2A protocol** over HTTPS
 - Orchestrate distributed agents with `RemoteA2aAgent` + `AgentTool`
 - Package and deploy independent agents as **Cloud Run** microservices
-- Host a stateful orchestrator on **Vertex AI Agent Engine**
+- Host a stateful orchestrator on **Agent Runtime**
 - Keep long multi-agent workflows within context limits using **context compaction**
 - Build a **quality control loop**: Critic reviews output → automatic revision when needed
 
@@ -143,7 +143,7 @@ Updated property [core/project].
 
 ### Set up Application Default Credentials (ADC)
 
-The agents call Vertex AI using the **Google Auth library**, which requires Application Default Credentials - separate from the `gcloud` CLI authentication. Run this once:
+The agents call Gemini Enterprise Agent Platform using the **Google Auth library**, which requires Application Default Credentials - separate from the `gcloud` CLI authentication. Run this once:
 
 ```bash
 gcloud auth application-default login
@@ -257,7 +257,7 @@ Each of the 5 specialists in this codelab is defined the same way:
 
 ```python
 from google.adk.agents import Agent
-from google.adk.tools import google_search
+from google.adk.tools.google_search_tool import google_search
 
 root_agent = Agent(
     name="brand_strategist",         # unique identifier
@@ -379,21 +379,25 @@ Before deploying to Cloud Run, test the Brand Strategist agent locally using the
 
 ### Create a virtual environment and install dependencies
 
-Using a virtual environment is best practice - it isolates project dependencies and avoids conflicts with system packages.
+We use [`uv`](https://docs.astral.sh/uv/) - a fast, modern Python package manager that handles virtual environments and installs in a single tool. It's ~10-100x faster than `pip` and is the recommended way to manage Python projects.
 
-All agents share the same dependencies, so **install once** and it works for every agent in this codelab:
+Cloud Shell already has `uv` installed. All agents share the same dependencies, so **install once** and it works for every agent in this codelab:
 
 ```bash
 cd ~/ai-creative-studio/workshop/starter
-python3 -m venv .venv
+uv venv
 source .venv/bin/activate
-pip install -r agents/brand_strategist/requirements.txt
+uv pip install -r agents/brand_strategist/requirements.txt
 ```
+
+The `uv venv` command creates a `.venv/` directory next to your code. `uv pip install` works exactly like `pip install` but is much faster.
 
 > **Important:** Whenever you open a **new terminal** (or a new Cloud Shell tab) during this codelab, activate the virtual environment first:
 > ```bash
 > source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
 > ```
+>
+> Alternatively, prefix any Python command with `uv run` to auto-activate: `uv run adk web`. We use the explicit `source` pattern in this codelab for clarity.
 
 ### Start the ADK web UI
 
@@ -1860,7 +1864,7 @@ echo "  Critic:           $CRITIC_AGENT_URL"
 echo "  Project Manager:  $PM_AGENT_URL"
 ```
 
-The Creative Director will automatically use these Cloud Run URLs when deployed to Agent Engine in Step 13.
+The Creative Director will automatically use these Cloud Run URLs when deployed to Agent Runtime in Step 13.
 
 ---
 
@@ -1918,22 +1922,22 @@ The workflow is identical - paste the Cloud Run URL, connect, and send a test me
 
 ---
 
-## Deploy the Creative Director to Agent Engine
+## Deploy the Creative Director to Agent Runtime
 
-The orchestrator is deployed to **Vertex AI Agent Engine**, which provides managed session state, automatic scaling, and built-in tracing.
+The orchestrator is deployed to **Agent Runtime**, which provides managed session state, automatic scaling, and built-in tracing.
 
-### Why Agent Engine for the orchestrator?
+### Why Agent Runtime for the orchestrator?
 
 The five specialists are deployed to Cloud Run - lightweight, stateless, each handling one task. The Creative Director has different requirements:
 
 | Requirement | Why it matters |
 |---|---|
-| **Session state** | A multi-step workflow takes 45+ seconds. Agent Engine maintains the conversation state between the orchestrator's tool calls so nothing is lost mid-pipeline. |
-| **Variable load** | Sometimes one campaign per hour, sometimes many in parallel. Agent Engine scales to zero when idle and scales out automatically - you don't pay for idle capacity. |
+| **Session state** | A multi-step workflow takes 45+ seconds. Agent Runtime maintains the conversation state between the orchestrator's tool calls so nothing is lost mid-pipeline. |
+| **Variable load** | Sometimes one campaign per hour, sometimes many in parallel. Agent Runtime scales to zero when idle and scales out automatically - you don't pay for idle capacity. |
 | **Observability** | Cloud Logging, Cloud Monitoring, and Cloud Trace come built in. You can see every A2A call, every token used, every latency spike - without adding any instrumentation. |
-| **Long-running workflows** | Cloud Run has a 3600s request timeout. Agent Engine is designed for workflows that can take minutes, with managed retries and state persistence. |
+| **Long-running workflows** | Cloud Run has a 3600s request timeout. Agent Runtime is designed for workflows that can take minutes, with managed retries and state persistence. |
 
-Cloud Run is the right platform for stateless specialists. Agent Engine is the right platform for the stateful orchestrator.
+Cloud Run is the right platform for stateless specialists. Agent Runtime is the right platform for the stateful orchestrator.
 
 ### How the deployment works
 
@@ -1958,8 +1962,8 @@ agent_engine_resource = client.agent_engines.create(
         "display_name": "Creative Director",
         # Python packages installed in the managed runtime - pin for reproducibility
         "requirements": [
-            "google-cloud-aiplatform[agent_engines]>=1.112",
-            "google-adk[a2a]==1.20.0",
+            "google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0",
+            "google-adk[a2a]==1.31.1",
             "google-genai>=1.51.0",
             "python-dotenv>=1.0.0",
         ],
@@ -2035,12 +2039,12 @@ echo "Resource: $AGENT_ENGINE_RESOURCE_NAME"
 
 ## Run an End-to-End Campaign
 
-The entire system is deployed. Run a complete campaign from the Agent Engine playground.
+The entire system is deployed. Run a complete campaign from the Agent Runtime playground.
 
-### Open the Agent Engine playground
+### Open the Agent Runtime playground
 
 1. Go to [console.cloud.google.com/vertex-ai/agents](https://console.cloud.google.com/vertex-ai/agents)
-2. Select your deployed Agent Engine (`creative-director`)
+2. Select your deployed Agent Runtime (`creative-director`)
 3. Click **Playground** in the left sidebar
 4. Click **New session** to open a fresh conversation
 
@@ -2118,7 +2122,7 @@ The script will show you exactly what it will delete and prompt for confirmation
 | Resource | What gets deleted |
 |---|---|
 | Cloud Run services | brand-strategist, copywriter, designer, critic, project-manager |
-| Agent Engine | Creative Director reasoning engine + all sessions |
+| Agent Runtime | Creative Director reasoning engine + all sessions |
 | Artifact Registry | `cloud-run-source-deploy` repository + all Docker images |
 | GCS buckets | `{PROJECT_ID}-agent-staging`, `run-sources-{PROJECT_ID}-{REGION}` |
 
@@ -2146,7 +2150,7 @@ Congratulations! You've built and deployed a **production-grade multi-agent AI s
 | Designer | Imagen prompt generation | Cloud Run |
 | Critic | Quality review with scoring | Cloud Run |
 | Project Manager | Timeline + Notion MCP | Cloud Run |
-| Creative Director | Full orchestration via A2A | Vertex AI Agent Engine |
+| Creative Director | Full orchestration via A2A | Agent Runtime |
 
 ### Key patterns you learned
 
@@ -2158,7 +2162,7 @@ Congratulations! You've built and deployed a **production-grade multi-agent AI s
 6. **`EventsCompactionConfig`** - handle token limits in long multi-agent workflows
 7. **Structured critic output** - machine-readable quality control with automatic revision
 8. **Cloud Run** - deploy containerized agents at scale
-9. **Vertex AI Agent Engine** - host orchestrators with managed sessions and tracing
+9. **Agent Runtime** - host orchestrators with managed sessions and tracing
 
 ### Next steps
 
@@ -2166,11 +2170,11 @@ Congratulations! You've built and deployed a **production-grade multi-agent AI s
 - Add **IAM authentication** to Cloud Run services (remove `--allow-unauthenticated`)
 - Replace one specialist with a **LangGraph or CrewAI** agent - A2A is framework agnostic
 - Add **user feedback** as a tool so participants can rate and iterate on outputs
-- Explore **Vertex AI Agent Engine tracing** in the Cloud Console
+- Explore **Agent Runtime tracing** in the Cloud Console
 
 ### Resources
 
 - [Google ADK Documentation](https://google.github.io/adk-docs/)
 - [A2A Protocol Specification](https://google.github.io/A2A/)
-- [Vertex AI Agent Engine Docs](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview)
+- [Agent Runtime Docs](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview)
 - [ADK Codelabs](https://codelabs.developers.google.com/?cat=aiml&text=adk)

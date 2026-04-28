@@ -150,8 +150,8 @@ def deploy_orchestrator(auto_deploy_specialists=False):
     print("\n  Configuration:")
     print(f"    - Display Name: {DISPLAY_NAME}")
     print("    - Requirements:")
-    print("      • google-cloud-aiplatform[agent_engines]>=1.112")
-    print("      • google-adk[a2a]==1.20.0")
+    print("      • google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0")
+    print("      • google-adk[a2a]==1.31.1")
     print("      • google-genai>=1.51.0")
     print("      • python-dotenv>=1.0.0")
     print("      • pydantic>=2.0.0")
@@ -172,8 +172,8 @@ def deploy_orchestrator(auto_deploy_specialists=False):
                 "staging_bucket": STAGING_BUCKET,
                 "display_name": DISPLAY_NAME,
                 "requirements": [
-                    "google-cloud-aiplatform[agent_engines]>=1.112",
-                    "google-adk[a2a]==1.20.0",
+                    "google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0",
+                    "google-adk[a2a]==1.31.1",
                     "google-genai>=1.51.0",
                     "python-dotenv>=1.0.0",
                     "pydantic>=2.0.0",
