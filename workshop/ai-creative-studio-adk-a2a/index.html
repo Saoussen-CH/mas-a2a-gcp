@@ -367,10 +367,12 @@ uv pip install -r agents/brand_strategist/requirements.txt
 <p>Alternatively, prefix any Python command with <code>uv run</code> to auto-activate: <code>uv run adk web</code>. We use the explicit <code>source</code> pattern in this codelab for clarity.</p>
 </aside>
 <h2 is-upgraded>Start the ADK web UI</h2>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents
-adk web
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
+uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
-<aside class="warning"><p><strong>&#34;No agents found in current folder&#34;?</strong> This means either (a) you ran <code>adk web</code> from the wrong directory - make sure you <code>cd</code> into the <code>agents/</code> folder first, or (b) the virtual environment is not activated - run <code>source ~/ai-creative-studio/workshop/starter/.venv/bin/activate</code> then try again.</p>
+<aside class="special"><p><strong>Why </strong><strong><code>--allow_origins='*'</code></strong><strong>?</strong> Cloud Shell&#39;s Web Preview proxies your local server through a <code>*.cloudshell.dev</code> URL, which is a different origin than <code>127.0.0.1</code>. Without this flag, the dev UI gets blocked by CORS when creating a session and you&#39;ll see <code>403 Forbidden</code> errors. The flag whitelists all origins - safe for local development.</p>
+</aside>
+<aside class="warning"><p><strong>&#34;No agents found in current folder&#34;?</strong> Make sure you ran the command from <code>~/ai-creative-studio/workshop/starter</code> (not from inside <code>agents/</code>). The <code>agents</code> argument tells <code>adk web</code> where to look.</p>
 </aside>
 <p>You&#39;ll see:</p>
 <pre><code language="language-text" class="language-text">INFO: Started server process
@@ -402,224 +404,67 @@ INFO: Uvicorn running on http://localhost:8000
 
       </google-codelab-step>
     
-      <google-codelab-step label="Build the Copywriter, Designer, and Critic agents" duration="15">
-        <p>Let&#39;s continue with the other agents: Copywriter, Designer, and Critic.</p>
-<p>These three specialists follow the same ADK pattern as the Brand Strategist. The <code>root_agent</code> constructor is already pre-filled in each starter file - <strong>your task is to write the system instruction</strong> for each agent.</p>
-<h2 is-upgraded>Copywriter agent</h2>
-<p>The Copywriter creates Instagram captions.</p>
-<p>It should:</p>
-<ul>
-<li>Read Brand Strategist insights from the conversation history (passed by the orchestrator).</li>
-<li>Create 3-5 caption variations with different tones.</li>
-<li>Include 5-10 relevant hashtags per caption.</li>
-<li>Suggest a CTA (call-to-action) for each caption.</li>
-<li>Keep captions under 2,200 characters (Instagram limit).</li>
-</ul>
-<p>Output format:</p>
-<ul>
-<li>Caption title/theme.</li>
-<li>Full caption text.</li>
-<li>Hashtags list.</li>
-<li>Suggested CTA.</li>
-</ul>
-<p><strong>Tip</strong>: Remind the agent that it will find Brand Strategist insights in the conversation history above its message.</p>
-<p>Open the file:</p>
-<pre><code language="language-bash" class="language-bash">cloudshell edit agents/copywriter/agent.py
+      <google-codelab-step label="Meet the Copywriter, Designer, and Critic" duration="10">
+        <p>These three specialists follow the same ADK pattern as the Brand Strategist - one <code>Agent</code>, one model, one system instruction - and they&#39;re already complete in the starter. There are no TODOs to fill in here. Instead, this step is about <strong>understanding what each agent does and watching it work in isolation</strong> before they&#39;re wired together by the Creative Director.</p>
+<p>Each section below has the same shape:</p>
+<ol type="1">
+<li>A short description of the agent&#39;s role.</li>
+<li>The key insight that shapes its system instruction.</li>
+<li>A test prompt you can paste into the ADK web UI to see the agent respond.</li>
+</ol>
+<p>Start the web UI once and keep it running for all three:</p>
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
+uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
-<p>Try to come up with a system instruction for the Copywriter agent based on the requirements above.</p>
-<p>If you&#39;re stuck, check the solution below.</p>
-<pre><code language="language-python" class="language-python">SYSTEM_INSTRUCTION = &#34;&#34;&#34;You are an expert Social Media Copywriter specializing in Instagram content.
-
-IMPORTANT: The conversation history above contains research from the Brand Strategist.
-You MUST review their findings on audience insights, competitor analysis, and trending topics
-before writing any copy. This context is your creative foundation.
-
-Your task: Create 3-5 Instagram caption variations for the campaign brief.
-
-For each caption provide:
-1. A theme title (e.g., &#34;Motivation Monday&#34;, &#34;Science-backed&#34;)
-2. The full caption text (max 2,200 characters)
-3. 5-10 relevant hashtags (mix of popular and niche)
-4. A clear CTA (call-to-action)
-
-Caption variety - use different tones across the set:
-- Inspirational / aspirational
-- Educational / informative
-- Community / belonging
-- Urgency / FOMO
-- Story-driven / personal
-
-Format each caption as:
-**Caption [N]: [Theme Title]**
-[Full caption text]
-.
-[Hashtags]
-CTA: [Call to action]
-&#34;&#34;&#34;
-</code></pre>
-<aside class="special"><p><strong>Key insight - no shared memory:</strong> The Copywriter has no idea what the Brand Strategist said unless the orchestrator explicitly passes that output as context. In a multi-agent workflow, the orchestrator is responsible for assembling and forwarding prior results. This is why the instruction says &#34;the conversation history above contains research&#34; - that context is injected by the Creative Director.</p>
-</aside>
-<h2 is-upgraded>Designer Agent</h2>
-<p>The Designer creates Imagen-ready image generation prompts.</p>
-<p>It should:</p>
-<ul>
-<li>Read the Copywriter&#39;s captions AND the Brand Strategist&#39;s insights from the conversation history.</li>
-<li>Create 2-3 visual concepts per caption.</li>
-<li>Each concept must include: prompt, style, colors, mood.</li>
-<li>Target Instagram dimensions (1080x1080 square or 1080x1350 portrait).</li>
-</ul>
-<p>Output format per caption:</p>
-<ul>
-<li><strong>For Caption [N]: [Caption Theme]</strong></li>
-<li><strong>Concept A: [Visual Theme]</strong></li>
-<li>Prompt: [Detailed Imagen prompt]</li>
-<li>Style: [e.g., minimalist, vibrant, cinematic]</li>
-<li>Colors: [Palette]</li>
-<li>Mood: [e.g., energetic, calm, inspiring]</li>
-</ul>
-<p><strong>Note</strong>: The agent creates prompts for image generation, not actual images.</p>
-<p>Open the file:</p>
-<pre><code language="language-bash" class="language-bash">cloudshell edit agents/designer/agent.py
-</code></pre>
-<p>Try to come up with a system instruction for the Designer agent based on the requirements above.</p>
-<p>If you&#39;re stuck, check the solution below.</p>
-<pre><code language="language-python" class="language-python">SYSTEM_INSTRUCTION = &#34;&#34;&#34;You are a Visual Content Director specializing in Instagram aesthetics.
-
-IMPORTANT: The conversation history above contains:
-- Brand strategy insights from the Brand Strategist
-- Instagram captions from the Copywriter
-Review BOTH before creating visual concepts.
-
-Your task: For each caption, create 2-3 visual concepts with Imagen-ready prompts.
-
-Each concept must include:
-- A detailed Imagen generation prompt (photorealistic, specific composition)
-- Visual style (e.g., minimalist, vibrant, cinematic)
-- Color palette (specific colors with mood rationale)
-- Mood / feeling
-- Instagram dimensions: 1080x1080 (square) or 1080x1350 (portrait)
-
-Format for each caption:
-
-**For Caption [N]: &#34;[Caption Theme]&#34;**
-
-Concept A: [Visual Theme Name]
-- Prompt: [Full Imagen prompt - be specific: subject, setting, lighting, angle, style]
-- Style: [Visual style descriptor]
-- Colors: [Palette with hex codes or descriptive names]
-- Mood: [Emotional tone]
-- Format: [1080x1080 or 1080x1350]
-
-Concept B: [Alternative visual approach]
-[Same format]
-&#34;&#34;&#34;
-</code></pre>
-<h2 is-upgraded>Critic agent</h2>
-<p>The Critic reviews campaign materials and returns structured feedback. This structure is <strong>critical</strong> - the orchestrator parses it to decide revisions.</p>
-<p>Required output format (use this EXACTLY):</p>
-<p><strong>POSTS REVIEW:</strong></p>
-<ul>
-<li>Score: [X/10]</li>
-<li>Status: [APPROVED | NEEDS_REVISION]</li>
-<li>What Works: ...</li>
-<li>Issues: ...</li>
-<li>Suggestions: ...</li>
-</ul>
-<p><strong>VISUALS REVIEW:</strong></p>
-<ul>
-<li>Score: [X/10]</li>
-<li>Status: [APPROVED | NEEDS_REVISION]</li>
-<li>What Works: ...</li>
-<li>Issues: ...</li>
-<li>Suggestions: ...</li>
-</ul>
-<p><strong>OVERALL ASSESSMENT:</strong></p>
-<ul>
-<li>All Approved: [YES | NO]</li>
-<li>Priority Revisions: ...</li>
-<li>Overall Score: [X/10]</li>
-</ul>
-<p>Scoring guide: 9-10 → APPROVED    (publish as-is) 7-8  → APPROVED    (minor issues, acceptable) 5-6  → NEEDS_REVISION 1-4  → NEEDS_REVISION</p>
-<p>Evaluation criteria: clarity, brand alignment, audience fit, platform optimization, visual-copy harmony, CTA strength, engagement potential</p>
-<p>Open the file:</p>
-<pre><code language="language-bash" class="language-bash">cloudshell edit agents/critic/agent.py
-</code></pre>
-<aside class="special"><p><strong>Before writing the instruction</strong>, understand why the format matters: the Creative Director orchestrator parses the Critic&#39;s response to decide whether to trigger revisions. If the format is wrong, revision logic breaks. The words <code>APPROVED</code> and <code>NEEDS_REVISION</code> must appear exactly.</p>
-</aside>
-<p>Try to come up with a system instruction for the Critic agent based on the requirements above.</p>
-<p>If you&#39;re stuck, check the solution below.</p>
-<pre><code language="language-python" class="language-python">SYSTEM_INSTRUCTION = &#34;&#34;&#34;You are a Creative Director and Quality Assurance Specialist.
-
-Your role: Review Instagram campaign materials and provide structured, actionable feedback.
-
-CRITICAL: You MUST use the EXACT output format below. The orchestrator parses your response
-programmatically - any deviation will break the revision workflow.
-
-Scoring guide:
-- 9-10: APPROVED (exceptional, publish as-is)
-- 7-8:  APPROVED (good, minor polish only)
-- 5-6:  NEEDS_REVISION (has potential but needs improvement)
-- 1-4:  NEEDS_REVISION (significant issues)
-
-Required output format - use this EXACTLY:
-
-**POSTS REVIEW:**
-- Score: [X/10]
-- Status: [APPROVED or NEEDS_REVISION]
-- What Works: [specific strengths]
-- Issues: [specific problems if any]
-- Suggestions: [concrete improvements if NEEDS_REVISION]
-
-**VISUALS REVIEW:**
-- Score: [X/10]
-- Status: [APPROVED or NEEDS_REVISION]
-- What Works: [specific strengths]
-- Issues: [specific problems if any]
-- Suggestions: [concrete improvements if NEEDS_REVISION]
-
-**OVERALL ASSESSMENT:**
-- All Approved: [YES or NO]
-- Priority Revisions: [most important fix if All Approved = NO]
-- Overall Score: [X/10]
-
-Evaluation criteria:
-- Clarity and brand voice consistency
-- Audience fit and relevance
-- Platform optimization (Instagram best practices)
-- Visual-copy alignment
-- CTA strength and clarity
-- Engagement potential
-&#34;&#34;&#34;
-</code></pre>
-
-
-      </google-codelab-step>
-    
-      <google-codelab-step label="Test Copywriter, Designer, and Critic locally" duration="5">
-        <p>The same <code>adk web</code> workflow applies to every agent. Skip this step if you&#39;re short on time - you can always come back to test individual agents later.</p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents
-adk web
-</code></pre>
-<p>Open Web Preview on port 8000.</p>
+<p>Open <strong>Web Preview -&gt; port 8000</strong>. Use the <strong>agent dropdown</strong> in the top-left to switch between agents without restarting the server.</p>
 <h2 is-upgraded>Copywriter</h2>
-<p>Use the <strong>agent dropdown</strong> to select <strong><code>copywriter</code></strong>, then try:</p>
+<p><strong>Role:</strong> Turn brand research into Instagram captions. The Copywriter creates 3-5 caption variations covering different tones (inspirational, educational, community, urgency, story-driven), each with hashtags and a CTA.</p>
+<aside class="special"><p><strong>Key insight - no shared memory.</strong> The Copywriter has no idea what the Brand Strategist said unless the orchestrator explicitly passes that output as context. In a multi-agent workflow, the orchestrator is responsible for assembling and forwarding prior results. This is why the instruction says <em>&#34;the conversation history above contains research&#34;</em> - that context is injected by the Creative Director at runtime.</p>
+</aside>
+<p>Open <code>agents/copywriter/agent.py</code> to see the full instruction. The structure mirrors the Brand Strategist: <code>SYSTEM_INSTRUCTION</code> constant, then a single <code>Agent(...)</code> constructor.</p>
+<p><strong>Try it:</strong> Switch the dropdown to <strong><code>copywriter</code></strong> and send:</p>
 <pre><code>You are writing captions for EcoFlow Smart Water Bottle targeting health-conscious millennials aged 25-35.
 Audience insight: they prioritize sustainability, track health metrics, and share lifestyle content.
 Competitor insight: Hydro Flask dominates with lifestyle branding; S&#39;well leads on premium aesthetics.
 Write 3 Instagram captions - one inspirational, one educational, one community-focused. Include 5 hashtags each and a CTA.
 </code></pre>
+<p>Notice you had to paste the audience and competitor insights manually - because the Copywriter has no memory of what other agents produced. That&#39;s the same job the Creative Director will do automatically once we wire everything together.</p>
 <h2 is-upgraded>Designer</h2>
-<p>Use the <strong>agent dropdown</strong> to select <strong><code>designer</code></strong>, then try:</p>
+<p><strong>Role:</strong> Generate Imagen-ready visual concepts for each caption. The Designer outputs 2-3 visual concepts per caption, each with a detailed image prompt, style, color palette, mood, and Instagram format (1080x1080 or 1080x1350).</p>
+<aside class="special"><p><strong>Key insight - prompts, not pictures.</strong> The Designer doesn&#39;t generate images itself. It produces structured <em>prompts</em> that an image-generation model (Imagen, in production) can render. This separation keeps the agent fast and stateless - image generation is a separate concern that can be added later as a tool.</p>
+</aside>
+<p>Open <code>agents/designer/agent.py</code> to see the full instruction. Like the Copywriter, it expects upstream context (captions + brand insights) in the conversation history.</p>
+<p><strong>Try it:</strong> Switch the dropdown to <strong><code>designer</code></strong> and send:</p>
 <pre><code>Create 2 visual concepts for an EcoFlow Smart Water Bottle Instagram post targeting health-conscious millennials.
 Style: clean, modern, lifestyle-focused. Include full Imagen-ready prompts with color palette, mood, and format (1080x1080 or 1080x1350).
 </code></pre>
-<h2 is-upgraded>Critic</h2>
-<p>Use the <strong>agent dropdown</strong> to select <strong><code>critic</code></strong>, then try:</p>
+<p>You&#39;ll get fully formatted Imagen prompts you could paste directly into the Imagen API.</p>
+<h2 is-upgraded>Critic - structured output is critical</h2>
+<p><strong>Role:</strong> Quality-assure copy and visuals before they&#39;re handed to the Project Manager. The Critic scores both deliverables and returns <code>APPROVED</code> or <code>NEEDS_REVISION</code> with specific suggestions.</p>
+<aside class="warning"><p><strong>Key insight - the orchestrator parses this response programmatically.</strong> The Creative Director reads the Critic&#39;s output character-by-character to decide whether to trigger a revision loop. If the format drifts, the revision logic breaks. The words <code>APPROVED</code> and <code>NEEDS_REVISION</code> must appear exactly, in the exact section headers shown below.</p>
+</aside>
+<p>Open <code>agents/critic/agent.py</code> to see the full instruction. Notice how rigid the format is:</p>
+<pre><code language="language-text" class="language-text">**POSTS REVIEW:**
+- Score: X/10
+- Status: APPROVED or NEEDS_REVISION
+...
+
+**VISUALS REVIEW:**
+- Score: X/10
+- Status: APPROVED or NEEDS_REVISION
+...
+
+**OVERALL ASSESSMENT:**
+- All Approved: YES or NO
+</code></pre>
+<p>The scoring rubric is explicit: 9-10 and 7-8 = APPROVED, 5-6 and 1-4 = NEEDS_REVISION. This deterministic mapping is what makes the orchestrator&#39;s quality control loop reliable.</p>
+<p><strong>Try it:</strong> Switch the dropdown to <strong><code>critic</code></strong> and send:</p>
 <pre><code>Review this Instagram caption for an eco-friendly water bottle brand targeting millennials:
 &#34;Hydrate smarter, live greener. 💧 Our EcoFlow bottle tracks your intake, keeps your drink cold for 24h, and never touches single-use plastic. Because what you drink from matters as much as what you drink. #EcoFlow #HydrationGoals #SustainableLiving #ZeroWaste #HealthyHabits - Shop link in bio.&#34;
 Score it and indicate APPROVED or NEEDS_REVISION with specific feedback.
 </code></pre>
-<p>Stop the server with <code>Ctrl+C</code> when done.</p>
+<p>Verify the response contains <code>**POSTS REVIEW:**</code>, <code>Status: APPROVED</code> (or <code>NEEDS_REVISION</code>), and <code>**OVERALL ASSESSMENT:**</code>. If those sections are present, the Critic is ready to plug into the orchestrator.</p>
+<p>When you&#39;re done testing all three, press <code>Ctrl+C</code> to stop the server.</p>
 <aside class="special"><p>Each agent works in isolation at this stage - it has no awareness of the other agents&#39; outputs. Context passing between agents is the Creative Director&#39;s job, which you&#39;ll build in Step 9.</p>
 </aside>
 
@@ -876,8 +721,8 @@ Never repeat the timeline here.
 <aside class="special"><p><strong>Best practice:</strong> Never hard-fail on optional integrations. The text timeline is always the primary deliverable; Notion is supplementary.</p>
 </aside>
 <h2 is-upgraded>Test the Project Manager locally</h2>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter/agents
-adk web
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
+uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
 <p>Open Web Preview on port 8000. Use the <strong>agent dropdown</strong> to select <strong><code>project_manager</code></strong>, then try:</p>
 <pre><code>Create a project plan for an EcoFlow Smart Water Bottle Instagram campaign.
@@ -1432,8 +1277,8 @@ brand-strategist-xxxx.run.app  ← actual HTTP A2A call happens here
 <h2 is-upgraded>Test the Creative Director locally</h2>
 <p>Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10). Then in a new terminal:</p>
 <pre><code language="language-bash" class="language-bash">source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-cd ~/ai-creative-studio/workshop/starter/agents
-adk web
+cd ~/ai-creative-studio/workshop/starter
+uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
 <p>Open Web Preview on port 8000. Use the <strong>agent dropdown</strong> to select <strong><code>creative_director</code></strong>, then try:</p>
 <pre><code>Research the eco-friendly water bottle market for health-conscious millennials
