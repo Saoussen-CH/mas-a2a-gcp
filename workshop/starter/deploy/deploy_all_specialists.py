@@ -74,8 +74,13 @@ async def run_command_async(
         *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=cwd
     )
 
-    stdout, stderr = await process.communicate()
-    return process.returncode, stdout.decode(), stderr.decode()
+    try:
+        stdout, stderr = await process.communicate()
+        return process.returncode, stdout.decode(), stderr.decode()
+    except asyncio.CancelledError:
+        process.terminate()
+        await process.wait()
+        raise
 
 
 async def deploy_single_agent(
@@ -149,7 +154,11 @@ async def deploy_single_agent(
     ]
 
     # Run deployment
-    returncode, stdout, stderr = await run_command_async(cmd, cwd=agent_path)
+    try:
+        returncode, stdout, stderr = await run_command_async(cmd, cwd=agent_path)
+    except Exception as e:
+        print(f"❌ Failed to deploy {name}: {e}")
+        return None
 
     if returncode != 0:
         print(f"❌ Failed to deploy {name}")
@@ -297,15 +306,17 @@ async def deploy_all_agents(project_id: str, region: str) -> dict[str, str]:
         for i, agent in enumerate(AGENTS)
     ]
 
-    results = await asyncio.gather(*tasks)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
     # Build URL mapping
     agent_urls = {}
-    for agent, url in zip(AGENTS, results):
-        if url:
-            agent_urls[agent["name"]] = url
+    for agent, result in zip(AGENTS, results):
+        if isinstance(result, Exception):
+            print(f"⚠️  {agent['name']} deployment raised an error: {result}")
+        elif result:
+            agent_urls[agent["name"]] = result
         else:
-            print(f"⚠️  Warning: {agent['name']} deployment failed or URL not available")
+            print(f"⚠️  {agent['name']} deployment failed or URL not available")
 
     print("\n" + "=" * 70)
     print(f"✓ Deployment complete! {len(agent_urls)}/{len(AGENTS)} agents deployed")
@@ -377,7 +388,12 @@ async def main_async():
 
 def main():
     """Main entry point"""
-    return asyncio.run(main_async())
+    try:
+        return asyncio.run(main_async())
+    except KeyboardInterrupt:
+        print("\n\nDeployment interrupted. Already-deployed agents were not affected.")
+        print("Re-run the script to deploy the remaining agents.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
