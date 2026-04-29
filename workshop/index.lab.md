@@ -447,7 +447,6 @@ The `uv venv` command creates a `.venv/` directory next to your code. `uv pip in
 ### Start the ADK web UI
 
 ```bash
-cd ~/ai-creative-studio/workshop/starter
 uv run adk web agents --allow_origins='*'
 ```
 
@@ -958,7 +957,6 @@ Then in the `else` branch, create the MCP toolset and the agent:
 ### Test the Project Manager Locally with ADK Web
 
 ```bash
-cd ~/ai-creative-studio/workshop/starter
 uv run adk web agents --allow_origins='*'
 ```
 
