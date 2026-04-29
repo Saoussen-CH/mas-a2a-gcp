@@ -147,12 +147,13 @@ Now set your project:
 
 ```bash
 export PROJECT_ID=$(gcloud config get-value project)
-export REGION="us-central1"
+export REGION="us-central1"        # Cloud Run deployment region
+echo "Project: $PROJECT_ID"
 ```
 
 Expected output:
 ```text
-your-project-id
+Project: my-project-123
 ```
 ### Enable required APIs
 
@@ -208,38 +209,20 @@ Each `agent.py` contains `# TODO` placeholders where you will write the agent lo
 
 ### Configure environment variables
 
-Create the `.env` file:
+Copy the provided example and inject your project ID in one step:
 
 ```bash
-cat > .env << EOF
-GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
-GOOGLE_CLOUD_LOCATION=us-central1
-GOOGLE_GENAI_USE_VERTEXAI=1
-GEMINI_MODEL=gemini-3-flash-preview
-GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true
-OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
-OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
-ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=true
-COPYWRITER_AGENT_URL=
-CRITIC_AGENT_URL=
-DESIGNER_AGENT_URL=
-PM_AGENT_URL=
-STRATEGIST_AGENT_URL=
-AGENT_ENGINE_ID=
-AGENT_ENGINE_RESOURCE_NAME=
-NOTION_TOKEN=
-NOTION_PROJECT_DATABASE_ID=
-NOTION_TASKS_DATABASE_ID=
-EOF
+cp .env.example .env
+sed -i "s|GOOGLE_CLOUD_PROJECT=your-project-id|GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)|" .env
 ```
 
 > aside positive
-> 
+>
 > **Note:** `.env` is a hidden file (starts with `.`). Running `ls` won't show it - use `ls -a` to confirm it was
 > created. The Cloud Shell Editor also hides dotfiles in its file tree, so **always open `.env` directly from the
 > terminal**.
 
-Open `.env` in the editor using this command:
+Open `.env` in the editor to review all settings:
 
 ```bash
 cloudshell edit .env

@@ -5,7 +5,10 @@ import os
 from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.tools.google_search_tool import google_search
-from retry import GENERATE_CONTENT_CONFIG
+try:
+    from .retry import GENERATE_CONTENT_CONFIG
+except ImportError:
+    from retry import GENERATE_CONTENT_CONFIG
 
 load_dotenv()
 

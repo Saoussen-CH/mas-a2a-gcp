@@ -5,7 +5,10 @@ from google.adk.agents import Agent
 from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.plugins.logging_plugin import LoggingPlugin
 from google.adk.tools.agent_tool import AgentTool
-from retry import RETRY_CONFIG
+try:
+    from .retry import RETRY_CONFIG
+except ImportError:
+    from retry import RETRY_CONFIG
 
 try:
     from .prompt import SYSTEM_INSTRUCTION_TEMPLATE

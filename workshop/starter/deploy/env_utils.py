@@ -49,8 +49,11 @@ def load_env_file(env_path: Path | None = None) -> dict[str, str]:
         or os.getenv("GCP_PROJECT_ID")
         or os.getenv("PROJECT_ID")
     )
+    # CLOUD_RUN_REGION is the Cloud Run deployment region (must be a real GCP region).
+    # GOOGLE_CLOUD_LOCATION may be set to "global" for models only available globally —
+    # keep them separate so model routing and Cloud Run region don't conflict.
     region = (
-        os.getenv("GOOGLE_CLOUD_LOCATION")
+        os.getenv("CLOUD_RUN_REGION")
         or os.getenv("GCP_REGION")
         or os.getenv("LOCATION")
         or "us-central1"

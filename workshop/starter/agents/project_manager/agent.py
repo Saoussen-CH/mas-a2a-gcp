@@ -4,7 +4,10 @@ import os
 
 from google.adk.agents import Agent
 from dotenv import load_dotenv
-from retry import GENERATE_CONTENT_CONFIG
+try:
+    from .retry import GENERATE_CONTENT_CONFIG
+except ImportError:
+    from retry import GENERATE_CONTENT_CONFIG
 
 load_dotenv()
 

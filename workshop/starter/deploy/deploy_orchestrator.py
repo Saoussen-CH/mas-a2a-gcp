@@ -47,9 +47,17 @@ sys.path.insert(0, str(project_root))
 # Load environment variables
 load_dotenv()
 
-# Configuration - support both LOCATION and REGION naming conventions
-PROJECT_ID = os.getenv("PROJECT_ID", "")
-LOCATION = os.getenv("LOCATION") or os.getenv("REGION", "us-central1")
+# Configuration
+# CLOUD_RUN_REGION / GCP_REGION: real GCP region for Agent Runtime and Cloud Run.
+# GOOGLE_CLOUD_LOCATION may be "global" (for preview model routing) — do NOT use it here.
+PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("PROJECT_ID", "")
+LOCATION = (
+    os.getenv("CLOUD_RUN_REGION")
+    or os.getenv("GCP_REGION")
+    or os.getenv("LOCATION")
+    or os.getenv("REGION")
+    or "us-central1"
+)
 STAGING_BUCKET = f"gs://{PROJECT_ID}-agent-staging"
 DISPLAY_NAME = "Creative Director"
 
