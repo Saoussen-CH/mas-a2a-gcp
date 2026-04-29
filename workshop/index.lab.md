@@ -498,10 +498,6 @@ In the ADK web UI chat box, try:
 
 You should see the agent call Google Search and return structured research with Audience Insights, Competitive Analysis, and Trending Topics sections.
 
-### Stop the server and return to the terminal
-
-When you're done testing, go back to the Cloud Shell terminal and press `Ctrl+C` to stop the server.
-
 ## Meet the Copywriter, Designer, and Critic
 
 Duration: 10:00
@@ -516,15 +512,9 @@ Each section below has the same shape:
 2. The key insight that shapes its system instruction.
 3. A test prompt you can paste into the ADK web UI to see the agent respond.
 
-Start the web UI once and keep it running for all three:
+Keep the ADK web UI running from the previous step. Use the **agent dropdown** in the top-left to switch between agents without restarting the server.
 
-```bash
-cd ~/ai-creative-studio/workshop/starter
-uv run adk web agents --allow_origins='*'
-```
-
-Open **Web Preview -> port 8000**. Use the **agent dropdown** in the top-left to switch between agents without
-restarting the server.
+Open **Web Preview -> port 8000** if you closed it.
 
 ### Copywriter
 
@@ -926,9 +916,9 @@ Inside `create_project_manager_agent()`, in the `if not notion_token` branch, re
 First, read both database IDs at the top of `create_project_manager_agent()`:
 
 ```python
-    notion_token         = os.getenv("NOTION_TOKEN")
-    notion_database_project_id = os.getenv("NOTION_PROJECT_DATABASE_ID")   # Projects DB
-    notion_tasks_db_id         = os.getenv("NOTION_TASKS_DATABASE_ID")     # Tasks DB
+    notion_token           = os.getenv("NOTION_TOKEN")
+    notion_project_db_id   = os.getenv("NOTION_PROJECT_DATABASE_ID")
+    notion_tasks_db_id     = os.getenv("NOTION_TASKS_DATABASE_ID")
 ```
 
 Then in the `else` branch, create the MCP toolset and the agent:
@@ -955,7 +945,7 @@ Then in the `else` branch, create the MCP toolset and the agent:
             name="project_manager",
             model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             instruction=get_system_instruction(
-                database_project_id=notion_database_project_id,
+                project_database_id=notion_project_db_id,
                 tasks_database_id=notion_tasks_db_id,
             ),
             description="Project manager with Notion integration for task tracking",
@@ -980,12 +970,6 @@ Budget: $3,000. Launch in 2 weeks. Include phases, tasks with deadlines from tod
 ```
 
 You should see a structured text timeline with phases, task list, and milestones. If Notion credentials are set in `.env`, the agent will also create entries in your Notion workspace.
-
-Stop the server with `Ctrl+C` when done, then return to the starter directory:
-
-```bash
-cd ~/ai-creative-studio/workshop/starter
-```
 
 ---
 ## Understand the A2A Protocol
