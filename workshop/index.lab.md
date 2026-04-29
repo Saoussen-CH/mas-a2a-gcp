@@ -1302,11 +1302,6 @@ Once connected, type a prompt in the chat panel and send it. The inspector submi
 
 > Point the inspector at any local port (8082–8086) to test each specialist individually.
 
-#### Stop all local servers before continuing
-
-Once you've finished testing locally, stop all running servers before moving to the Cloud Run deployment step. In each of the 5 agent terminals and the A2A Inspector terminal, press **Ctrl+C** to stop the process. You can then close those terminals - Cloud Run will handle serving the agents from here on.
-
-
 ## Build the Creative Director Orchestrator
 
 Duration: 15:00
