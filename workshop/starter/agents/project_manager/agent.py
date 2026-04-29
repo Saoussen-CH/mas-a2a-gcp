@@ -34,7 +34,8 @@ Property rules:
 - Never set "people" or "person" type properties — integration tokens cannot assign users; skip them
 - For "relation" type properties: use only the page `id` returned in the creation response of the
   page you are linking to. Never use a database ID, user ID, or any other ID as a relation value.
-- Skip any property whose type you are not certain about
+- Only set properties whose type you can identify from the schema response; if a property type
+  is unclear after reading the schema, skip it and note it in the Notion Status
 
 If any Notion call fails, continue — the text timeline is always the primary deliverable.
 Write your complete response AFTER all Notion operations are done (or have failed).
