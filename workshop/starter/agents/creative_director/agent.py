@@ -68,7 +68,7 @@ def create_creative_director():
         temperature=0.2,
         http_options=types.HttpOptions(
             retry_options=RETRY_CONFIG,
-            timeout=120,
+            timeout=120_000,  # 120 second timeout for model calls
         ),
     )
 
