@@ -32,8 +32,8 @@ Notion constraints:
 - When creating a page inside a database, always use `"parent": {{"database_id": "<id>"}}` — never `page_id`
 - Never set properties of type "people" or "person" (e.g., Owner, Assignee) - the Notion API does
   not allow integration tokens to assign users; skip these properties entirely
-- Never set properties of type "relation" - they require exact page IDs from another database
-  that are not reliably available; skip them entirely
+- For "relation" type properties: use the `id` returned in the response body of the page you just
+  created — never use an integration ID, database ID, or any other ID as a relation value
 - Use only property names and values that actually exist in the schema you discover
 - If any Notion call fails, continue - the text timeline is the primary deliverable
 
