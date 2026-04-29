@@ -174,7 +174,7 @@ def deploy_orchestrator(auto_deploy_specialists=False):
                 "requirements": [
                     "google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0",
                     "google-adk[a2a]==1.31.1",
-                    "google-genai>=1.51.0",
+                    "google-genai>=1.70.0",
                     "python-dotenv>=1.0.0",
                     "pydantic>=2.0.0",
                     "cloudpickle>=3.0.0",

@@ -146,14 +146,13 @@ the next command:
 Now set your project:
 
 ```bash
-export PROJECT_ID="your-project-id"   # <-- CHANGE THIS
+export PROJECT_ID=$(gcloud config get-value project)
 export REGION="us-central1"
-gcloud config set project $PROJECT_ID
 ```
 
 Expected output:
 ```text
-Updated property [core/project].
+your-project-id
 ```
 ### Enable required APIs
 
@@ -212,8 +211,8 @@ Each `agent.py` contains `# TODO` placeholders where you will write the agent lo
 Create the `.env` file:
 
 ```bash
-cat > .env << 'EOF'
-GOOGLE_CLOUD_PROJECT=your-project-id
+cat > .env << EOF
+GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
 GOOGLE_CLOUD_LOCATION=us-central1
 GOOGLE_GENAI_USE_VERTEXAI=1
 GEMINI_MODEL=gemini-3-flash-preview
@@ -253,13 +252,10 @@ panel is not visible:
 
 ![Cloud Shell Editor with project file tree](diagrams/wksp7.png)
 
-Set these values:
+Confirm the project was set correctly:
 
 ```bash
-GOOGLE_CLOUD_PROJECT=your-project-id   # <-- CHANGE THIS
-GOOGLE_CLOUD_LOCATION=us-central1
-GOOGLE_GENAI_USE_VERTEXAI=1
-GEMINI_MODEL=gemini-3-flash-preview
+grep GOOGLE_CLOUD_PROJECT .env
 ```
 
 ## Understand Google ADK
@@ -1965,9 +1961,8 @@ done
 > 
 > **Open a new terminal for this step** and re-export your project variables - after working across multiple terminals, the shell environment may not have them set:
 > ```bash
-> export PROJECT_ID="your-project-id"   # <-- CHANGE THIS
+> export PROJECT_ID=$(gcloud config get-value project)
 > export REGION="us-central1"
-> gcloud config set project $PROJECT_ID
 > ```
 
 ```bash

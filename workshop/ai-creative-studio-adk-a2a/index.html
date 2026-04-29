@@ -143,12 +143,11 @@
 <p>You can also see your <strong>Project ID</strong> in the GCP Console dashboard on the left side panel. Copy it - you&#39;ll need it in the next command:</p>
 <p class="image-container"><img alt="Find your Project ID in the GCP Console and set it in Cloud Shell" src="img/1da5e7c9bc304a1d.jpg"></p>
 <p>Now set your project:</p>
-<pre><code language="language-bash" class="language-bash">export PROJECT_ID=&#34;your-project-id&#34;   # &lt;-- CHANGE THIS
+<pre><code language="language-bash" class="language-bash">export PROJECT_ID=$(gcloud config get-value project)
 export REGION=&#34;us-central1&#34;
-gcloud config set project $PROJECT_ID
 </code></pre>
 <p>Expected output:</p>
-<pre><code language="language-text" class="language-text">Updated property [core/project].
+<pre><code language="language-text" class="language-text">your-project-id
 </code></pre>
 <h2 is-upgraded>Enable required APIs</h2>
 <pre><code language="language-bash" class="language-bash">gcloud services enable \
@@ -183,8 +182,8 @@ cd ~/ai-creative-studio/workshop/starter
 <p>Each <code>agent.py</code> contains <code># TODO</code> placeholders where you will write the agent logic. The <code>Dockerfile</code>, <code>requirements.txt</code>, and deploy scripts are already complete.</p>
 <h2 is-upgraded>Configure environment variables</h2>
 <p>Create the <code>.env</code> file:</p>
-<pre><code language="language-bash" class="language-bash">cat &gt; .env &lt;&lt; &#39;EOF&#39;
-GOOGLE_CLOUD_PROJECT=your-project-id
+<pre><code language="language-bash" class="language-bash">cat &gt; .env &lt;&lt; EOF
+GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
 GOOGLE_CLOUD_LOCATION=us-central1
 GOOGLE_GENAI_USE_VERTEXAI=1
 GEMINI_MODEL=gemini-3-flash-preview
@@ -212,11 +211,8 @@ EOF
 <p>This opens <code>.env</code> as a tab in the Cloud Shell Editor - click the <strong>Open Editor</strong> button in the toolbar if the editor panel is not visible:</p>
 <p class="image-container"><img alt="Click Open Editor in the Cloud Shell toolbar" src="img/c06c77c611579ffd.png"></p>
 <p class="image-container"><img alt="Cloud Shell Editor with project file tree" src="img/f7874207cc4eb144.png"></p>
-<p>Set these values:</p>
-<pre><code language="language-bash" class="language-bash">GOOGLE_CLOUD_PROJECT=your-project-id   # &lt;-- CHANGE THIS
-GOOGLE_CLOUD_LOCATION=us-central1
-GOOGLE_GENAI_USE_VERTEXAI=1
-GEMINI_MODEL=gemini-3-flash-preview
+<p>Confirm the project was set correctly:</p>
+<pre><code language="language-bash" class="language-bash">grep GOOGLE_CLOUD_PROJECT .env
 </code></pre>
 
 
@@ -1482,9 +1478,8 @@ done
 </code></pre>
 <h2 is-upgraded>Deploy the orchestrator</h2>
 <aside class="warning"><p><strong>Open a new terminal for this step</strong> and re-export your project variables - after working across multiple terminals, the shell environment may not have them set:</p>
-<pre><code language="language-bash" class="language-bash">export PROJECT_ID=&#34;your-project-id&#34;   # &lt;-- CHANGE THIS
+<pre><code language="language-bash" class="language-bash">export PROJECT_ID=$(gcloud config get-value project)
 export REGION=&#34;us-central1&#34;
-gcloud config set project $PROJECT_ID
 </code></pre>
 </aside>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
