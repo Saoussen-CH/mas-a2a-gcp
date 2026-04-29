@@ -32,8 +32,9 @@ Only use property names and types that actually exist in the schema you discover
 Property rules:
 - Always set the database parent using `database_id` — never `page_id`
 - Never set "people" or "person" type properties — integration tokens cannot assign users; skip them
-- For "relation" type properties: use only the page `id` returned in the creation response of the
-  page you are linking to. Never use a database ID, user ID, or any other ID as a relation value.
+- For "relation" type properties linking tasks to the project: use only the `id` of the project
+  page returned when you created it in the Projects database. Never use a database ID, user ID,
+  or any other ID as a relation value.
 - Only set properties whose type you can identify from the schema response; if a property type
   is unclear after reading the schema, skip it and note it in the Notion Status
 
