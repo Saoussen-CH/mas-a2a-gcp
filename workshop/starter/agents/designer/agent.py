@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from google.adk.agents import Agent
+from retry import GENERATE_CONTENT_CONFIG
 
 load_dotenv()
 
@@ -47,7 +48,8 @@ Concept B: [Alternative visual approach]
 # =============================================================================
 root_agent = Agent(
     name="designer",
-    model="gemini-2.5-flash",
+    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    generate_content_config=GENERATE_CONTENT_CONFIG,
     instruction=SYSTEM_INSTRUCTION,
     description="Creative visual designer for generating social media image concepts",
 )

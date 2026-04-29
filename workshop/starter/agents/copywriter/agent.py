@@ -2,6 +2,7 @@ import logging
 import os
 
 from google.adk.agents import Agent
+from retry import GENERATE_CONTENT_CONFIG
 
 logger = logging.getLogger("ai_creative_studio.copywriter")
 
@@ -42,7 +43,8 @@ CTA: [Call to action]
 # =============================================================================
 root_agent = Agent(
     name="copywriter",
-    model="gemini-2.5-flash",
+    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    generate_content_config=GENERATE_CONTENT_CONFIG,
     instruction=SYSTEM_INSTRUCTION,
     description="Expert social media copywriter for creating engaging captions and copy",
 )

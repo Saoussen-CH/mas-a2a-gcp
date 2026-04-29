@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.tools.google_search_tool import google_search
+from retry import GENERATE_CONTENT_CONFIG
 
 load_dotenv()
 
@@ -33,11 +34,12 @@ SYSTEM_INSTRUCTION = """
 # TODO: Create the root_agent
 # Use:
 #   name="brand_strategist"
-#   model="gemini-2.5-flash"
+#   model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 #   tools=[google_search]
 root_agent = Agent(
     name="brand_strategist",
-    model="gemini-2.5-flash",
+    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    generate_content_config=GENERATE_CONTENT_CONFIG,
     # TODO: add instruction=SYSTEM_INSTRUCTION
     # TODO: add description=
     # TODO: add tools=

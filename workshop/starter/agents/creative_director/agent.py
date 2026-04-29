@@ -5,6 +5,7 @@ from google.adk.agents import Agent
 from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.plugins.logging_plugin import LoggingPlugin
 from google.adk.tools.agent_tool import AgentTool
+from retry import RETRY_CONFIG
 
 try:
     from .prompt import SYSTEM_INSTRUCTION_TEMPLATE
@@ -58,17 +59,19 @@ def create_creative_director():
         available_agents=available_agents_text
     )
 
-    # TODO: Configure generation settings
-    # Hint: use GenerateContentConfig(max_output_tokens=20000, temperature=0.2)
-    from google.genai.types import GenerateContentConfig
-    generation_config = GenerateContentConfig(
+    from google.genai import types
+    generation_config = types.GenerateContentConfig(
         max_output_tokens=20000,
         temperature=0.2,
+        http_options=types.HttpOptions(
+            retry_options=RETRY_CONFIG,
+            timeout=120,
+        ),
     )
 
     agent = Agent(
         name="creative_director",
-        model="gemini-2.5-pro",
+        model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         description="Creative Director orchestrator that coordinates specialist agents",
         instruction=system_instruction,
         tools=agent_tools,

@@ -43,14 +43,24 @@ def load_env_file(env_path: Path | None = None) -> dict[str, str]:
     if env_path.exists():
         load_dotenv(env_path)
 
-    # Support both naming conventions: GCP_PROJECT_ID/PROJECT_ID and GCP_REGION/LOCATION
-    project_id = os.getenv("GCP_PROJECT_ID") or os.getenv("PROJECT_ID")
-    region = os.getenv("GCP_REGION") or os.getenv("LOCATION") or "us-central1"
+    # Support both naming conventions
+    project_id = (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("GCP_PROJECT_ID")
+        or os.getenv("PROJECT_ID")
+    )
+    region = (
+        os.getenv("GOOGLE_CLOUD_LOCATION")
+        or os.getenv("GCP_REGION")
+        or os.getenv("LOCATION")
+        or "us-central1"
+    )
 
     return {
         "PROJECT_ID": project_id,
         "REGION": region,
         "GOOGLE_API_KEY": os.getenv("GOOGLE_API_KEY"),
+        "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     }
 
 

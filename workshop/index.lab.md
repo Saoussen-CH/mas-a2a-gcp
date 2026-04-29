@@ -155,6 +155,20 @@ Expected output:
 ```text
 Updated property [core/project].
 ```
+### Enable required APIs
+
+```bash
+gcloud services enable \
+    aiplatform.googleapis.com \
+    run.googleapis.com \
+    cloudbuild.googleapis.com \
+    artifactregistry.googleapis.com \
+    generativelanguage.googleapis.com \
+    iam.googleapis.com \
+    cloudresourcemanager.googleapis.com
+```
+
+This takes about 2 minutes. You'll see `Operation finished successfully` when done.
 
 ### Set up Application Default Credentials (ADC)
 
@@ -178,20 +192,6 @@ Credentials saved to file: ~/.config/gcloud/application_default_credentials.json
 > credentials that Python applications (like your agents) use to call Google Cloud APIs. Without this, agents fail
 > with `service account info is missing 'email' field`.
 
-### Enable required APIs
-
-```bash
-gcloud services enable \
-    aiplatform.googleapis.com \
-    run.googleapis.com \
-    cloudbuild.googleapis.com \
-    artifactregistry.googleapis.com \
-    generativelanguage.googleapis.com \
-    iam.googleapis.com \
-    cloudresourcemanager.googleapis.com
-```
-
-This takes about 2 minutes. You'll see `Operation finished successfully` when done.
 
 ## Clone the starter repository
 
@@ -213,9 +213,14 @@ Create the `.env` file:
 
 ```bash
 cat > .env << 'EOF'
-GCP_PROJECT_ID=your-project-id
-GCP_REGION=us-central1
-GOOGLE_GENAI_USE_VERTEXAI=TRUE
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_GENAI_USE_VERTEXAI=1
+GEMINI_MODEL=gemini-3-flash-preview
+GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true
+OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
+ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=true
 COPYWRITER_AGENT_URL=
 CRITIC_AGENT_URL=
 DESIGNER_AGENT_URL=
@@ -251,9 +256,10 @@ panel is not visible:
 Set these values:
 
 ```bash
-GCP_PROJECT_ID=your-project-id   # <-- CHANGE THIS
-GCP_REGION=us-central1
-GOOGLE_GENAI_USE_VERTEXAI=TRUE
+GOOGLE_CLOUD_PROJECT=your-project-id   # <-- CHANGE THIS
+GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_GENAI_USE_VERTEXAI=1
+GEMINI_MODEL=gemini-3-flash-preview
 ```
 
 ## Understand Google ADK
@@ -293,11 +299,11 @@ from google.adk.agents import Agent
 from google.adk.tools.google_search_tool import google_search
 
 root_agent = Agent(
-    name="brand_strategist",         # unique identifier
-    model="gemini-2.5-flash",        # the LLM powering this agent
-    instruction=SYSTEM_INSTRUCTION,  # the agent's persona, constraints, and output format
+    name="brand_strategist",                              # unique identifier
+    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"), # the LLM powering this agent
+    instruction=SYSTEM_INSTRUCTION,                       # the agent's persona, constraints, and output format
     description="Brand strategist for market research, trend analysis, and competitive insights",
-    tools=[google_search],           # functions the LLM can call
+    tools=[google_search],                                # functions the LLM can call
 )
 ```
 
@@ -417,7 +423,7 @@ Next, replace the incomplete `root_agent` with:
 ```python
 root_agent = Agent(
     name="brand_strategist",
-    model="gemini-2.5-flash",
+    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     instruction=SYSTEM_INSTRUCTION,
     description="Brand strategist for market research, trend analysis, and competitive insights",
     tools=[google_search],
@@ -453,16 +459,11 @@ uv pip install -r agents/brand_strategist/requirements.txt
 
 The `uv venv` command creates a `.venv/` directory next to your code. `uv pip install` works exactly like `pip install` but is much faster.
 
-> aside negative
+> aside positive
 > 
-> **Important:** Whenever you open a **new terminal** (or a new Cloud Shell tab) during this codelab, activate the
-> virtual environment first:
-> ```bash
-> source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-> ```
->
-> Alternatively, prefix any Python command with `uv run` to auto-activate: `uv run adk web`. We use the explicit
-> `source` pattern in this codelab for clarity.
+> **No manual activation needed.** All commands in this codelab use `uv run`, which automatically activates the
+> `.venv` in `~/ai-creative-studio/workshop/starter/`. Just `cd` to the `starter` directory and prefix your command
+> with `uv run`.
 
 ### Start the ADK web UI
 
@@ -646,39 +647,68 @@ When you're done testing all three, press `Ctrl+C` to stop the server.
 > Each agent works in isolation at this stage - it has no awareness of the other agents' outputs. Context passing
 > between agents is the Creative Director's job, which you'll build in Step 9.
 
-## Build the Project Manager agent with MCP
+## Build the Project Manager Agent with MCP
 
-Duration: 10:00
+The Project Manager introduces a new concept: **MCP (Model Context Protocol)**.
 
-Next, let's work on the Project Manager agent that will create a complete project plan for the campaign. If Notion 
-is configured, it will also persist the project and tasks to the Notion databases via **Model Context Protocol (MCP)**.
+Open the file:
 
-Before we dive into the code, let's talk about MCP first.
+```bash
+cloudshell edit agents/project_manager/agent.py
+```
+
+This file is more complex - it has a `create_project_manager_agent()` function with two branches: one without Notion (text-only timelines) and one with the Notion MCP toolset. You'll fill in both.
 
 ### The problem MCP solves
 
-Your agent needs to call an external service - say, create a page in Notion. You could write Python code that calls the
-Notion REST API directly. But then:
+Your agent needs to call an external service - say, create a page in Notion. You could write Python code that calls the Notion REST API directly. But then:
 
 - Every developer writes a different wrapper
 - You need to maintain custom integration code
 - The LLM doesn't know the API exists unless you describe every endpoint manually
 
-**MCP solves this** by defining a standard way for external services to expose their capabilities as **tools** an LLM
-can discover and call automatically.
+**MCP solves this** by defining a standard way for external services to expose their capabilities as **tools** an LLM can discover and call automatically.
 
 ### What is MCP?
 
-Model Context Protocol (MCP) is an **open standard** (published by Anthropic) for connecting AI agents to external tools
-and data sources. It works like a universal adapter.
+MCP (Model Context Protocol) is an **open standard** (published by Anthropic) for connecting AI agents to external tools and data sources. It works like a universal adapter.
 
 An MCP server is a small program that:
 1. Wraps an external API (Notion, GitHub, databases, filesystems...)
 2. Exposes that API as a list of typed, documented **tools**
 3. Communicates with the agent via a simple protocol (stdio or HTTP)
 
-The agent connects to the MCP server, automatically discovers the available tools, and can call them just like any other
-tool - the LLM sees `API-post-page(...)` as a callable function.
+The agent connects to the MCP server, automatically discovers the available tools, and can call them just like any other tool - the LLM sees `API-post-page(...)` as a callable function.
+
+### A2A vs MCP - what's the difference?
+
+This is a common point of confusion. Here's the key distinction:
+
+| | A2A | MCP |
+|---|---|---|
+| **What connects** | Agent ↔ Agent | Agent ↔ External tool/service |
+| **The other side is** | Another LLM agent | An API wrapper (no LLM) |
+| **Example** | Creative Director calls Brand Strategist | Project Manager calls Notion API |
+| **Protocol** | JSON-RPC over HTTPS | stdio or HTTP stream |
+| **Defined by** | Google | Anthropic |
+
+Think of it this way:
+- **A2A** = how agents talk to other **agents**
+- **MCP** = how agents talk to **tools and services**
+
+In this project both are used together:
+
+```text
+Creative Director
+    │
+    │  (A2A)  Brand Strategist ─── (google_search tool built into ADK)
+    │  (A2A)  Copywriter
+    │  (A2A)  Designer
+    │  (A2A)  Critic
+    │  (A2A)  Project Manager
+                   │
+                   │  (MCP)  notion-mcp-server ──► Notion REST API
+```
 
 ### How MCP works in this project
 
@@ -706,9 +736,7 @@ MCP is not just for Notion. The pattern generalizes to any external system. Ther
 
 **Pattern 1 - External API bridge**
 
-Use this when you need to connect to a third-party API you don't control (payment processors, logistics APIs, banking
-systems). You write a custom MCP server that acts as a bridge: it translates the LLM's tool calls into the specific
-format the external API expects, handles authentication, and returns a clean response.
+Use this when you need to connect to a third-party API you don't control (payment processors, logistics APIs, banking systems). You write a custom MCP server that acts as a bridge: it translates the LLM's tool calls into the specific format the external API expects, handles authentication, and returns a clean response.
 
 ```text
 Agent → MCP bridge server → FedEx API
@@ -718,9 +746,7 @@ Agent → MCP bridge server → FedEx API
 
 **Pattern 2 - General functions server**
 
-Use this when multiple agents need the same business logic (pricing calculations, eligibility checks, data validation,
-report formatting). Instead of duplicating the logic in every agent, you build one MCP server that hosts the functions.
-All agents call the same service - update the logic once and every agent picks it up.
+Use this when multiple agents need the same business logic (pricing calculations, eligibility checks, data validation, report formatting). Instead of duplicating the logic in every agent, you build one MCP server that hosts the functions. All agents call the same service - update the logic once and every agent picks it up.
 
 ```text
 Sales Agent   ─┐
@@ -730,39 +756,27 @@ Billing Agent ─┘                        → check_eligibility()
 
 **Pattern 3 - Database toolbox (what we use here)**
 
-Use this when an agent needs access to a database or structured data store but should never have raw SQL or direct API
-credentials. You configure a declarative MCP server that exposes predefined, safe operations. The agent calls named
-tools like `create_project` or `look_up_customer` - it never sees the underlying query or credentials.
+Use this when an agent needs access to a database or structured data store but should never have raw SQL or direct API credentials. You configure a declarative MCP server that exposes predefined, safe operations. The agent calls named tools like `create_project` or `look_up_customer` - it never sees the underlying query or credentials.
 
 ```text
-Project Manager → Notion MCP server   → API-post-page()
-                                      → API-retrieve-a-database()
-                                      → API-post-database-query()
+Project Manager → Notion MCP server → API-post-page()
+                                     → API-retrieve-a-database()
+                                     → API-post-database-query()
 ```
 
-This is the pattern we use for Notion. The official `@notionhq/notion-mcp-server` package does the database access. Our
-agent never handles the Notion API key or writes raw API calls - the MCP server manages everything.
+This is the pattern we use for Notion. The official `@notionhq/notion-mcp-server` package does the database access. Our agent never handles the Notion API key or writes raw API calls - the MCP server manages everything.
 
-Open the file:
+---
 
-```bash
-cloudshell edit agents/project_manager/agent.py
-```
+### (Optional) Enable Notion Integration
 
-This file is more complex - it has a `create_project_manager_agent()` function with two branches: one without Notion
-(text-only timelines) and one with the Notion MCP toolset. You'll fill in both.
+> **You can skip this entire section.** The Project Manager agent always produces a complete text-based campaign timeline, with or without Notion. If you skip this setup, the agent falls back to in-memory mode and outputs the timeline as plain text in the chat. Nothing breaks - you just won't see tasks appear in a Notion database. **Go straight to TODO 1 if you want to skip.**
 
-### Optional: Enable Notion Integration
-
-If you have a Notion account, set up the integration now so the Project Manager can create tasks and timelines directly
-in Notion when you test it later.
+If you have a Notion account and want to see the MCP integration in action, complete the setup below now. The TODOs that follow reference Notion database IDs - this is where you get them.
 
 #### Step 1 - Create the Notion database from a template
 
-We use the official **Notion Projects & Tasks** template as our database. We chose this template deliberately to
-demonstrate a complex, real-world setting - it has multiple property types (status, date ranges, relations, selects)
-with non-obvious names. This is a great test of MCP's dynamic schema discovery: the agent must figure out the exact
-property names at runtime rather than having them hardcoded.
+We use the official **Notion Projects & Tasks** template as our database. We chose this template deliberately to demonstrate a complex, real-world setting - it has multiple property types (status, date ranges, relations, selects) with non-obvious names. This is a great test of MCP's dynamic schema discovery: the agent must figure out the exact property names at runtime rather than having them hardcoded.
 
 Click the link below to add the template to your Notion workspace:
 
@@ -842,10 +856,12 @@ Verify the install:
 npm list -g @notionhq/notion-mcp-server
 ```
 
-> aside negative
-> 
-> **`notion-mcp-server: command not found`?** Make sure Node.js is installed (`node --version`) and that your npm global 
-> bin is on your PATH (`export PATH=$PATH:$(npm bin -g)`).
+Expected output:
+```text
+└── @notionhq/notion-mcp-server@1.9.1
+```
+
+> **`notion-mcp-server: command not found`?** Make sure Node.js is installed (`node --version`) and that your npm global bin is on your PATH (`export PATH=$PATH:$(npm bin -g)`).
 
 #### Step 4 - Verify your .env
 
@@ -876,20 +892,13 @@ Step 4: For select/status fields, use only values from the options array
 
 This means the agent adapts to any Notion database structure automatically - rename your properties to French, Arabic, or anything else, and the agent still works.
 
+---
+
 ### TODO 1 - Write the system instruction
 
-First, update the function signature to accept both database IDs:
+If Notion is not configured, `db_info` tells the agent to produce a text-only timeline.
 
-```python
-def get_system_instruction(database_project_id=None, tasks_database_project_id=None):
-    db_info = (
-        f"Projects database ID: {database_project_id}\nTasks database ID: {tasks_database_id}"
-        if database_project_id
-        else "No Notion database configured."
-    )
-```
-
-Then replace the placeholder return with a system instruction:
+Replace the placeholder return with:
 
 ```python
     return f"""You are a Project Manager specializing in creative campaign execution.
@@ -938,12 +947,12 @@ Never repeat the timeline here.
 
 ### TODO 2 - Agent without Notion
 
-In the `if not notion_token` branch, replace the incomplete agent with:
+Inside `create_project_manager_agent()`, in the `if not notion_token` branch, replace the incomplete agent with:
 
 ```python
         return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             instruction=get_system_instruction(),
             description="Project manager that creates campaign timelines and task breakdowns",
         )
@@ -951,12 +960,12 @@ In the `if not notion_token` branch, replace the incomplete agent with:
 
 ### TODO 3 - Agent with Notion MCP
 
-First, read Notion project and task database IDs at the top of `create_project_manager_agent()`:
+First, read both database IDs at the top of `create_project_manager_agent()`:
 
 ```python
     notion_token         = os.getenv("NOTION_TOKEN")
-    notion_database_project_id     = os.getenv("NOTION_PROJECT_DATABASE_ID") # Projects DB
-    notion_tasks_db_id     = os.getenv("NOTION_TASKS_DATABASE_ID")   # Tasks DB
+    notion_database_project_id = os.getenv("NOTION_PROJECT_DATABASE_ID")   # Projects DB
+    notion_tasks_db_id         = os.getenv("NOTION_TASKS_DATABASE_ID")     # Tasks DB
 ```
 
 Then in the `else` branch, create the MCP toolset and the agent:
@@ -981,7 +990,7 @@ Then in the `else` branch, create the MCP toolset and the agent:
 
         return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             instruction=get_system_instruction(
                 database_project_id=notion_database_project_id,
                 tasks_database_id=notion_tasks_db_id,
@@ -991,12 +1000,9 @@ Then in the `else` branch, create the MCP toolset and the agent:
         )
 ```
 
-> aside positive
-> 
-> **Best practice:** Never hard-fail on optional integrations. The text timeline is always the primary deliverable;
-> Notion is supplementary.
+> **Best practice:** Never hard-fail on optional integrations. The text timeline is always the primary deliverable; Notion is supplementary.
 
-### Test the Project Manager locally
+### Test the Project Manager Locally with ADK Web
 
 ```bash
 cd ~/ai-creative-studio/workshop/starter
@@ -1010,11 +1016,15 @@ Create a project plan for an EcoFlow Smart Water Bottle Instagram campaign.
 Budget: $3,000. Launch in 2 weeks. Include phases, tasks with deadlines from today, and milestones.
 ```
 
-You should see a structured text timeline with phases, task list, and milestones. If Notion credentials are set in
-`.env`, the agent will also create entries in your Notion workspace.
+You should see a structured text timeline with phases, task list, and milestones. If Notion credentials are set in `.env`, the agent will also create entries in your Notion workspace.
 
-Stop the server with `Ctrl+C` when done.
+Stop the server with `Ctrl+C` when done, then return to the starter directory:
 
+```bash
+cd ~/ai-creative-studio/workshop/starter
+```
+
+---
 ## Understand the A2A Protocol
 
 Duration: 05:00
@@ -1051,7 +1061,7 @@ Creative Director                  Brand Strategist
       │  ◄──── agent card (name, url,    │
       │         skills, capabilities) ───│
       │                                  │
-      │  2. POST /                        │
+      │  2. POST /                       │
       │     {"method": "tasks/send",     │
       │      "params": {"message": ...}} │
       │ ────────────────────────────────►│
@@ -1191,46 +1201,36 @@ Let's run all 5 specialists as A2A servers simultaneously, then test the Creativ
 
 Open **5 separate Cloud Shell terminals** (click the `+` icon in the terminal tab bar) and run one agent per terminal.
 
-**Each new terminal needs the venv activated and credentials set.** Run these two commands first in every terminal
-before the agent command:
-
-> ```bash
-> source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-> ```
+`uv run` automatically activates the `.venv` - no manual `source` needed in each terminal.
 
 **Terminal 1 - Brand Strategist (port 8082):**
 ```bash
-source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-cd ~/ai-creative-studio/workshop/starter/agents/brand_strategist
-python agent.py
+cd ~/ai-creative-studio/workshop/starter
+uv run agents/brand_strategist/agent.py
 ```
 
 **Terminal 2 - Copywriter (port 8083):**
 ```bash
-source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-cd ~/ai-creative-studio/workshop/starter/agents/copywriter
-PORT=8083 python agent.py
+cd ~/ai-creative-studio/workshop/starter
+PORT=8083 uv run agents/copywriter/agent.py
 ```
 
 **Terminal 3 - Designer (port 8084):**
 ```bash
-source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-cd ~/ai-creative-studio/workshop/starter/agents/designer
-PORT=8084 python agent.py
+cd ~/ai-creative-studio/workshop/starter
+PORT=8084 uv run agents/designer/agent.py
 ```
 
 **Terminal 4 - Critic (port 8085):**
 ```bash
-source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-cd ~/ai-creative-studio/workshop/starter/agents/critic
-PORT=8085 python agent.py
+cd ~/ai-creative-studio/workshop/starter
+PORT=8085 uv run agents/critic/agent.py
 ```
 
 **Terminal 5 - Project Manager (port 8086):**
 ```bash
-source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
-cd ~/ai-creative-studio/workshop/starter/agents/project_manager
-PORT=8086 python agent.py
+cd ~/ai-creative-studio/workshop/starter
+PORT=8086 uv run agents/project_manager/agent.py
 ```
 
 ### Set localhost URLs in .env
@@ -1290,7 +1290,7 @@ cd ~/ai-creative-studio/tools/a2a-inspector
 > UV_HTTP_TIMEOUT=120 ./setup_inspector.sh
 > ```
 
-In a new terminal, start the inspector:
+Open a **7th terminal** and start the inspector:
 
 ```bash
 cd ~/a2a-inspector
@@ -1685,7 +1685,7 @@ Find the `# TODO: Wrap the agent in an App...` comment and replace the placehold
     from google.adk.models import Gemini
 
     compaction_config = EventsCompactionConfig(
-        summarizer=LlmEventSummarizer(llm=Gemini(model_id="gemini-2.5-flash")),
+        summarizer=LlmEventSummarizer(llm=Gemini(model_id=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))),
         compaction_interval=3,   # Summarize after every 3 agent completions
         overlap_size=1,          # Keep the most recent agent's output in full
     )
@@ -1744,7 +1744,6 @@ The LLM decides *when* to call each tool based on the system instruction and the
 Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10). Then in a new terminal:
 
 ```bash
-source ~/ai-creative-studio/workshop/starter/.venv/bin/activate
 cd ~/ai-creative-studio/workshop/starter
 uv run adk web agents --allow_origins='*'
 ```
@@ -1779,7 +1778,7 @@ Stop the Creative Director (`Ctrl+C`) before proceeding - the A2A inspector also
 
 Stop the 5 specialist servers (`Ctrl+C` in each terminal) when done with local testing.
 
-## Deploy Specialists to Cloud Run
+## Deploy agents to Cloud Run
 
 Duration: 8:00
 
@@ -1812,15 +1811,21 @@ CMD ["python", "agent.py"]
 ### Deploy all 5 specialists in parallel
 
 ```bash
-gcloud auth login
 cd ~/ai-creative-studio/workshop/starter
 source .env
 
-python deploy/deploy_all_specialists.py
+uv run deploy/deploy_all_specialists.py
 ```
 
-This script deploys all 5 agents concurrently (~5–8 minutes total). When complete, it writes each agent's URL back to
-`.env`.
+This script deploys all 5 agents concurrently with a 30-second stagger between each start (~8–10 minutes total).
+When complete, it writes each agent's URL back to `.env`.
+
+> aside negative
+>
+> **`Quota exceeded` for Cloud Build?** If you see a 429 error mentioning
+> `GetRequestsPerMinutePerProject`, all 5 builds were polling Cloud Build simultaneously and hit the 60
+> requests/minute limit. The staggered start in the script prevents this in most cases, but if it still
+> happens, wait a minute and re-run - already-deployed agents will be skipped.
 
 ### What gets deployed per service
 
@@ -1883,34 +1888,6 @@ Expected output for each agent:
 "description": "Brand strategist for market research and competitive insights"
 ```
 
-### Quick A2A smoke test
-
-Send a direct A2A message to the Brand Strategist:
-
-```bash
-source .env
-
-curl -s -X POST "${STRATEGIST_AGENT_URL}/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "tasks/send",
-    "id": "smoke-test-1",
-    "params": {
-      "message": {
-        "role": "user",
-        "parts": [{"text": "In one sentence, describe what you do."}]
-      }
-    }
-  }' | python3 -c "
-import sys, json
-r = json.load(sys.stdin)
-parts = r.get('result', {}).get('status', {}).get('message', {}).get('parts', [])
-for p in parts:
-    if 'text' in p:
-        print(p['text'])
-"
-```
 
 ### Test with A2A Inspector (Cloud Run)
 
@@ -1963,6 +1940,50 @@ has different requirements:
 | **Long-running workflows** | Cloud Run has a 3600s request timeout. Agent Runtime is designed for workflows that can take minutes, with managed retries and state persistence. |
 
 Cloud Run is the right platform for stateless specialists. Agent Runtime is the right platform for the stateful orchestrator.
+
+
+### Verify agent URLs before deploying
+
+All 5 specialist URLs must be set before the orchestrator can connect to them:
+
+```bash
+source .env
+
+for var in STRATEGIST_AGENT_URL COPYWRITER_AGENT_URL DESIGNER_AGENT_URL CRITIC_AGENT_URL PM_AGENT_URL; do
+    val=$(eval echo "\$$var")
+    if [ -z "$val" ]; then
+        echo "MISSING: $var - complete Step 11 first"
+    else
+        echo "OK: $var"
+    fi
+done
+```
+
+### Deploy the orchestrator
+
+> aside negative
+> 
+> **Open a new terminal for this step** and re-export your project variables - after working across multiple terminals, the shell environment may not have them set:
+> ```bash
+> export PROJECT_ID="your-project-id"   # <-- CHANGE THIS
+> export REGION="us-central1"
+> gcloud config set project $PROJECT_ID
+> ```
+
+```bash
+cd ~/ai-creative-studio/workshop/starter
+source .env
+
+uv run deploy/deploy_orchestrator.py --action deploy
+```
+
+This takes ~5–10 minutes. When complete, the `AGENT_ENGINE_ID` and `AGENT_ENGINE_RESOURCE_NAME` are saved to `.env`.
+
+```bash
+source .env
+echo "Agent Engine ID: $AGENT_ENGINE_ID"
+echo "Resource: $AGENT_ENGINE_RESOURCE_NAME"
+```
 
 ### How the deployment works
 
@@ -2021,49 +2042,6 @@ agent_engine_id = resource_name.split("/")[-1]
 After deployment, the orchestrator connects to the five Cloud Run specialists via the URLs in its environment variables
 - these are passed through `.env` before the deploy script runs.
 
-### Verify agent URLs before deploying
-
-All 5 specialist URLs must be set before the orchestrator can connect to them:
-
-```bash
-source .env
-
-for var in STRATEGIST_AGENT_URL COPYWRITER_AGENT_URL DESIGNER_AGENT_URL CRITIC_AGENT_URL PM_AGENT_URL; do
-    val=$(eval echo "\$$var")
-    if [ -z "$val" ]; then
-        echo "MISSING: $var - complete Step 11 first"
-    else
-        echo "OK: $var"
-    fi
-done
-```
-
-### Deploy the orchestrator
-
-> aside negative
-> 
-> **Open a new terminal for this step** and re-export your project variables - after working across multiple terminals, the shell environment may not have them set:
-> ```bash
-> export PROJECT_ID="your-project-id"   # <-- CHANGE THIS
-> export REGION="us-central1"
-> gcloud config set project $PROJECT_ID
-> ```
-
-```bash
-cd ~/ai-creative-studio/workshop/starter
-source .env
-
-python deploy/deploy_orchestrator.py --action deploy
-```
-
-This takes ~5–10 minutes. When complete, the `AGENT_ENGINE_ID` and `AGENT_ENGINE_RESOURCE_NAME` are saved to `.env`.
-
-```bash
-source .env
-echo "Agent Engine ID: $AGENT_ENGINE_ID"
-echo "Resource: $AGENT_ENGINE_RESOURCE_NAME"
-```
-
 ## Run an end-to-end campaign
 
 Duration: 5:00
@@ -2072,7 +2050,7 @@ The entire system is deployed. Run a complete campaign from the Agent Runtime pl
 
 ### Open the Agent Runtime playground
 
-1. Go to [console.cloud.google.com/vertex-ai/agents](https://console.cloud.google.com/vertex-ai/agents)
+1. Go to [https://console.cloud.google.com/agent-platform/runtimes](https://console.cloud.google.com/agent-platform/runtimes)
 2. Select your deployed Agent Runtime (`creative-director`)
 3. Click **Playground** in the left sidebar
 4. Click **New session** to open a fresh conversation

@@ -4,18 +4,18 @@ import os
 
 from google.adk.agents import Agent
 from dotenv import load_dotenv
+from retry import GENERATE_CONTENT_CONFIG
 
 load_dotenv()
 
 logger = logging.getLogger("ai_creative_studio.project_manager")
 
 
-def get_system_instruction(database_id=None):
-    """Generate system instruction with current date and optional Notion database ID."""
+def get_system_instruction(project_database_id=None, tasks_database_id=None):
     db_info = (
-        f"The Notion database ID is: {database_id}"
-        if database_id
-        else "No Notion database configured. Provide text-based timelines only."
+        f"Projects database ID: {project_database_id}\nTasks database ID: {tasks_database_id}"
+        if project_database_id
+        else "No Notion database configured."
     )
 
     # TODO: Write the system instruction for the Project Manager.
@@ -53,23 +53,25 @@ Today's date: {datetime.date.today().strftime("%B %d, %Y")}
 
 def create_project_manager_agent():
     """Create the Project Manager agent, with Notion MCP if credentials are set."""
-    notion_token = os.getenv("NOTION_TOKEN")
-    notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
-
-    if not notion_token or not notion_database_id:
+    notion_token         = os.getenv("NOTION_TOKEN")
+    notion__project_db_id     = os.getenv("NOTION_PROJECT_DATABASE_ID") # Projects DB
+    notion_tasks_db_id     = os.getenv("NOTION_TASKS_DATABASE_ID")   # Tasks DB
+    
+    if not notion_token or not notion__project_db_id or not notion_tasks_db_id:
         logger.warning("Notion credentials not set — running without Notion integration")
 
         # TODO: Create and return an Agent without tools
-        # Use name="project_manager", model="gemini-2.5-flash"
+        # Use name="project_manager", model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
+            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            generate_content_config=GENERATE_CONTENT_CONFIG,
             # TODO: add instruction=get_system_instruction()
             # TODO: add description=
         )
 
     else:
-        logger.info(f"Notion configured — database: {notion_database_id}")
+        logger.info(f"Notion configured — projects database: {notion__project_db_id}, tasks database: {notion_tasks_db_id}")
 
         # TODO: Create the MCP toolset for Notion
         # Hint: import McpToolset, StdioConnectionParams from google.adk.tools.mcp_tool
@@ -86,8 +88,9 @@ def create_project_manager_agent():
         # TODO: Create and return an Agent WITH the notion_toolset
         return Agent(
             name="project_manager",
-            model="gemini-2.5-flash",
-            # TODO: add instruction=get_system_instruction(database_id=notion_database_id)
+            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            generate_content_config=GENERATE_CONTENT_CONFIG,
+            # TODO: add instruction=get_system_instruction(project_database_id=notion__project_db_id, tasks_database_id=notion_tasks_db_id)
             # TODO: add description=
             # TODO: add tools=[notion_toolset]
         )

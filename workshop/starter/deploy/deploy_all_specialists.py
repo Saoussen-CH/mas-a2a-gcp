@@ -79,7 +79,7 @@ async def run_command_async(
 
 
 async def deploy_single_agent(
-    agent_config: dict, project_id: str, region: str
+    agent_config: dict, project_id: str, region: str, start_delay: float = 0
 ) -> str | None:
     """
     Deploy a single agent to Cloud Run
@@ -95,16 +95,21 @@ async def deploy_single_agent(
     name = agent_config["name"]
     agent_dir = agent_config["dir"]
 
+    if start_delay > 0:
+        await asyncio.sleep(start_delay)
+
     print(f"🚀 Deploying {name}...")
 
     # Build Cloud Run deployment command
     agent_path = Path(__file__).parent.parent / "agents" / agent_dir
 
     # Build environment variables
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     env_vars = (
         f"GOOGLE_GENAI_USE_VERTEXAI=true,"
         f"GOOGLE_CLOUD_PROJECT={project_id},"
-        f"GOOGLE_CLOUD_LOCATION={region}"
+        f"GOOGLE_CLOUD_LOCATION={region},"
+        f"GEMINI_MODEL={gemini_model}"
     )
 
     # Add Notion credentials for project-manager agent
@@ -285,8 +290,12 @@ async def deploy_all_agents(project_id: str, region: str) -> dict[str, str]:
     else:
         print("   ✓ Artifact Registry repository ready")
 
-    # Deploy all agents in parallel using asyncio.gather
-    tasks = [deploy_single_agent(agent, project_id, region) for agent in AGENTS]
+    # Deploy agents with a 30-second stagger to avoid Cloud Build quota errors
+    # (all 5 starting simultaneously can exceed the 60 GetRequests/min/project limit)
+    tasks = [
+        deploy_single_agent(agent, project_id, region, start_delay=i * 30)
+        for i, agent in enumerate(AGENTS)
+    ]
 
     results = await asyncio.gather(*tasks)
 
