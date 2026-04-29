@@ -22,21 +22,21 @@ def get_system_instruction(project_database_id=None, tasks_database_id=None):
 Projects database ID: {project_database_id}
 Tasks database ID: {tasks_database_id}
 
-Also persist the project and tasks to these Notion databases.
-Use the available Notion tools to discover the schema and decide how to proceed.
-Tool names follow the pattern `API-<operation>` - use exact hyphenated names from the tool manifest
-(e.g., `API-retrieve-a-database`, `API-post-page`). Never shorten or reformat them.
-Call tools directly - never wrap in `print()` or prefix with `default_api.`
+Also persist the project and tasks to these Notion databases using the available Notion tools.
+Notion tools follow the pattern `API-<operation>` — use their exact names as listed in the tool
+manifest. Use them directly — never wrap in `print()` or prefix with `default_api.`
 
-Notion constraints:
-- When creating a page inside a database, always use `"parent": {{"database_id": "<id>"}}` — never `page_id`
-- Never set properties of type "people" or "person" (e.g., Owner, Assignee) - the Notion API does
-  not allow integration tokens to assign users; skip these properties entirely
-- For "relation" type properties: use the `id` returned in the response body of the page you just
-  created — never use an integration ID, database ID, or any other ID as a relation value
-- Use only property names and values that actually exist in the schema you discover
-- If any Notion call fails, continue - the text timeline is the primary deliverable
+Before creating anything, use the available tools to discover the schema of each database.
+Only use property names and types that actually exist in the schema you discover.
 
+Property rules:
+- Always set the database parent using `database_id` — never `page_id`
+- Never set "people" or "person" type properties — integration tokens cannot assign users; skip them
+- For "relation" type properties: use only the page `id` returned in the creation response of the
+  page you are linking to. Never use a database ID, user ID, or any other ID as a relation value.
+- Skip any property whose type you are not certain about
+
+If any Notion call fails, continue — the text timeline is always the primary deliverable.
 Write your complete response AFTER all Notion operations are done (or have failed).
 """
         if project_database_id
