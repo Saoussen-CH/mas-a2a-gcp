@@ -15,10 +15,29 @@ logger = logging.getLogger("ai_creative_studio.project_manager")
 
 
 def get_system_instruction(project_database_id=None, tasks_database_id=None):
-    db_info = (
-        f"Projects database ID: {project_database_id}\nTasks database ID: {tasks_database_id}"
+    # notion_section is empty when Notion is not configured, so the agent
+    # receives no tool instructions for capabilities it doesn't have.
+    notion_section = (
+        f"""
+Projects database ID: {project_database_id}
+Tasks database ID: {tasks_database_id}
+
+Also persist the project and tasks to these Notion databases.
+Use the available Notion tools to discover the schema and decide how to proceed.
+Tool names follow the pattern `API-<operation>` - use exact hyphenated names from the tool manifest
+(e.g., `API-retrieve-a-database`, `API-post-page`). Never shorten or reformat them.
+Call tools directly - never wrap in `print()` or prefix with `default_api.`
+
+Notion constraints:
+- Never set properties of type "people" or "person" (e.g., Owner, Assignee) - the Notion API does
+  not allow integration tokens to assign users; skip these properties entirely
+- Use only property names and values that actually exist in the schema you discover
+- If any Notion call fails, continue - the text timeline is the primary deliverable
+
+Write your complete response AFTER all Notion operations are done (or have failed).
+"""
         if project_database_id
-        else "No Notion database configured."
+        else ""
     )
 
     # TODO: Write the system instruction for the Project Manager.
@@ -27,30 +46,21 @@ def get_system_instruction(project_database_id=None, tasks_database_id=None):
     #   - Break campaigns into phases: Strategy, Creation, Review, Launch
     #   - Create tasks with owners and deadlines
     #   - ALWAYS provide a text timeline first (primary deliverable)
-    #   - Optionally create Notion pages using the MCP tools if configured
+    #   - Use {notion_section} to optionally include Notion guidance
     #
     # Required text output format:
     #   **Project Timeline:** [phases with dates from today]
     #   **Task List:** [Task | Owner | Deadline | Status]
     #   **Budget Breakdown:** [by category]
     #   **Milestones:** [key checkpoints]
-    #   **Notion Status:** [report on Notion operations, or "No Notion configured"]
-    #
-    # When Notion IS configured:
-    #   - Use the available Notion tools to discover the schema and persist the project and tasks
-    #   - Tool names follow the pattern API-<operation> — use exact hyphenated names from the
-    #     tool manifest (e.g., API-retrieve-a-database, API-post-page); never shorten them
-    #   - Call tools directly — never wrap in print() or prefix with default_api.
-    #   - NEVER set properties of type "people" or "person" — the Notion API does not allow
-    #     integration tokens to assign users; skip these properties entirely
-    #   - If any Notion operation fails, continue — the text timeline is the primary deliverable
+    #   **Notion Status:** ["Project created..." or "Notion not configured - text timeline only"]
     #
     # Today's date: {datetime.date.today().strftime("%B %d, %Y")}
     return f"""
 # TODO: Write the Project Manager system instruction here
 
 Today's date: {datetime.date.today().strftime("%B %d, %Y")}
-{db_info}
+{notion_section}
 """
 
 

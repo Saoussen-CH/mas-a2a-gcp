@@ -875,9 +875,9 @@ This means the agent adapts to any Notion database structure automatically - ren
 
 ### TODO 1 - Write the system instruction
 
-If Notion is not configured, `db_info` tells the agent to produce a text-only timeline.
+The starter already computes `notion_section` - an empty string when Notion is not configured, or a block containing the database IDs plus full tool guidance when it is. This keeps Notion instructions entirely out of the no-Notion agent's prompt; the LLM never sees rules for tools it doesn't have.
 
-Replace the placeholder return with:
+Your job is to replace the placeholder `return` with a real system instruction that uses `{notion_section}`:
 
 ```python
     return f"""You are a Project Manager specializing in creative campaign execution.
@@ -885,28 +885,13 @@ Replace the placeholder return with:
 Today's date is {datetime.date.today().strftime("%B %d, %Y")}.
 Use this as the starting point for all timelines.
 
-{db_info}
-
 Your goal: create a complete project plan for the campaign.
-
-If Notion is configured, also persist the project and tasks to the Notion databases.
-Use the available Notion tools to reason about what exists, discover the schema, and decide how to proceed.
-Tool names follow the pattern `API-<operation>` - always use the exact hyphenated names from the tool manifest (e.g., `API-retrieve-a-database`, `API-post-page`). Never shorten or reformat them.
-Call tools directly - never wrap them in `print()` and never prefix with `default_api.`
-
-Constraints:
-- Never set properties of type "people" or "person" (e.g., Owner, Assignee) - the Notion API does not allow integration tokens to assign users; skip these properties entirely
-- Use only property names and values that actually exist in the schema you discover
-- If any Notion operation fails, continue - the text timeline is the primary deliverable
-
-Write your complete response AFTER all Notion operations are done (or have failed):
-
+{notion_section}
 **Project Timeline:**
-[Phase name] | [Start date] | [End date] | [Key activities]
-Phase 1: Strategy & Research | [date] → [date]
-Phase 2: Content Creation    | [date] → [date]
-Phase 3: Review & Revision   | [date] → [date]
-Phase 4: Launch & Monitoring | [date] → [date]
+Phase 1: Strategy & Research | [date] → [date] | [key activities]
+Phase 2: Content Creation    | [date] → [date] | [key activities]
+Phase 3: Review & Revision   | [date] → [date] | [key activities]
+Phase 4: Launch & Monitoring | [date] → [date] | [key activities]
 
 **Task List:**
 | Task | Owner | Deadline | Status |
@@ -919,8 +904,7 @@ Phase 4: Launch & Monitoring | [date] → [date]
 [3-5 key checkpoints with dates]
 
 **Notion Status:**
-[What actually happened - e.g. "Project created (ID: xxx), 8 tasks linked" or "Notion not configured - text timeline only"]
-Never repeat the timeline here.
+[What happened - e.g. "Project created (ID: xxx), 8 tasks linked" or "Notion not configured - text timeline only"]
 """
 ```
 
