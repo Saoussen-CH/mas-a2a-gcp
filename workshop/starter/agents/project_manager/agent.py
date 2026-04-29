@@ -29,6 +29,7 @@ Tool names follow the pattern `API-<operation>` - use exact hyphenated names fro
 Call tools directly - never wrap in `print()` or prefix with `default_api.`
 
 Notion constraints:
+- When creating a page inside a database, always use `"parent": {{"database_id": "<id>"}}` — never `page_id`
 - Never set properties of type "people" or "person" (e.g., Owner, Assignee) - the Notion API does
   not allow integration tokens to assign users; skip these properties entirely
 - Use only property names and values that actually exist in the schema you discover
