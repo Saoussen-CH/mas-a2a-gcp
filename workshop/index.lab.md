@@ -1151,7 +1151,7 @@ Open **5 separate Cloud Shell terminals** (click the `+` icon in the terminal ta
 **Terminal 1 - Brand Strategist (port 8082):**
 ```bash
 cd ~/ai-creative-studio/workshop/starter
-uv run agents/brand_strategist/agent.py
+PORT=8082 uv run agents/brand_strategist/agent.py
 ```
 
 **Terminal 2 - Copywriter (port 8083):**
@@ -1224,7 +1224,7 @@ The agent card shows the specialist's identity and capabilities exactly as other
 > ```
 
 ```bash
-cd ~/ai-creative-studio/tools/a2a-inspector
+cd ~/ai-creative-studio/workshop
 ./setup_inspector.sh
 ```
 
