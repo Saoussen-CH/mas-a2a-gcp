@@ -1180,7 +1180,7 @@ PORT=8086 uv run agents/project_manager/agent.py
 
 ### Set localhost URLs in .env
 
-In a **6th terminal**, update `.env` with the local agent URLs so the Creative Director can find them:
+In **Terminal 6**, update `.env` with the local agent URLs so the Creative Director can find them:
 
 ```bash
 cd ~/ai-creative-studio/workshop/starter
@@ -1235,7 +1235,7 @@ cd ~/ai-creative-studio/workshop
 > UV_HTTP_TIMEOUT=120 ./setup_inspector.sh
 > ```
 
-Open a **7th terminal** and start the inspector:
+The `.env` update is a one-time command. Use **Terminal 6** to start the inspector next:
 
 ```bash
 cd ~/a2a-inspector
@@ -1681,7 +1681,7 @@ The LLM decides *when* to call each tool based on the system instruction and the
 
 ### Test the Creative Director locally
 
-Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10). Then in a new terminal:
+Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10). Stop the A2A Inspector in Terminal 6 (`Ctrl+C`), then reuse it:
 
 ```bash
 cd ~/ai-creative-studio/workshop/starter
