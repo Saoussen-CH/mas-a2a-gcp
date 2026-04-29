@@ -84,7 +84,7 @@ async def run_command_async(
 
 
 async def deploy_single_agent(
-    agent_config: dict, project_id: str, region: str, start_delay: float = 0
+    agent_config: dict, project_id: str, region: str
 ) -> str | None:
     """
     Deploy a single agent to Cloud Run
@@ -99,9 +99,6 @@ async def deploy_single_agent(
     """
     name = agent_config["name"]
     agent_dir = agent_config["dir"]
-
-    if start_delay > 0:
-        await asyncio.sleep(start_delay)
 
     print(f"🚀 Deploying {name}...")
 
@@ -271,21 +268,14 @@ async def update_agent_a2a_config(
 
 async def deploy_all_agents(project_id: str, region: str) -> dict[str, str]:
     """
-    Deploy all agents in parallel and collect their URLs
-
-    Args:
-        project_id: GCP project ID
-        region: GCP region
-
-    Returns:
-        Dict mapping agent names to their URLs
+    Deploy all agents sequentially and collect their URLs.
+    Sequential deployment avoids Cloud Build polling quota (60 req/min/user).
     """
     print("\n" + "=" * 70)
-    print("Deploying all specialist agents to Cloud Run (in parallel)")
+    print("Deploying all specialist agents to Cloud Run (sequential)")
     print("=" * 70 + "\n")
 
-    # Pre-create the Artifact Registry repository to avoid race condition
-    # when all 5 parallel deploys try to create it simultaneously
+    # Pre-create the Artifact Registry repository
     print("⏳ Pre-creating Artifact Registry repository...")
     _, _, ar_err = await run_command_async([
         "gcloud", "artifacts", "repositories", "create", "cloud-run-source-deploy",
@@ -297,36 +287,38 @@ async def deploy_all_agents(project_id: str, region: str) -> dict[str, str]:
     if ar_err and "ALREADY_EXISTS" not in ar_err:
         print(f"   Warning: {ar_err.strip()}")
     else:
-        print("   ✓ Artifact Registry repository ready")
+        print("   ✓ Artifact Registry repository ready\n")
 
-    # Deploy agents with a 30-second stagger to avoid Cloud Build quota errors
-    # (all 5 starting simultaneously can exceed the 60 GetRequests/min/project limit)
-    tasks = [
-        deploy_single_agent(agent, project_id, region, start_delay=i * 30)
-        for i, agent in enumerate(AGENTS)
-    ]
-
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Build URL mapping
     agent_urls = {}
-    for agent, result in zip(AGENTS, results):
-        if isinstance(result, Exception):
-            print(f"⚠️  {agent['name']} deployment raised an error: {result}")
-        elif result:
-            agent_urls[agent["name"]] = result
-        else:
-            print(f"⚠️  {agent['name']} deployment failed or URL not available")
+    failed = []
+
+    for i, agent in enumerate(AGENTS, 1):
+        print(f"[{i}/{len(AGENTS)}] ", end="", flush=True)
+        try:
+            url = await deploy_single_agent(agent, project_id, region)
+            if url:
+                agent_urls[agent["name"]] = url
+            else:
+                failed.append(agent["name"])
+        except Exception as e:
+            print(f"⚠️  {agent['name']} raised an error: {e}")
+            failed.append(agent["name"])
 
     print("\n" + "=" * 70)
-    print(f"✓ Deployment complete! {len(agent_urls)}/{len(AGENTS)} agents deployed")
-    print("=" * 70 + "\n")
+    print(f"Deployment complete: {len(agent_urls)}/{len(AGENTS)} agents deployed")
+    print("=" * 70)
 
-    # Display summary
-    print("Agent URLs:")
-    for name, url in agent_urls.items():
-        print(f"  • {name}: {url}")
+    if agent_urls:
+        print("\nDeployed:")
+        for name, url in agent_urls.items():
+            print(f"  ✓ {name}: {url}")
 
+    if failed:
+        print("\nFailed (re-run to retry):")
+        for name in failed:
+            print(f"  ❌ {name}")
+
+    print()
     return agent_urls
 
 
