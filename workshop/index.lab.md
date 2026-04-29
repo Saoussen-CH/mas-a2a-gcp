@@ -1681,7 +1681,9 @@ The LLM decides *when* to call each tool based on the system instruction and the
 
 ### Test the Creative Director locally
 
-Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10). Stop the A2A Inspector in Terminal 6 (`Ctrl+C`), then reuse it:
+Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10).
+
+In **Terminal 6** (the A2A Inspector terminal), stop the inspector with `Ctrl+C`. You are currently in `~/a2a-inspector` - navigate back and start the orchestrator:
 
 ```bash
 cd ~/ai-creative-studio/workshop/starter
