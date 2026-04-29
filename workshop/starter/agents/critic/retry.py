@@ -18,6 +18,6 @@ RETRY_CONFIG = types.HttpRetryOptions(
 GENERATE_CONTENT_CONFIG = types.GenerateContentConfig(
     http_options=types.HttpOptions(
         retry_options=RETRY_CONFIG,
-        timeout=120,  # 2 minute timeout for model calls
+        timeout=120_000,  # 120 second timeout for model calls
     ),
 )
