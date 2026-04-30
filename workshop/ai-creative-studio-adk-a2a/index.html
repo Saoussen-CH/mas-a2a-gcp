@@ -36,7 +36,7 @@
           <hr style="border:none;border-top:1px solid #dadce0;margin:0 0 20px 0;">
           <div style="display:flex;align-items:center;margin-bottom:16px;color:#5f6368;font-size:14px;">
             <svg style="margin-right:16px;flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-            <span>Last updated Apr 29, 2026</span>
+            <span>Last updated Apr 30, 2026</span>
           </div>
           <div style="display:flex;align-items:center;color:#5f6368;font-size:14px;">
             <div style="margin-right:16px;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#bdc1c6;display:flex;align-items:center;justify-content:center;overflow:hidden;">
@@ -368,8 +368,7 @@ uv pip install -r agents/brand_strategist/requirements.txt
 <aside class="special"><p><strong>No manual activation needed.</strong> All commands in this codelab use <code>uv run</code>, which automatically activates the <code>.venv</code> in <code>~/ai-creative-studio/workshop/starter/</code>. Just <code>cd</code> to the <code>starter</code> directory and prefix your command with <code>uv run</code>.</p>
 </aside>
 <h2 is-upgraded>Start the ADK web UI</h2>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-uv run adk web agents --allow_origins=&#39;*&#39;
+<pre><code language="language-bash" class="language-bash">uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
 <aside class="special"><p><strong>Why </strong><strong><code>--allow_origins='*'</code></strong><strong>?</strong> Cloud Shell&#39;s Web Preview proxies your local server through a <code>*.cloudshell.dev</code> URL, which is a different origin than <code>127.0.0.1</code>. Without this flag, the dev UI gets blocked by CORS when creating a session and you&#39;ll see <code>403 Forbidden</code> errors. The flag whitelists all origins - safe for local development.</p>
 </aside>
@@ -399,8 +398,6 @@ INFO: Uvicorn running on http://localhost:8000
 <li><code>What are the top Instagram trends in the wellness space in 2025?</code></li>
 </ul>
 <p>You should see the agent call Google Search and return structured research with Audience Insights, Competitive Analysis, and Trending Topics sections.</p>
-<h2 is-upgraded>Stop the server and return to the terminal</h2>
-<p>When you&#39;re done testing, go back to the Cloud Shell terminal and press <code>Ctrl+C</code> to stop the server.</p>
 
 
       </google-codelab-step>
@@ -413,11 +410,8 @@ INFO: Uvicorn running on http://localhost:8000
 <li>The key insight that shapes its system instruction.</li>
 <li>A test prompt you can paste into the ADK web UI to see the agent respond.</li>
 </ol>
-<p>Start the web UI once and keep it running for all three:</p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-uv run adk web agents --allow_origins=&#39;*&#39;
-</code></pre>
-<p>Open <strong>Web Preview -&gt; port 8000</strong>. Use the <strong>agent dropdown</strong> in the top-left to switch between agents without restarting the server.</p>
+<p>Keep the ADK web UI running from the previous step. Use the <strong>agent dropdown</strong> in the top-left to switch between agents without restarting the server.</p>
+<p>Open <strong>Web Preview -&gt; port 8000</strong> if you closed it.</p>
 <h2 is-upgraded>Copywriter</h2>
 <p><strong>Role:</strong> Turn brand research into Instagram captions. The Copywriter creates 3-5 caption variations covering different tones (inspirational, educational, community, urgency, story-driven), each with hashtags and a CTA.</p>
 <aside class="special"><p><strong>Key insight - no shared memory.</strong> The Copywriter has no idea what the Brand Strategist said unless the orchestrator explicitly passes that output as context. In a multi-agent workflow, the orchestrator is responsible for assembling and forwarding prior results. This is why the instruction says <em>&#34;the conversation history above contains research&#34;</em> - that context is injected by the Creative Director at runtime.</p>
@@ -709,9 +703,9 @@ Phase 4: Launch &amp; Monitoring | [date] → [date] | [key activities]
 </code></pre>
 <h2 is-upgraded>TODO 3 - Agent with Notion MCP</h2>
 <p>First, read both database IDs at the top of <code>create_project_manager_agent()</code>:</p>
-<pre><code language="language-python" class="language-python">    notion_token         = os.getenv(&#34;NOTION_TOKEN&#34;)
-    notion_database_project_id = os.getenv(&#34;NOTION_PROJECT_DATABASE_ID&#34;)   # Projects DB
-    notion_tasks_db_id         = os.getenv(&#34;NOTION_TASKS_DATABASE_ID&#34;)     # Tasks DB
+<pre><code language="language-python" class="language-python">    notion_token           = os.getenv(&#34;NOTION_TOKEN&#34;)
+    notion_project_db_id   = os.getenv(&#34;NOTION_PROJECT_DATABASE_ID&#34;)
+    notion_tasks_db_id     = os.getenv(&#34;NOTION_TASKS_DATABASE_ID&#34;)
 </code></pre>
 <p>Then in the <code>else</code> branch, create the MCP toolset and the agent:</p>
 <pre><code language="language-python" class="language-python">        from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
@@ -735,7 +729,7 @@ Phase 4: Launch &amp; Monitoring | [date] → [date] | [key activities]
             name=&#34;project_manager&#34;,
             model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-2.5-flash&#34;),
             instruction=get_system_instruction(
-                database_project_id=notion_database_project_id,
+                project_database_id=notion_project_db_id,
                 tasks_database_id=notion_tasks_db_id,
             ),
             description=&#34;Project manager with Notion integration for task tracking&#34;,
@@ -744,17 +738,13 @@ Phase 4: Launch &amp; Monitoring | [date] → [date] | [key activities]
 </code></pre>
 <p><strong>Best practice:</strong> Never hard-fail on optional integrations. The text timeline is always the primary deliverable; Notion is supplementary.</p>
 <h2 is-upgraded>Test the Project Manager Locally with ADK Web</h2>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-uv run adk web agents --allow_origins=&#39;*&#39;
+<pre><code language="language-bash" class="language-bash">uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
 <p>Open Web Preview on port 8000. Use the <strong>agent dropdown</strong> to select <strong><code>project_manager</code></strong>, then try:</p>
 <pre><code>Create a project plan for an EcoFlow Smart Water Bottle Instagram campaign.
 Budget: $3,000. Launch in 2 weeks. Include phases, tasks with deadlines from today, and milestones.
 </code></pre>
 <p>You should see a structured text timeline with phases, task list, and milestones. If Notion credentials are set in <code>.env</code>, the agent will also create entries in your Notion workspace.</p>
-<p>Stop the server with <code>Ctrl+C</code> when done, then return to the starter directory:</p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-</code></pre>
 
 
       </google-codelab-step>
@@ -920,7 +910,7 @@ uvicorn.run(a2a_app, host=HOST, port=PORT)
 <p><code>uv run</code> automatically activates the <code>.venv</code> - no manual <code>source</code> needed in each terminal.</p>
 <p><strong>Terminal 1 - Brand Strategist (port 8082):</strong></p>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-uv run agents/brand_strategist/agent.py
+PORT=8082 uv run agents/brand_strategist/agent.py
 </code></pre>
 <p><strong>Terminal 2 - Copywriter (port 8083):</strong></p>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
@@ -939,7 +929,7 @@ PORT=8085 uv run agents/critic/agent.py
 PORT=8086 uv run agents/project_manager/agent.py
 </code></pre>
 <h2 is-upgraded>Set localhost URLs in .env</h2>
-<p>In a <strong>6th terminal</strong>, update <code>.env</code> with the local agent URLs so the Creative Director can find them:</p>
+<p>In <strong>Terminal 6</strong>, update <code>.env</code> with the local agent URLs so the Creative Director can find them:</p>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
 
 sed -i \
@@ -969,14 +959,14 @@ pip cache purge
 rm -rf ~/.cache/uv
 </code></pre>
 </aside>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/tools/a2a-inspector
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop
 ./setup_inspector.sh
 </code></pre>
 <aside class="special"><p><strong>Download timeout?</strong> Cloud Shell has intermittent outbound bandwidth limits. Retry with a longer timeout:</p>
 <pre><code language="language-bash" class="language-bash">UV_HTTP_TIMEOUT=120 ./setup_inspector.sh
 </code></pre>
 </aside>
-<p>Open a <strong>7th terminal</strong> and start the inspector:</p>
+<p>The <code>.env</code> update is a one-time command. Use <strong>Terminal 6</strong> to start the inspector next:</p>
 <pre><code language="language-bash" class="language-bash">cd ~/a2a-inspector
 bash scripts/run.sh
 </code></pre>
@@ -1023,16 +1013,17 @@ bash scripts/run.sh
 <p>Once connected, type a prompt in the chat panel and send it. The inspector submits it as an A2A task and streams the response back - the same way the Creative Director will call this agent in production.</p>
 <p class="image-container"><img alt="Chat with Brand Strategist via A2A Inspector" src="img/bc0432851decd335.jpg"></p>
 <p>Point the inspector at any local port (8082–8086) to test each specialist individually.</p>
-<h3 is-upgraded>Stop all local servers before continuing</h3>
-<p>Once you&#39;ve finished testing locally, stop all running servers before moving to the Cloud Run deployment step. In each of the 5 agent terminals and the A2A Inspector terminal, press <strong>Ctrl+C</strong> to stop the process. You can then close those terminals - Cloud Run will handle serving the agents from here on.</p>
 
 
       </google-codelab-step>
     
       <google-codelab-step label="Build the Creative Director Orchestrator" duration="15">
         <p>The Creative Director is the master orchestrator. It reads specialist URLs from environment variables, wraps each one as a <code>RemoteA2aAgent</code>, and exposes them as <code>AgentTool</code>s the LLM can call.</p>
+<p>Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10).</p>
+<p>In <strong>Terminal 6</strong> (the A2A Inspector terminal), stop the inspector with <code>Ctrl+C</code>.</p>
 <p>Open the file:</p>
-<pre><code language="language-bash" class="language-bash">cloudshell edit agents/creative_director/agent.py
+<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
+cloudshell edit agents/creative_director/agent.py
 </code></pre>
 <p>This file has three TODOs. Work through them in order.</p>
 <h2 is-upgraded>TODO 1 - Review the already written system instruction</h2>
@@ -1293,9 +1284,7 @@ brand-strategist-xxxx.run.app  ← actual HTTP A2A call happens here
 </code></pre>
 <p>The LLM decides <em>when</em> to call each tool based on the system instruction and the user&#39;s request. The orchestrator never calls agents directly in code - it&#39;s all driven by the LLM&#39;s reasoning.</p>
 <h2 is-upgraded>Test the Creative Director locally</h2>
-<p>Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10). Then in a new terminal:</p>
-<pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-uv run adk web agents --allow_origins=&#39;*&#39;
+<pre><code language="language-bash" class="language-bash">uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
 <p>Open Web Preview on port 8000. Use the <strong>agent dropdown</strong> to select <strong><code>creative_director</code></strong>, then try:</p>
 <pre><code>Research the eco-friendly water bottle market for health-conscious millennials

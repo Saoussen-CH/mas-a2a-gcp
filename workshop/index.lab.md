@@ -1308,9 +1308,14 @@ Duration: 15:00
 
 The Creative Director is the master orchestrator. It reads specialist URLs from environment variables, wraps each one as a `RemoteA2aAgent`, and exposes them as `AgentTool`s the LLM can call.
 
+Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10).
+
+In **Terminal 6** (the A2A Inspector terminal), stop the inspector with `Ctrl+C`. 
+
 Open the file:
 
 ```bash
+cd ~/ai-creative-studio/workshop/starter
 cloudshell edit agents/creative_director/agent.py
 ```
 
@@ -1681,12 +1686,8 @@ The LLM decides *when* to call each tool based on the system instruction and the
 
 ### Test the Creative Director locally
 
-Make sure the 5 specialist agents are still running (Terminals 1–5 from Step 10).
-
-In **Terminal 6** (the A2A Inspector terminal), stop the inspector with `Ctrl+C`. You are currently in `~/a2a-inspector` - navigate back and start the orchestrator:
 
 ```bash
-cd ~/ai-creative-studio/workshop/starter
 uv run adk web agents --allow_origins='*'
 ```
 
