@@ -117,6 +117,17 @@ async def deploy_single_agent(
         f"GEMINI_MODEL={gemini_model}"
     )
 
+    # Add GCS bucket for image generation/review agents
+    gcs_bucket = os.getenv("GCS_IMAGES_BUCKET", "")
+    if gcs_bucket and name in ("designer", "critic"):
+        print(f"   Adding GCS_IMAGES_BUCKET to {name}...")
+        env_vars += f",GCS_IMAGES_BUCKET={gcs_bucket}"
+
+    # Pass image model override to designer
+    gemini_image_model = os.getenv("GEMINI_IMAGE_MODEL", "")
+    if gemini_image_model and name == "designer":
+        env_vars += f",GEMINI_IMAGE_MODEL={gemini_image_model}"
+
     # Add Notion credentials for project-manager agent
     if name == "project-manager":
         notion_token = os.getenv("NOTION_TOKEN")
@@ -173,6 +184,10 @@ async def deploy_single_agent(
     if url:
         # Update A2A configuration
         await update_agent_a2a_config(name, url, project_id, region)
+
+    # Grant Designer SA write access to the GCS images bucket
+    if name == "designer" and url and os.getenv("GCS_IMAGES_BUCKET"):
+        await grant_designer_gcs_access(name, project_id, region)
 
     return url
 
@@ -267,6 +282,51 @@ async def update_agent_a2a_config(
         print(f"   ✓ A2A config updated for {service_name}")
     else:
         print(f"   Warning: Could not update A2A config for {service_name}: {stderr}")
+
+
+async def grant_designer_gcs_access(
+    service_name: str, project_id: str, region: str
+) -> None:
+    """
+    Grant the Designer Cloud Run service account storage.objectCreator on GCS bucket.
+    Called automatically after designer deployment when GCS_IMAGES_BUCKET is set.
+    """
+    bucket = os.getenv("GCS_IMAGES_BUCKET")
+    if not bucket:
+        return
+
+    print(f"   Granting GCS write access to {service_name} service account...")
+
+    # Retrieve the service account email used by the Cloud Run service
+    _, sa_email, _ = await run_command_async([
+        "gcloud", "run", "services", "describe", service_name,
+        "--platform=managed",
+        f"--region={region}",
+        f"--project={project_id}",
+        "--format=value(spec.template.spec.serviceAccountName)",
+    ])
+    sa_email = sa_email.strip()
+
+    # Fall back to compute default SA if no custom SA is configured
+    if not sa_email:
+        _, project_number, _ = await run_command_async([
+            "gcloud", "projects", "describe", project_id,
+            "--format=value(projectNumber)",
+        ])
+        sa_email = f"{project_number.strip()}-compute@developer.gserviceaccount.com"
+
+    returncode, _, stderr = await run_command_async([
+        "gcloud", "storage", "buckets", "add-iam-policy-binding",
+        f"gs://{bucket}",
+        f"--member=serviceAccount:{sa_email}",
+        "--role=roles/storage.objectCreator",
+        f"--project={project_id}",
+    ])
+
+    if returncode == 0:
+        print(f"   ✓ GCS access granted to {sa_email}")
+    else:
+        print(f"   Warning: Could not grant GCS access: {stderr.strip()}")
 
 
 async def deploy_all_agents(project_id: str, region: str) -> dict[str, str]:

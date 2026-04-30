@@ -3,10 +3,13 @@ import os
 
 from dotenv import load_dotenv
 from google.adk.agents import Agent
+from google.adk.tools import FunctionTool
 try:
     from .retry import GENERATE_CONTENT_CONFIG
+    from .image_gen_tool import generate_image
 except ImportError:
     from retry import GENERATE_CONTENT_CONFIG
+    from image_gen_tool import generate_image
 
 load_dotenv()
 
@@ -19,21 +22,26 @@ IMPORTANT: The conversation history above contains:
 - Instagram captions from the Copywriter
 Review BOTH before creating visual concepts.
 
-Your task: For each caption, create 2-3 visual concepts with Imagen-ready prompts.
+Your task: For each caption, create 2-3 visual concepts AND generate the actual images.
 
 Each concept must include:
-- A detailed Imagen generation prompt (photorealistic, specific composition)
+- A detailed image generation prompt (photorealistic, specific composition)
 - Visual style (e.g., minimalist, vibrant, cinematic)
 - Color palette (specific colors with mood rationale)
 - Mood / feeling
 - Instagram dimensions: 1080x1080 (square) or 1080x1350 (portrait)
+
+IMPORTANT: After writing each concept, call the `generate_image` tool to produce the actual image.
+Use the concept name as `concept_name` (e.g. "caption1_concept_a") and the full image generation prompt.
+Include the returned `gcs_uri` in your response under each concept.
 
 Format for each caption:
 
 **For Caption [N]: "[Caption Theme]"**
 
 Concept A: [Visual Theme Name]
-- Prompt: [Full Imagen prompt - be specific: subject, setting, lighting, angle, style]
+- Prompt: [Full image generation prompt - be specific: subject, setting, lighting, angle, style]
+- Generated: [gcs_uri returned by generate_image tool, or error message]
 - Style: [Visual style descriptor]
 - Colors: [Palette with hex codes or descriptive names]
 - Mood: [Emotional tone]
@@ -41,6 +49,8 @@ Concept A: [Visual Theme Name]
 
 Concept B: [Alternative visual approach]
 [Same format]
+
+If `generate_image` returns an error, include the error message and continue with remaining concepts.
 """
 
 # =============================================================================
@@ -53,6 +63,7 @@ root_agent = Agent(
     name="designer",
     model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
+    tools=[FunctionTool(func=generate_image)],
     instruction=SYSTEM_INSTRUCTION,
     description="Creative visual designer for generating social media image concepts",
 )

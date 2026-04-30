@@ -62,7 +62,7 @@
 </td><td colspan="1" rowspan="1"><p>Writes Instagram captions with hashtags and CTAs based on the research</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p><strong>Designer</strong></p>
-</td><td colspan="1" rowspan="1"><p>Creates visual concepts and Imagen-ready image generation prompts</p>
+</td><td colspan="1" rowspan="1"><p>Creates visual concepts and generates real images via Gemini, stored in GCS</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p><strong>Critic</strong></p>
 </td><td colspan="1" rowspan="1"><p>Reviews copy and visuals - returns <code>APPROVED</code> or <code>NEEDS_REVISION</code> with specific feedback</p>
@@ -158,7 +158,8 @@ echo &#34;Project: $PROJECT_ID&#34;
     artifactregistry.googleapis.com \
     generativelanguage.googleapis.com \
     iam.googleapis.com \
-    cloudresourcemanager.googleapis.com
+    cloudresourcemanager.googleapis.com \
+    storage.googleapis.com
 </code></pre>
 <p>This takes about 2 minutes. You&#39;ll see <code>Operation finished successfully</code> when done.</p>
 <h2 is-upgraded>Set up Application Default Credentials (ADC)</h2>
@@ -186,6 +187,18 @@ cd ~/ai-creative-studio/workshop/starter
 <pre><code language="language-bash" class="language-bash">cp .env.example .env
 sed -i &#34;s|GOOGLE_CLOUD_PROJECT=your-project-id|GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)|&#34; .env
 </code></pre>
+<p>Then create the GCS bucket where the Designer will store generated images and update <code>.env</code> with its name:</p>
+<pre><code language="language-bash" class="language-bash">export PROJECT_ID=$(gcloud config get-value project)
+export BUCKET_NAME=&#34;${PROJECT_ID}-campaign-images&#34;
+
+gcloud storage buckets create gs://${BUCKET_NAME} \
+    --location=us-central1 \
+    --project=${PROJECT_ID}
+
+sed -i &#34;s|GCS_IMAGES_BUCKET=your-project-id-campaign-images|GCS_IMAGES_BUCKET=${BUCKET_NAME}|&#34; .env
+</code></pre>
+<aside class="special"><p><strong>Why a GCS bucket?</strong> The Designer generates images with Gemini and uploads them to GCS. Returning raw image bytes across A2A is impractical - a <code>gs://</code> URI is a lightweight pointer that any agent can reference. The Critic receives the URI and passes it to Vertex AI, which fetches the image server-side without the Critic container ever touching Cloud Storage directly.</p>
+</aside>
 <aside class="special"><p><strong>Note: </strong><code>.env</code> is a hidden file (starts with <code>.</code>). Running <code>ls</code> won&#39;t show it - use <code>ls -a</code> to confirm it was created. The Cloud Shell Editor also hides dotfiles in its file tree, so <strong>always open </strong><strong><code>.env</code></strong><strong> directly from the terminal</strong>.</p>
 </aside>
 <p>Open <code>.env</code> in the editor to review all settings:</p>
@@ -425,20 +438,23 @@ Write 3 Instagram captions - one inspirational, one educational, one community-f
 </code></pre>
 <p>Notice you had to paste the audience and competitor insights manually - because the Copywriter has no memory of what other agents produced. That&#39;s the same job the Creative Director will do automatically once we wire everything together.</p>
 <h2 is-upgraded>Designer</h2>
-<p><strong>Role:</strong> Generate Imagen-ready visual concepts for each caption. The Designer outputs 2-3 visual concepts per caption, each with a detailed image prompt, style, color palette, mood, and Instagram format (1080x1080 or 1080x1350).</p>
-<aside class="special"><p><strong>Key insight - prompts, not pictures.</strong> The Designer doesn&#39;t generate images itself. It produces structured <em>prompts</em> that an image-generation model (Imagen, in production) can render. This separation keeps the agent fast and stateless - image generation is a separate concern that can be added later as a tool.</p>
+<p><strong>Role:</strong> Create visual concepts for each caption and generate the actual images using Gemini native image generation. The Designer outputs 2-3 visual concepts per caption - each with a detailed prompt, style, color palette, mood, and Instagram format - then calls the <code>generate_image</code> tool to produce a real image and upload it to GCS.</p>
+<aside class="special"><p><strong>Key insight - real images via a tool.</strong> The Designer agent (running on the text model) writes the visual concept and calls <code>generate_image</code>, which uses <code>gemini-3.1-flash-image-preview</code> to generate the image and uploads it to GCS. The agent receives back a <code>gcs_uri</code> and includes it in its response. This is why the tool lives in a separate file (<code>image_gen_tool.py</code>) - the image model can&#39;t be used directly as an ADK agent because it doesn&#39;t support function calling, so it&#39;s invoked as a plain Python function instead.</p>
 </aside>
-<p>Open <code>agents/designer/agent.py</code> to see the full instruction. Like the Copywriter, it expects upstream context (captions + brand insights) in the conversation history.</p>
+<p>Open <code>agents/designer/agent.py</code> and <code>agents/designer/image_gen_tool.py</code> to see the full implementation.</p>
 <p><strong>Try it:</strong> Switch the dropdown to <strong><code>designer</code></strong> and send:</p>
 <pre><code>Create 2 visual concepts for an EcoFlow Smart Water Bottle Instagram post targeting health-conscious millennials.
-Style: clean, modern, lifestyle-focused. Include full Imagen-ready prompts with color palette, mood, and format (1080x1080 or 1080x1350).
+Style: clean, modern, lifestyle-focused. Include prompts with color palette, mood, and format (1080x1080 or 1080x1350).
 </code></pre>
-<p>You&#39;ll get fully formatted Imagen prompts you could paste directly into the Imagen API.</p>
+<aside class="warning"><p><strong>Local test note:</strong> The ADK web UI runs agents with your local credentials but <code>GCS_IMAGES_BUCKET</code> must be set in your <code>.env</code> for image generation to work. If the tool returns <code>GCS_IMAGES_BUCKET env var not set</code>, source your <code>.env</code> first: <code>source .env</code> then restart the server. In the local test the agent will still show you the full concept - the <code>generate_image</code> tool call either succeeds with a <code>gcs_uri</code> or returns an error you can read inline.</p>
+</aside>
 <h2 is-upgraded>Critic - structured output is critical</h2>
-<p><strong>Role:</strong> Quality-assure copy and visuals before they&#39;re handed to the Project Manager. The Critic scores both deliverables and returns <code>APPROVED</code> or <code>NEEDS_REVISION</code> with specific suggestions.</p>
+<p><strong>Role:</strong> Quality-assure copy and visuals before they&#39;re handed to the Project Manager. The Critic scores both deliverables and returns <code>APPROVED</code> or <code>NEEDS_REVISION</code> with specific suggestions. When <code>gcs_uri</code> values are present in the input, it calls the <code>review_image</code> tool to visually inspect each generated image before scoring.</p>
 <aside class="warning"><p><strong>Key insight - the orchestrator parses this response programmatically.</strong> The Creative Director reads the Critic&#39;s output character-by-character to decide whether to trigger a revision loop. If the format drifts, the revision logic breaks. The words <code>APPROVED</code> and <code>NEEDS_REVISION</code> must appear exactly, in the exact section headers shown below.</p>
 </aside>
-<p>Open <code>agents/critic/agent.py</code> to see the full instruction. Notice how rigid the format is:</p>
+<aside class="special"><p><strong>Multimodal review via GCS.</strong> The <code>review_image</code> tool in <code>image_review_tool.py</code> takes a <code>gs://</code> URI and uses <code>Part.from_uri()</code> to pass the image to Gemini. Vertex AI fetches the image from GCS server-side - the Critic container never downloads it directly, so no Cloud Storage credentials are needed on the Critic service.</p>
+</aside>
+<p>Open <code>agents/critic/agent.py</code> and <code>agents/critic/image_review_tool.py</code>. Notice how rigid the format is:</p>
 <pre><code language="language-text" class="language-text">**POSTS REVIEW:**
 - Score: X/10
 - Status: APPROVED or NEEDS_REVISION
@@ -1180,11 +1196,11 @@ the strengths the critic identified.&#34;
 
     if designer_url:
         available_agents_list.append(
-            &#34;- **designer**: Visual concepts and Imagen image generation prompts&#34;
+            &#34;- **designer**: Visual concepts and real images generated via Gemini (GCS URIs returned)&#34;
         )
         designer_agent = RemoteA2aAgent(
             name=&#34;designer&#34;,
-            description=&#34;Creates visual concepts and Imagen-ready image generation prompts&#34;,
+            description=&#34;Creates visual concepts and generates real images via Gemini, stored in GCS&#34;,
             agent_card=f&#34;{designer_url}/.well-known/agent.json&#34;,
         )
         agent_tools.append(AgentTool(agent=designer_agent))
@@ -1256,7 +1272,7 @@ With compaction (interval=3, overlap=1):
     return agent, app
 </code></pre>
 <p><strong><code>compaction_interval=3</code></strong> - compaction fires after every 3 agent completions. For a 5-agent pipeline this means it fires once (after agents 1–3), then the Critic and PM see a summary of 1–3 plus the full previous agent&#39;s output.</p>
-<p><strong><code>overlap_size=1</code></strong> - the most recent agent&#39;s full output is always kept verbatim, never summarized. This matters because the Critic needs the Designer&#39;s visual concepts in full detail to review them - a summary would lose the specific Imagen prompts.</p>
+<p><strong><code>overlap_size=1</code></strong> - the most recent agent&#39;s full output is always kept verbatim, never summarized. This matters because the Critic needs the Designer&#39;s full output - including the <code>gcs_uri</code> values - to load and review the actual images. A summary would lose those URIs.</p>
 <p><strong>How it plays out in a full campaign run:</strong></p>
 <pre><code language="language-text" class="language-text">Agent 1 (Strategist)  → full context
 Agent 2 (Copywriter)  → full context
@@ -1325,15 +1341,14 @@ ENV PYTHONUNBUFFERED=1 PORT=8080 HOST=0.0.0.0
 EXPOSE 8080
 CMD [&#34;python&#34;, &#34;agent.py&#34;]
 </code></pre>
-<h2 is-upgraded>Deploy all 5 specialists in parallel</h2>
+<h2 is-upgraded>Deploy all 5 specialists sequentially</h2>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
 source .env
 
 uv run deploy/deploy_all_specialists.py
 </code></pre>
-<p>This script deploys all 5 agents concurrently with a 30-second stagger between each start (~8–10 minutes total). When complete, it writes each agent&#39;s URL back to <code>.env</code>.</p>
-<aside class="warning"><p><strong><code>Quota exceeded</code></strong><strong> for Cloud Build?</strong> If you see a 429 error mentioning <code>GetRequestsPerMinutePerProject</code>, all 5 builds were polling Cloud Build simultaneously and hit the 60 requests/minute limit. The staggered start in the script prevents this in most cases, but if it still happens, wait a minute and re-run - already-deployed agents will be skipped.</p>
-</aside>
+<p>This script deploys all 5 agents one at a time (~10-12 minutes total). Sequential deployment avoids the Cloud Build polling quota (60 requests/minute). When complete, it writes each agent&#39;s Cloud Run URL back to <code>.env</code>.</p>
+<p>After the Designer is deployed, the script automatically grants its Cloud Run service account <code>roles/storage.objectCreator</code> on your GCS bucket so it can upload generated images.</p>
 <h2 is-upgraded>What gets deployed per service</h2>
 <pre><code language="language-bash" class="language-bash"># Each service is deployed with these env vars:
 gcloud run deploy brand-strategist \
@@ -1526,7 +1541,7 @@ agent_engine_id = resource_name.split(&#34;/&#34;)[-1]
 <ol type="1">
 <li><strong>Brand Strategist</strong> → market research, competitor analysis, audience insights</li>
 <li><strong>Copywriter</strong> → 5 Instagram posts with captions, hashtags, CTAs</li>
-<li><strong>Designer</strong> → visual concepts and Imagen prompts for each post</li>
+<li><strong>Designer</strong> → visual concepts + real images generated via Gemini (GCS URIs) for each post</li>
 <li><strong>Critic</strong> → quality review with APPROVED / NEEDS_REVISION scores</li>
 <li><em>(Revision if needed)</em> → Copywriter or Designer called again with feedback</li>
 <li><strong>Project Manager</strong> → 2-week timeline, task breakdown, budget allocation</li>
@@ -1603,7 +1618,7 @@ gcloud storage buckets list --project=$GCP_PROJECT_ID
 </td><td colspan="1" rowspan="1"><p>Cloud Run</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p>Designer</p>
-</td><td colspan="1" rowspan="1"><p>Imagen prompt generation</p>
+</td><td colspan="1" rowspan="1"><p>Image generation via Gemini + GCS upload</p>
 </td><td colspan="1" rowspan="1"><p>Cloud Run</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p>Critic</p>
@@ -1633,7 +1648,7 @@ gcloud storage buckets list --project=$GCP_PROJECT_ID
 </ol>
 <h2 is-upgraded>Next steps</h2>
 <ul>
-<li>Add <strong>Imagen API</strong> calls to the Designer to generate actual images</li>
+<li>Add <strong>multi-turn image editing</strong> to the Designer using <code>gemini-3.1-flash-image-preview</code>&#39;s edit capability</li>
 <li>Add <strong>IAM authentication</strong> to Cloud Run services (remove <code>--allow-unauthenticated</code>)</li>
 <li>Replace one specialist with a <strong>LangGraph or CrewAI</strong> agent - A2A is framework agnostic</li>
 <li>Add <strong>user feedback</strong> as a tool so participants can rate and iterate on outputs</li>

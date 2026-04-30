@@ -3,10 +3,13 @@ import os
 
 from dotenv import load_dotenv
 from google.adk.agents import Agent
+from google.adk.tools import FunctionTool
 try:
     from .retry import GENERATE_CONTENT_CONFIG
+    from .image_review_tool import review_image
 except ImportError:
     from retry import GENERATE_CONTENT_CONFIG
+    from image_review_tool import review_image
 
 load_dotenv()
 
@@ -25,6 +28,13 @@ Scoring guide:
 - 5-6:  NEEDS_REVISION (has potential but needs improvement)
 - 1-4:  NEEDS_REVISION (significant issues)
 
+VISUAL REVIEW WITH REAL IMAGES:
+When the input contains `gcs_uri` values (from the Designer), you MUST call the
+`review_image` tool for each image BEFORE writing your VISUALS REVIEW section.
+Pass the GCS URI, the concept name, and a brief campaign context derived from the copy.
+Base your VISUALS REVIEW score and feedback on the actual image content returned by
+the tool, not on the text description alone. Call `review_image` once per image.
+
 Required output format - use this EXACTLY:
 
 **POSTS REVIEW:**
@@ -37,7 +47,7 @@ Required output format - use this EXACTLY:
 **VISUALS REVIEW:**
 - Score: [X/10]
 - Status: [APPROVED or NEEDS_REVISION]
-- What Works: [specific strengths]
+- What Works: [specific visual strengths from actual image review]
 - Issues: [specific problems if any]
 - Suggestions: [concrete improvements if NEEDS_REVISION]
 
@@ -65,6 +75,7 @@ root_agent = Agent(
     name="critic",
     model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
+    tools=[FunctionTool(func=review_image)],
     instruction=SYSTEM_INSTRUCTION,
     description="Creative critic for reviewing campaign materials and providing constructive feedback",
 )
