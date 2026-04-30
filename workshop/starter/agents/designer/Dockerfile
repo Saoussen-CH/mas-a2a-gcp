@@ -1,28 +1,39 @@
-FROM python:3.11-slim
+# Use the official Python base image
+FROM python:3.12-slim
 
+# Set working directory
 WORKDIR /app
 
-# Copy requirements and install
+# Install system dependencies
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy requirements first for better caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Create non-root user for security
-RUN adduser --disabled-password --gecos "" agentuser && chown -R agentuser:agentuser /app
+# Install Python dependencies with uv
+RUN uv pip install --system --no-cache -r requirements.txt
 
-# Copy agent code
-COPY --chown=agentuser:agentuser agent.py .
-COPY --chown=agentuser:agentuser __init__.py .
+# Copy application code
+COPY . .
 
-# Switch to non-root user
-USER agentuser
+# Create a non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
 
-# Set PATH for user-installed packages
-ENV PATH="/home/agentuser/.local/bin:$PATH"
-
-# Expose port (Cloud Run will set this automatically)
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 ENV HOST=0.0.0.0
+
+# Expose the port Cloud Run will use
 EXPOSE 8080
 
-# Run A2A server
+# Run the A2A server (inline in agent.py)
 CMD ["python", "agent.py"]
