@@ -193,7 +193,12 @@ def deploy_orchestrator(auto_deploy_specialists=False):
                     "STRATEGIST_AGENT_URL": STRATEGIST_URL,
                     "CRITIC_AGENT_URL": CRITIC_URL,
                     "PM_AGENT_URL": PM_URL,
-                    # Note: GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION are auto-set
+                    "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                    # Agent Runtime auto-sets GOOGLE_CLOUD_LOCATION to the deployment
+                    # region (us-central1), but preview models require "global".
+                    # Explicitly override so the orchestrator can reach the model.
+                    "GOOGLE_CLOUD_LOCATION": os.getenv("GOOGLE_CLOUD_LOCATION", "global"),
+                    "GOOGLE_GENAI_USE_VERTEXAI": "true",
                     "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
                     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true",
                 },
