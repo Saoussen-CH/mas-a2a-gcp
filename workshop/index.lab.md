@@ -45,6 +45,8 @@ runs on **Agent Runtime** and connects to each specialist remotely.
 ### What you'll learn
 
 - Build LLM agents with **Google ADK** - `Agent`, system instructions, and built-in tools.
+- Package reusable agent knowledge into modular files with **ADK Skills** (`SkillToolset`).
+- Generate real images by bridging a text agent to an image model via a **`FunctionTool`**.
 - Integrate external APIs without custom glue code using **Model Context Protocol (MCP)**.
 - Turn any agent into a network-callable service using the **Agent to Agent Protocol (A2A)** over HTTPS.
 - Orchestrate distributed agents with `RemoteA2aAgent` and `AgentTool`.
@@ -2041,13 +2043,15 @@ Congratulations! You've built and deployed a **production-grade multi-agent AI s
 
 1. **ADK `Agent`** - define an LLM agent with an instruction + optional tools
 2. **`adk web`** - run and test any ADK agent locally with a built-in chat UI
-3. **`to_a2a()`** - expose any ADK agent as an A2A-compliant HTTPS service
-4. **`RemoteA2aAgent` + `AgentTool`** - orchestrate remote agents as callable tools
-5. **`McpToolset`** - connect to external services via MCP stdio servers
-6. **`EventsCompactionConfig`** - handle token limits in long multi-agent workflows
-7. **Structured critic output** - machine-readable quality control with automatic revision
-8. **Cloud Run** - deploy containerized agents at scale
-9. **Agent Runtime** - host orchestrators with managed sessions and tracing
+3. **`SkillToolset`** - package reusable knowledge into modular files loaded on demand
+4. **`FunctionTool`** - wrap any Python function (or external model) as a callable agent tool
+5. **`to_a2a()`** - expose any ADK agent as an A2A-compliant HTTPS service
+6. **`RemoteA2aAgent` + `AgentTool`** - orchestrate remote agents as callable tools
+7. **`McpToolset`** - connect to external services via MCP stdio servers
+8. **`EventsCompactionConfig`** - handle token limits in long multi-agent workflows
+9. **Structured critic output** - machine-readable quality control with automatic revision
+10. **Cloud Run** - deploy containerized agents at scale
+11. **Agent Runtime** - host orchestrators with managed sessions and tracing
 
 ### Next steps
 

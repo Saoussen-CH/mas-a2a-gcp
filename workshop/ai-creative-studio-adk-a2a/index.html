@@ -80,6 +80,8 @@
 <h2 class="checklist" is-upgraded>What you&#39;ll learn</h2>
 <ul class="checklist">
 <li>Build LLM agents with <strong>Google ADK</strong> - <code>Agent</code>, system instructions, and built-in tools.</li>
+<li>Package reusable agent knowledge into modular files with <strong>ADK Skills</strong> (<code>SkillToolset</code>).</li>
+<li>Generate real images by bridging a text agent to an image model via a <strong><code>FunctionTool</code></strong>.</li>
 <li>Integrate external APIs without custom glue code using <strong>Model Context Protocol (MCP)</strong>.</li>
 <li>Turn any agent into a network-callable service using the <strong>Agent to Agent Protocol (A2A)</strong> over HTTPS.</li>
 <li>Orchestrate distributed agents with <code>RemoteA2aAgent</code> and <code>AgentTool</code>.</li>
@@ -1504,7 +1506,10 @@ python3 run_campaign.py
 </td><td colspan="1" rowspan="1"><p><code>cloud-run-source-deploy</code> repository + all Docker images</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p>GCS buckets</p>
-</td><td colspan="1" rowspan="1"><p><code>{PROJECT_ID}-agent-staging</code>, <code>run-sources-{PROJECT_ID}-{REGION}</code></p>
+</td><td colspan="1" rowspan="1"><p><code>{PROJECT_ID}-campaign-images</code>, <code>{PROJECT_ID}-agent-staging</code>, <code>run-sources-{PROJECT_ID}-{REGION}</code></p>
+</td></tr>
+<tr><td colspan="1" rowspan="1"><p>Secret Manager</p>
+</td><td colspan="1" rowspan="1"><p><code>notion-token</code>, <code>notion-project-db-id</code>, <code>notion-tasks-db-id</code> (skipped if not created)</p>
 </td></tr>
 </table>
 <h2 is-upgraded>Verify everything is removed</h2>
@@ -1553,6 +1558,8 @@ gcloud storage buckets list --project=$GCP_PROJECT_ID
 <ol type="1">
 <li><strong>ADK </strong><strong><code>Agent</code></strong> - define an LLM agent with an instruction + optional tools</li>
 <li><strong><code>adk web</code></strong> - run and test any ADK agent locally with a built-in chat UI</li>
+<li><strong><code>SkillToolset</code></strong> - package reusable knowledge into modular files loaded on demand</li>
+<li><strong><code>FunctionTool</code></strong> - wrap any Python function (or external model) as a callable agent tool</li>
 <li><strong><code>to_a2a()</code></strong> - expose any ADK agent as an A2A-compliant HTTPS service</li>
 <li><strong><code>RemoteA2aAgent</code></strong><strong> + </strong><strong><code>AgentTool</code></strong> - orchestrate remote agents as callable tools</li>
 <li><strong><code>McpToolset</code></strong> - connect to external services via MCP stdio servers</li>
