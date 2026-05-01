@@ -4,11 +4,16 @@ import os
 from google.adk.agents import Agent
 from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.plugins.logging_plugin import LoggingPlugin
+from google.adk.tools import FunctionTool
 from google.adk.tools.agent_tool import AgentTool
 try:
     from .retry import RETRY_CONFIG
+    from .display_image_tool import display_image
+    from .get_image_links_tool import get_image_links
 except ImportError:
     from retry import RETRY_CONFIG
+    from display_image_tool import display_image
+    from get_image_links_tool import get_image_links
 
 try:
     from .prompt import SYSTEM_INSTRUCTION_TEMPLATE
@@ -32,7 +37,10 @@ def create_creative_director():
     pm_url = os.getenv("PM_AGENT_URL")
 
     available_agents_list = []
-    agent_tools = []
+    agent_tools = [
+        FunctionTool(func=display_image),
+        FunctionTool(func=get_image_links),
+    ]
 
     # TODO: For each specialist URL that is set, create a RemoteA2aAgent
     # and wrap it in an AgentTool, then append to agent_tools.

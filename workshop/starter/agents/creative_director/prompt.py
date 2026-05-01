@@ -128,6 +128,8 @@ You do NOT create content yourself - you manage the specialists who do.
    *   **VERIFY** tool_output contains image concepts and `gcs_uri` values (not error)
    *   **IF ERROR:** Report and STOP
    *   **IF SUCCESS:** Collect all `gcs_uri` values from the designer's response
+   *   For each gcs_uri, call `display_image(gcs_uri=..., concept_name=...)` to render
+       images inline in the local developer UI. Call once per image, do not batch.
    *   Confirm: "✓ Design complete. I received [N] generated images with GCS URIs for all posts."
    *   Announce: "Now getting quality review..."
 
@@ -149,12 +151,14 @@ You do NOT create content yourself - you manage the specialists who do.
    *   Announce: "Compiling final campaign presentation..."
 
    **FINAL - Present Complete Campaign:**
+   *   Call `get_image_links` with ALL gcs_uri values collected in STEP 3.
    *   Compile all outputs with clear sections:
        - Market Research & Strategy
        - Social Media Posts
        - Visual Concepts
        - Quality Review
        - Project Timeline
+       - 📸 Generated Images (list each link from get_image_links as "[Concept Name](url)")
    *   Present complete campaign to user
 
 6. **Communication with User**

@@ -111,7 +111,7 @@ async def setup_notion_secrets(project_id: str) -> dict[str, str]:
     Creates each secret if it doesn't exist, then adds a new version.
 
     Returns:
-        {ENV_VAR_NAME: "projects/.../secrets/.../versions/latest"} for --set-secrets,
+        {ENV_VAR_NAME: "secret-id:latest"} for --set-secrets,
         or empty dict if Notion credentials are not configured.
     """
     notion_token = os.getenv("NOTION_TOKEN")
@@ -140,9 +140,7 @@ async def setup_notion_secrets(project_id: str) -> dict[str, str]:
         # Add new version with the credential value
         returncode, _, stderr = await _add_secret_version(secret_id, value, project_id)
         if returncode == 0:
-            secret_refs[env_var] = (
-                f"projects/{project_id}/secrets/{secret_id}/versions/latest"
-            )
+            secret_refs[env_var] = f"{secret_id}:latest"
             print(f"   ✓ {secret_id} stored in Secret Manager")
         else:
             print(f"   Warning: Could not store {secret_id}: {stderr.strip()}")
@@ -167,7 +165,7 @@ async def grant_pm_secret_access(project_id: str, secret_refs: dict[str, str]) -
     print(f"   Granting Secret Manager access to {sa_email}...")
 
     for _, secret_path in secret_refs.items():
-        secret_id = secret_path.split("/secrets/")[1].split("/versions/")[0]
+        secret_id = secret_path.split(":")[0]
         returncode, _, stderr = await run_command_async([
             "gcloud", "secrets", "add-iam-policy-binding", secret_id,
             f"--member=serviceAccount:{sa_email}",

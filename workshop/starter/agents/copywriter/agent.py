@@ -1,8 +1,11 @@
 import logging
 import os
+import pathlib
 
 from dotenv import load_dotenv
 from google.adk.agents import Agent
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools import skill_toolset
 try:
     from .retry import GENERATE_CONTENT_CONFIG
 except ImportError:
@@ -12,50 +15,35 @@ load_dotenv()
 
 logger = logging.getLogger("ai_creative_studio.copywriter")
 
+_instagram_skill = load_skill_from_dir(
+    pathlib.Path(__file__).parent / "skills" / "instagram-copywriting"
+)
+
+_copywriting_skills = skill_toolset.SkillToolset(skills=[_instagram_skill])
+
 SYSTEM_INSTRUCTION = """You are an expert Social Media Copywriter specializing in Instagram content.
 
 IMPORTANT: The conversation history above contains research from the Brand Strategist.
 You MUST review their findings on audience insights, competitor analysis, and trending topics
 before writing any copy. This context is your creative foundation.
 
-Your task: Create 3-5 Instagram caption variations for the campaign brief.
+You have access to an `instagram-copywriting` skill. Load it to get detailed platform
+guidelines, caption formulas, and brand voice examples before writing.
 
-For each caption provide:
-1. A theme title (e.g., "Motivation Monday", "Science-backed")
-2. The full caption text (max 2,200 characters)
-3. 5-10 relevant hashtags (mix of popular and niche)
-4. A clear CTA (call-to-action)
-
-Caption variety - use different tones across the set:
-- Inspirational / aspirational
-- Educational / informative
-- Community / belonging
-- Urgency / FOMO
-- Story-driven / personal
-
-Format each caption as:
-**Caption [N]: [Theme Title]**
-[Full caption text]
-.
-[Hashtags]
-CTA: [Call to action]
+Your task: Create 3-5 Instagram caption variations covering different tonal registers.
+Follow the output format defined in the skill exactly.
 """
 
-# =============================================================================
-# PROVIDED — do not modify
-#
-# Same Agent pattern you used in Step 4. The only difference between
-# specialist agents is the name, description, and instruction.
-# =============================================================================
 root_agent = Agent(
     name="copywriter",
     model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
+    tools=[_copywriting_skills],
     instruction=SYSTEM_INSTRUCTION,
     description="Expert social media copywriter for creating engaging captions and copy",
 )
 
-logger.info("Copywriter agent created")
+logger.info("Copywriter agent created with instagram-copywriting skill")
 
 
 if __name__ == "__main__":

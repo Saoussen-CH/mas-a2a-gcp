@@ -59,7 +59,7 @@
 </td><td colspan="1" rowspan="1"><p>Searches the web for audience insights, competitor analysis, and 2025 trends</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p><strong>Copywriter</strong></p>
-</td><td colspan="1" rowspan="1"><p>Writes Instagram captions with hashtags and CTAs based on the research</p>
+</td><td colspan="1" rowspan="1"><p>Writes Instagram captions with hashtags and CTAs - powered by an ADK Skill that loads platform guidelines and caption formulas on demand</p>
 </td></tr>
 <tr><td colspan="1" rowspan="1"><p><strong>Designer</strong></p>
 </td><td colspan="1" rowspan="1"><p>Creates visual concepts and generates real images via Gemini, stored in GCS</p>
@@ -430,7 +430,32 @@ INFO: Uvicorn running on http://localhost:8000
 <p><strong>Role:</strong> Turn brand research into Instagram captions. The Copywriter creates 3-5 caption variations covering different tones (inspirational, educational, community, urgency, story-driven), each with hashtags and a CTA.</p>
 <aside class="special"><p><strong>Key insight - no shared memory.</strong> The Copywriter has no idea what the Brand Strategist said unless the orchestrator explicitly passes that output as context. In a multi-agent workflow, the orchestrator is responsible for assembling and forwarding prior results. This is why the instruction says <em>&#34;the conversation history above contains research&#34;</em> - that context is injected by the Creative Director at runtime.</p>
 </aside>
-<p>Open <code>agents/copywriter/agent.py</code> to see the full instruction. The structure mirrors the Brand Strategist: <code>SYSTEM_INSTRUCTION</code> constant, then a single <code>Agent(...)</code> constructor.</p>
+<aside class="special"><p><strong>ADK Skills (experimental).</strong> The Copywriter uses <code>SkillToolset</code> - a feature introduced in ADK 1.25.0 that lets you package instructions and reference material into modular files loaded on demand, rather than embedding everything in the system prompt. This keeps the agent&#39;s operating context window lean: the skill&#39;s L2 instructions and L3 reference files are only fetched when the agent needs them.</p>
+<p>The skill lives in <code>agents/copywriter/skills/instagram-copywriting/</code>:</p>
+<pre><code language="language-text" class="language-text">skills/
+  instagram-copywriting/
+    SKILL.md                       ← L2: core methodology, tone matrix, output format
+    references/
+      platform-guide.md            ← L3: character limits, hashtag tiers, algorithm signals
+      caption-formulas.md          ← L3: hook formulas, CTA patterns, full caption structures
+    assets/
+      brand-voice-examples.md      ← L3: annotated real-world caption examples
+</code></pre>
+<p>In <code>agent.py</code>, the skill is loaded with two lines:</p>
+<pre><code language="language-python" class="language-python">from google.adk.skills import load_skill_from_dir
+from google.adk.tools import skill_toolset
+
+_instagram_skill = load_skill_from_dir(
+    pathlib.Path(__file__).parent / &#34;skills&#34; / &#34;instagram-copywriting&#34;
+)
+root_agent = Agent(
+    ...
+    tools=[skill_toolset.SkillToolset(skills=[_instagram_skill])],
+)
+</code></pre>
+<p>The system instruction shrinks to a short role statement plus &#34;load the skill before writing&#34;. The platform knowledge, caption formulas, and brand voice examples are only pulled into context when the agent triggers the skill.</p>
+</aside>
+<p>Open <code>agents/copywriter/agent.py</code> and <code>agents/copywriter/skills/instagram-copywriting/SKILL.md</code> to see how the skill is structured and wired.</p>
 <p><strong>Try it:</strong> Switch the dropdown to <strong><code>copywriter</code></strong> and send:</p>
 <pre><code>You are writing captions for EcoFlow Smart Water Bottle targeting health-conscious millennials aged 25-35.
 Audience insight: they prioritize sustainability, track health metrics, and share lifestyle content.

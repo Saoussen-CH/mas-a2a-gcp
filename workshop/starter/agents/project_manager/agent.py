@@ -40,6 +40,10 @@ Property rules:
 
 If any Notion call fails, continue — the text timeline is always the primary deliverable.
 Write your complete response AFTER all Notion operations are done (or have failed).
+
+If image HTTPS links are provided in the input (under "Generated Images" from the Creative
+Director), add them to the Notion project page body as a bulleted list under a
+"Generated Images" heading after creating the project page.
 """
         if project_database_id
         else ""
