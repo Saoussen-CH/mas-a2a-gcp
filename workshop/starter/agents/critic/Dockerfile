@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy pyproject.toml first for better layer caching
+COPY pyproject.toml .
 
-# Install Python dependencies with uv
-RUN uv pip install --system --no-cache -r requirements.txt
+# Install Python dependencies
+RUN uv sync --no-install-project --no-dev
 
 # Copy application code
 COPY . .
@@ -35,5 +35,5 @@ ENV HOST=0.0.0.0
 # Expose the port Cloud Run will use
 EXPOSE 8080
 
-# Run the A2A server (inline in agent.py)
-CMD ["python", "agent.py"]
+# Run the A2A server
+CMD ["uv", "run", "python", "agent.py"]

@@ -73,9 +73,9 @@ runs on **Agent Runtime** and connects to each specialist remotely.
 > instructions [here](https://codelabs.developers.google.com/codelabs/cloud-codelab-credits) to activate the credit and
 > create a new project.
 
-## Setup Cloud Shell
+## Set Up Your Environment
 
-Duration: 05:00
+Duration: 07:00
 
 For this codelab, we'll use Cloud Shell.
 
@@ -99,31 +99,6 @@ Then click **Authorize** to allow Cloud Shell to make Google Cloud API calls:
 Cloud Shell is now ready. You'll see a welcome message in the terminal:
 
 ![Cloud Shell terminal ready](diagrams/wksp4.jpg)
-
-When you clicked "Open in Cloud Shell", it opened two panels:
-
-```text
-┌──────────────────────────────────────────────────────┐
-│  Cloud Shell Editor  (top panel)                     │
-│  • File tree on the left                             │
-│  • Open files as tabs                                │
-│  • Use cloudshell edit <file>  to open a file here  │
-├──────────────────────────────────────────────────────┤
-│  Terminal  (bottom panel)                            │
-│  • Run all commands here                             │
-│  • Pre-authenticated with your Google account        │
-└──────────────────────────────────────────────────────┘
-```
-
-**Web Preview** - used later when running `adk web` to test agents in the browser:
-
-```text
-Cloud Shell toolbar (top-right):
-  ⋮  [Open Editor]  [Web Preview ↗]  [Settings]
-                           │
-                           └─► "Preview on port 8000"
-                               Opens the agent UI in a new browser tab
-```
 
 > aside negative
 > 
@@ -195,19 +170,17 @@ Credentials saved to file: ~/.config/gcloud/application_default_credentials.json
 > with `service account info is missing 'email' field`.
 
 
-## Clone the starter repository
-
-Duration: 02:00
+### Clone the starter repository
 
 This codelab uses a **starter repository** - a skeleton project with all the infrastructure in place (Dockerfiles,
-requirements, deploy scripts) but with the agent logic left for you to write.
+pyproject.toml, deploy scripts) but with the agent logic left for you to write.
 
 ```bash
-git clone -b workshop/colab https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git ~/ai-creative-studio
+git clone -b feature/copywriter-skills https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git ~/ai-creative-studio
 cd ~/ai-creative-studio/workshop/starter
 ```
 
-Each `agent.py` contains `# TODO` placeholders where you will write the agent logic. The `Dockerfile`, `requirements.txt`, and deploy scripts are already complete.
+Each `agent.py` contains `# TODO` placeholders where you will write the agent logic. The `Dockerfile`, `pyproject.toml`, and deploy scripts are already complete.
 
 ### Configure environment variables
 
@@ -262,6 +235,33 @@ Confirm the project was set correctly:
 ```bash
 grep GOOGLE_CLOUD_PROJECT .env
 ```
+
+### Install dependencies
+
+We use [`uv`](https://docs.astral.sh/uv/) - a fast, modern Python package manager that handles virtual environments and installs in a single tool. It's ~10-100x faster than `pip` and is the recommended way to manage Python projects.
+
+Cloud Shell already has `uv` installed. All agents share the same core dependencies, so **install once** and it works for every agent in this codelab:
+
+```bash
+cd ~/ai-creative-studio/workshop/starter
+uv venv
+source .venv/bin/activate
+uv pip install \
+    "google-adk[a2a]==1.31.1" \
+    "google-genai>=1.51.0" \
+    "uvicorn[standard]>=0.25.0" \
+    "python-dotenv>=1.0.0" \
+    "google-cloud-storage>=2.10.0" \
+    "pydantic>=2.0.0"
+```
+
+The `uv venv` command creates a `.venv/` directory next to your code. Each specialist also has its own `pyproject.toml` used exclusively by Docker builds - the shared install above covers everything you need for local testing.
+
+> aside positive
+>
+> **No manual activation needed.** All commands in this codelab use `uv run`, which automatically activates the
+> `.venv` in `~/ai-creative-studio/workshop/starter/`. Just `cd` to the `starter` directory and prefix your command
+> with `uv run`.
 
 ## Understand Google ADK
 
@@ -332,14 +332,9 @@ User message
 The LLM decides autonomously whether to call a tool, which tool, and with what arguments. You write the instruction -
 ADK handles the rest.
 
-> aside positive
->
-> You'll build all 5 specialist agents in the next steps and you'll expose them as A2A services. Then, you'll build the
-> Creative Director orchestrator that connects them all.
+## Build and Test the Brand Strategist agent
 
-## Build the Brand Strategist agent
-
-Duration: 05:00
+Duration: 08:00
 
 Let's start with the first agent: The Brand Strategist. This is a research only agent to search for target audience
 insights, competitor analysis, and trending topics using Google Search. 
@@ -356,24 +351,6 @@ You'll see two `# TODO` sections for you to fill them in.
 
 First, you'll write the system instruction for the agent. The system instruction is a string that defines the agent's
 role, constraints, and output format. 
-
-In this case, the Brand Strategist is a research only agent. It should:
-- Search for target audience insights using Google Search
-- Analyze 2-3 competitor brands
-- Identify 3-5 trending topics in the product category
-- Return structured output with sections:
-    **Audience Insights:** ...
-    **Competitive Analysis:** ...
-    **Trending Topics:** ...
-    **Key Strategic Insights:** ...
-
-Important constraints to include in the instruction:
-- DO NOT create captions, copy, or designs
-- RESEARCH ONLY - the Creative Director coordinates next steps
-- Always include the current year in search queries
-- Today's date is: {datetime.date.today().strftime("%B %d, %Y")}
-
-Try to come up with a system instruction that meets these requirements. If you get stuck, here's an example:
 
 ```python
 SYSTEM_INSTRUCTION = f"""You are a Brand Strategist specializing in market research and trend analysis.
@@ -431,42 +408,9 @@ root_agent = Agent(
 )
 ```
 
-> aside positive
-> 
-> **Why research only?**
-> Keeping each agent strictly scoped prevents scope creep. If the Brand Strategist started writing copy too, the
-> Copywriter would receive redundant input and produce inconsistent output. Clear boundaries make the whole system
-> more predictable.
+### Test locally with ADK web UI
 
-## Test the Brand Strategist locally
-
-Duration: 03:00
-
-Before deploying the agent to cloud, let's test the Brand Strategist agent locally using the **ADK web UI** - a built-in
-chat interface for testing agents.
-
-### Create a virtual environment and install dependencies
-
-We use [`uv`](https://docs.astral.sh/uv/) - a fast, modern Python package manager that handles virtual environments and installs in a single tool. It's ~10-100x faster than `pip` and is the recommended way to manage Python projects.
-
-Cloud Shell already has `uv` installed. All agents share the same dependencies, so **install once** and it works for every agent in this codelab:
-
-```bash
-cd ~/ai-creative-studio/workshop/starter
-uv venv
-source .venv/bin/activate
-uv pip install -r agents/brand_strategist/requirements.txt
-```
-
-The `uv venv` command creates a `.venv/` directory next to your code. `uv pip install` works exactly like `pip install` but is much faster.
-
-> aside positive
-> 
-> **No manual activation needed.** All commands in this codelab use `uv run`, which automatically activates the
-> `.venv` in `~/ai-creative-studio/workshop/starter/`. Just `cd` to the `starter` directory and prefix your command
-> with `uv run`.
-
-### Start the ADK web UI
+Now let's test the agent using the **ADK web UI** - a built-in chat interface for testing agents before deploying to cloud.
 
 ```bash
 uv run adk web agents --allow_origins='*'
@@ -519,76 +463,57 @@ In the ADK web UI chat box, try:
 
 You should see the agent call Google Search and return structured research with Audience Insights, Competitive Analysis, and Trending Topics sections.
 
-## Meet the Copywriter, Designer, and Critic
+## Meet the Copywriter - ADK Skills
 
-Duration: 10:00
-
-These three specialists follow the same ADK pattern as the Brand Strategist - one `Agent`, one model, one system
-instruction - and they're already complete in the starter. There are no TODOs to fill in here. Instead, this step
-is about **understanding what each agent does and watching it work in isolation** before they're wired together by
-the Creative Director.
-
-Each section below has the same shape:
-1. A short description of the agent's role.
-2. The key insight that shapes its system instruction.
-3. A test prompt you can paste into the ADK web UI to see the agent respond.
-
-Keep the ADK web UI running from the previous step. Use the **agent dropdown** in the top-left to switch between agents without restarting the server.
-
-Open **Web Preview -> port 8000** if you closed it.
-
-### Copywriter
+Duration: 03:00
 
 **Role:** Turn brand research into Instagram captions. The Copywriter creates 3-5 caption variations covering
 different tones (inspirational, educational, community, urgency, story-driven), each with hashtags and a CTA.
 
-> aside positive
->
-> **Key insight - no shared memory.** The Copywriter has no idea what the Brand Strategist said unless the orchestrator
-> explicitly passes that output as context. In a multi-agent workflow, the orchestrator is responsible for assembling
-> and forwarding prior results. This is why the instruction says *"the conversation history above contains research"* -
-> that context is injected by the Creative Director at runtime.
+These three specialist agents are already complete in the starter - no TODOs here. Each one introduces a new concept
+worth understanding before you wire them together. Keep the ADK web UI running and use the **agent dropdown** in the
+top-left to switch agents without restarting the server. Open **Web Preview - port 8000** if you closed it.
 
-> aside positive
->
-> **ADK Skills (experimental).** The Copywriter uses `SkillToolset` - a feature introduced in ADK 1.25.0 that lets you
-> package instructions and reference material into modular files loaded on demand, rather than embedding everything
-> in the system prompt. This keeps the agent's operating context window lean: the skill's L2 instructions and L3
-> reference files are only fetched when the agent needs them.
->
-> The skill lives in `agents/copywriter/skills/instagram-copywriting/`:
->
-> ```text
-> skills/
->   instagram-copywriting/
->     SKILL.md                       ← L2: core methodology, tone matrix, output format
->     references/
->       platform-guide.md            ← L3: character limits, hashtag tiers, algorithm signals
->       caption-formulas.md          ← L3: hook formulas, CTA patterns, full caption structures
->     assets/
->       brand-voice-examples.md      ← L3: annotated real-world caption examples
-> ```
->
-> In `agent.py`, the skill is loaded with two lines:
->
-> ```python
-> from google.adk.skills import load_skill_from_dir
-> from google.adk.tools import skill_toolset
->
-> _instagram_skill = load_skill_from_dir(
->     pathlib.Path(__file__).parent / "skills" / "instagram-copywriting"
-> )
-> root_agent = Agent(
->     ...
->     tools=[skill_toolset.SkillToolset(skills=[_instagram_skill])],
-> )
-> ```
->
-> The system instruction shrinks to a short role statement plus "load the skill before writing". The platform
-> knowledge, caption formulas, and brand voice examples are only pulled into context when the agent triggers the skill.
+### Concept: ADK Skills
 
-Open `agents/copywriter/agent.py` and `agents/copywriter/skills/instagram-copywriting/SKILL.md` to see how
-the skill is structured and wired.
+A naive approach would embed all platform knowledge - character limits, hashtag tiers, caption formulas, brand voice
+examples - directly in the system prompt. That works, but bloats every request with content the agent only needs
+occasionally.
+
+**ADK Skills** (`SkillToolset`, introduced in ADK 1.25.0) let you package that knowledge into modular files loaded
+on demand. The system instruction shrinks to a short role statement plus "load the skill before writing". The L2
+methodology and L3 reference files are only pulled into context when the agent triggers the skill.
+
+The Copywriter's skill lives in `agents/copywriter/skills/instagram-copywriting/`:
+
+```text
+skills/
+  instagram-copywriting/
+    SKILL.md                       ← L2: core methodology, tone matrix, output format
+    references/
+      platform-guide.md            ← L3: character limits, hashtag tiers, algorithm signals
+      caption-formulas.md          ← L3: hook formulas, CTA patterns, full caption structures
+    assets/
+      brand-voice-examples.md      ← L3: annotated real-world caption examples
+```
+
+In `agent.py`, the skill is wired with two lines:
+
+```python
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools import skill_toolset
+
+_instagram_skill = load_skill_from_dir(
+    pathlib.Path(__file__).parent / "skills" / "instagram-copywriting"
+)
+root_agent = Agent(
+    ...
+    tools=[skill_toolset.SkillToolset(skills=[_instagram_skill])],
+)
+```
+
+Open `agents/copywriter/agent.py` and `agents/copywriter/skills/instagram-copywriting/SKILL.md` to see how the skill
+is structured and wired.
 
 **Try it:** Switch the dropdown to **`copywriter`** and send:
 
@@ -599,23 +524,46 @@ Competitor insight: Hydro Flask dominates with lifestyle branding; S'well leads 
 Write 3 Instagram captions - one inspirational, one educational, one community-focused. Include 5 hashtags each and a CTA.
 ```
 
-Notice you had to paste the audience and competitor insights manually - because the Copywriter has no memory of what
-other agents produced. That's the same job the Creative Director will do automatically once we wire everything
-together.
+> aside positive
+>
+> **No shared memory.** Notice you had to paste the audience and competitor insights manually - the Copywriter has no
+> idea what the Brand Strategist produced unless the orchestrator explicitly forwards it. In a multi-agent workflow,
+> context passing is entirely the orchestrator's responsibility. That's the Creative Director's job, which you'll build
+> next.
 
-### Designer
+## Meet the Designer - Multimodal Image Generation
+
+Duration: 03:00
 
 **Role:** Create visual concepts for each caption and generate the actual images using Gemini native image generation.
 The Designer outputs 2-3 visual concepts per caption - each with a detailed prompt, style, color palette, mood, and
 Instagram format - then calls the `generate_image` tool to produce a real image and upload it to GCS.
 
-> aside positive
->
-> **Key insight - real images via a tool.** The Designer agent (running on the text model) writes the visual concept
-> and calls `generate_image`, which uses `gemini-3.1-flash-image-preview` to generate the image and uploads it to GCS.
-> The agent receives back a `gcs_uri` and includes it in its response. This is why the tool lives in a separate file
-> (`image_gen_tool.py`) - the image model can't be used directly as an ADK agent because it doesn't support function
-> calling, so it's invoked as a plain Python function instead.
+### Concept: Bridging a text agent with an image model via a tool
+
+The Designer runs on the standard text model (`gemini-2.5-flash`), but image generation requires a dedicated model
+(`gemini-3.1-flash-image-preview`). That image model doesn't support function calling, so it can't be used directly
+as an ADK agent. Instead, it's wrapped in a plain Python function and registered as a `FunctionTool`.
+
+This is the pattern for any model or API that the LLM can't call directly: wrap it in a tool, let the agent
+orchestrate when to call it, and get a structured result back.
+
+```text
+Designer agent (text model)
+        │
+        │  decides visual concept, writes image prompt
+        ▼
+  generate_image tool
+        │
+        │  calls gemini-3.1-flash-image-preview
+        │  uploads result to GCS
+        ▼
+  {"status": "success", "gcs_uri": "gs://..."}
+        │
+        │  returned to agent, included in response
+        ▼
+  Critic (receives gcs_uri, passes to Vertex AI for multimodal review)
+```
 
 Open `agents/designer/agent.py` and `agents/designer/image_gen_tool.py` to see the full implementation.
 
@@ -628,30 +576,39 @@ Style: clean, modern, lifestyle-focused. Include prompts with color palette, moo
 
 > aside negative
 >
-> **Local test note:** The ADK web UI runs agents with your local credentials but `GCS_IMAGES_BUCKET` must be set in
-> your `.env` for image generation to work. If the tool returns `GCS_IMAGES_BUCKET env var not set`, source your `.env`
-> first: `source .env` then restart the server. In the local test the agent will still show you the full concept - the
-> `generate_image` tool call either succeeds with a `gcs_uri` or returns an error you can read inline.
+> **Local test note:** `GCS_IMAGES_BUCKET` must be set in your `.env` for image generation to work. If the tool
+> returns `GCS_IMAGES_BUCKET env var not set`, run `source .env` then restart the server. The agent will still return
+> the full visual concept - the `generate_image` call either succeeds with a `gcs_uri` or returns an error inline.
 
-### Critic - structured output is critical
+> aside positive
+>
+> **Images appear inline in `adk web`.** After uploading to GCS, `generate_image` also saves the image bytes as an
+> ADK artifact via `tool_context.save_artifact(...)`. The `adk web` server uses an in-memory artifact service that
+> renders these as thumbnails directly in the chat UI. On Cloud Run there is no artifact service, so the call raises
+> `ValueError`, which the tool catches and ignores - the `gcs_uri` is always returned regardless.
+
+## Meet the Critic - Structured Output
+
+Duration: 04:00
 
 **Role:** Quality-assure copy and visuals before they're handed to the Project Manager. The Critic scores both
 deliverables and returns `APPROVED` or `NEEDS_REVISION` with specific suggestions. When `gcs_uri` values are present
 in the input, it calls the `review_image` tool to visually inspect each generated image before scoring.
 
+### Concept: Rigid output format as a machine-readable contract
+
+Most agent outputs are free-form prose read by a human. The Critic's output is different: the Creative Director
+reads it programmatically to decide whether to trigger a revision loop. That makes the format a contract.
+
 > aside negative
 >
-> **Key insight - the orchestrator parses this response programmatically.** The Creative Director reads the Critic's
-> output character-by-character to decide whether to trigger a revision loop. If the format drifts, the revision logic
-> breaks. The words `APPROVED` and `NEEDS_REVISION` must appear exactly, in the exact section headers shown below.
+> **The orchestrator parses this response as structured text.** The Creative Director reads the Critic's output and
+> looks for exact strings - `APPROVED`, `NEEDS_REVISION`, `All Approved: YES`. If the format drifts, the revision
+> logic breaks silently. There is no Python regex or JSON parser here - the LLM in the Creative Director follows its
+> instruction, which says "look for these exact strings". This is why the Critic format is non-negotiable.
 
-> aside positive
->
-> **Multimodal review via GCS.** The `review_image` tool in `image_review_tool.py` takes a `gs://` URI and uses
-> `Part.from_uri()` to pass the image to Gemini. Vertex AI fetches the image from GCS server-side - the Critic
-> container never downloads it directly, so no Cloud Storage credentials are needed on the Critic service.
-
-Open `agents/critic/agent.py` and `agents/critic/image_review_tool.py`. Notice how rigid the format is:
+Open `agents/critic/agent.py` and `agents/critic/image_review_tool.py`. The output format is enforced in the system
+instruction:
 
 ```text
 **POSTS REVIEW:**
@@ -660,16 +617,23 @@ Open `agents/critic/agent.py` and `agents/critic/image_review_tool.py`. Notice h
 ...
 
 **VISUALS REVIEW:**
-- Score: X/10
-- Status: APPROVED or NEEDS_REVISION
+- Score: X/10 or N/A
+- Status: APPROVED or NEEDS_REVISION or NOT_REVIEWED
 ...
 
 **OVERALL ASSESSMENT:**
 - All Approved: YES or NO
 ```
 
-The scoring rubric is explicit: 9-10 and 7-8 = APPROVED, 5-6 and 1-4 = NEEDS_REVISION. This deterministic mapping is
-what makes the orchestrator's quality control loop reliable.
+The scoring rubric maps scores to decisions deterministically: 9-10 and 7-8 = APPROVED, 5-6 and 1-4 = NEEDS_REVISION.
+When no images are provided, `VISUALS REVIEW` uses `NOT_REVIEWED` (treated as approved) so the revision loop still
+works in text-only runs.
+
+> aside positive
+>
+> **Multimodal review via GCS.** The `review_image` tool takes a `gs://` URI and uses `Part.from_uri()` to pass the
+> image to Gemini. Vertex AI fetches the image server-side - the Critic container never downloads it directly, so no
+> Cloud Storage credentials are needed on the Critic service.
 
 **Try it:** Switch the dropdown to **`critic`** and send:
 
@@ -682,14 +646,11 @@ Score it and indicate APPROVED or NEEDS_REVISION with specific feedback.
 Verify the response contains `**POSTS REVIEW:**`, `Status: APPROVED` (or `NEEDS_REVISION`), and `**OVERALL ASSESSMENT:**`.
 If those sections are present, the Critic is ready to plug into the orchestrator.
 
-When you're done testing all three, press `Ctrl+C` to stop the server.
-
-> aside positive
-> 
-> Each agent works in isolation at this stage - it has no awareness of the other agents' outputs. Context passing
-> between agents is the Creative Director's job, which you'll build in Step 9.
+When you're done testing all three agents, press `Ctrl+C` to stop the server.
 
 ## Build the Project Manager Agent with MCP
+
+Duration: 15:00
 
 The Project Manager introduces a new concept: **MCP (Model Context Protocol)**.
 
@@ -772,43 +733,6 @@ The MCP server runs as a **child process** of the agent, communicating over stdi
 - Lifecycle is managed by the agent (started on demand, stopped on exit)
 - Everything ships in one Docker image - no separate service to deploy
 
-### Three ways to use MCP
-
-MCP is not just for Notion. The pattern generalizes to any external system. There are three common architectural approaches:
-
-**Pattern 1 - External API bridge**
-
-Use this when you need to connect to a third-party API you don't control (payment processors, logistics APIs, banking systems). You write a custom MCP server that acts as a bridge: it translates the LLM's tool calls into the specific format the external API expects, handles authentication, and returns a clean response.
-
-```text
-Agent → MCP bridge server → FedEx API
-                          → Stripe API
-                          → Any external API
-```
-
-**Pattern 2 - General functions server**
-
-Use this when multiple agents need the same business logic (pricing calculations, eligibility checks, data validation, report formatting). Instead of duplicating the logic in every agent, you build one MCP server that hosts the functions. All agents call the same service - update the logic once and every agent picks it up.
-
-```text
-Sales Agent   ─┐
-Support Agent ─┼─→ MCP functions server → calculate_price()
-Billing Agent ─┘                        → check_eligibility()
-```
-
-**Pattern 3 - Database toolbox (what we use here)**
-
-Use this when an agent needs access to a database or structured data store but should never have raw SQL or direct API credentials. You configure a declarative MCP server that exposes predefined, safe operations. The agent calls named tools like `create_project` or `look_up_customer` - it never sees the underlying query or credentials.
-
-```text
-Project Manager → Notion MCP server → API-post-page()
-                                     → API-retrieve-a-database()
-                                     → API-post-database-query()
-```
-
-This is the pattern we use for Notion. The official `@notionhq/notion-mcp-server` package does the database access. Our agent never handles the Notion API key or writes raw API calls - the MCP server manages everything.
-
----
 
 ### (Optional) Enable Notion Integration
 
@@ -1136,36 +1060,6 @@ uvicorn.run(a2a_app, host=HOST, port=PORT)
 This automatically creates:
 - `/.well-known/agent.json` - the agent card
 - `/` - the JSON-RPC endpoint (all A2A task requests go to the root path)
-
-
-### A2A vs MCP - what's the difference?
-
-This is a common point of confusion. Here's the key distinction:
-
-| | A2A | MCP |
-|---|---|---|
-| What connects | Agent ↔ Agent | Agent ↔ External tool/service |
-| The other side is | Another LLM agent | An API wrapper (no LLM) |
-| Example | Creative Director calls Brand Strategist | Project Manager calls Notion API |
-| Protocol | JSON-RPC over HTTPS | stdio or HTTP stream |
-
-Think of it this way:
-- A2A = how agents talk to other agents
-- MCP = how agents talk to tools and services
-
-In this project both are used together:
-
-```text
-Creative Director
-    │
-    │  (A2A)  Brand Strategist ─── (google_search tool built into ADK)
-    │  (A2A)  Copywriter
-    │  (A2A)  Designer
-    │  (A2A)  Critic
-    │  (A2A)  Project Manager
-                   │
-                   │  (MCP)  notion-mcp-server ──► Notion REST API
-```
 
 ## Expose agents as A2A services
 
@@ -1795,9 +1689,9 @@ Stop the Creative Director (`Ctrl+C`) before proceeding - the A2A inspector also
 
 Stop the 5 specialist servers (`Ctrl+C` in each terminal) when done with local testing.
 
-## Deploy agents to Cloud Run
+## Deploy and Test the Specialist Agents
 
-Duration: 8:00
+Duration: 13:00
 
 We're now ready to deploy our agents to Google Cloud. Cloud Run is a great service to deploy agents to. It's serverless,
 scalable, and easy to use. Each specialist agent is deployed as an independent Cloud Run service.
@@ -1813,8 +1707,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc curl
 
 # Fast dependency install with uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-COPY requirements.txt .
-RUN uv pip install --system --no-cache -r requirements.txt
+COPY pyproject.toml .
+RUN uv sync --no-install-project --no-dev
 
 COPY . .
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
@@ -1822,7 +1716,7 @@ USER appuser
 
 ENV PYTHONUNBUFFERED=1 PORT=8080 HOST=0.0.0.0
 EXPOSE 8080
-CMD ["python", "agent.py"]
+CMD ["uv", "run", "python", "agent.py"]
 ```
 
 ### Deploy all 5 specialists sequentially
@@ -1846,23 +1740,10 @@ injects them into the Project Manager service via `--set-secrets` rather than pl
 variables. This means the token never appears in Cloud Run's environment tab or in `gcloud`
 command history.
 
-### What gets deployed per service
-
-```bash
-# Each service is deployed with these env vars:
-gcloud run deploy brand-strategist \
-    --source agents/brand_strategist \
-    --region us-central1 \
-    --allow-unauthenticated \
-    --set-env-vars "GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID},PROTOCOL=https,PUBLIC_PORT=443"
-```
-
-The `PROTOCOL=https` and `PUBLIC_PORT=443` tell the agent to advertise its Cloud Run HTTPS URL in its agent card.
-
 > aside negative
-> 
-> **Note:** `--allow-unauthenticated` makes the services publicly accessible without a token. This is intentional for
-> this workshop. For production, remove this flag and add IAM-based authentication.
+>
+> **Note:** The deploy script uses `--allow-unauthenticated`, making each service publicly accessible without a token.
+> This is intentional for this workshop. For production, remove this flag and add IAM-based authentication.
 
 ### Verify deployments
 
@@ -1880,11 +1761,7 @@ echo "  Critic:           $CRITIC_AGENT_URL"
 echo "  Project Manager:  $PM_AGENT_URL"
 ```
 
-The Creative Director will automatically use these Cloud Run URLs when deployed to Agent Runtime in Step 13.
-
-## Test and verify deployed agents
-
-Duration: 5:00
+The Creative Director will automatically use these Cloud Run URLs when deployed to Agent Runtime in the next step.
 
 ### Verify agent cards
 
@@ -1959,24 +1836,6 @@ has different requirements:
 | **Long-running workflows** | Cloud Run has a 3600s request timeout. Agent Runtime is designed for workflows that can take minutes, with managed retries and state persistence. |
 
 Cloud Run is the right platform for stateless specialists. Agent Runtime is the right platform for the stateful orchestrator.
-
-
-### Verify agent URLs before deploying
-
-All 5 specialist URLs must be set before the orchestrator can connect to them:
-
-```bash
-source .env
-
-for var in STRATEGIST_AGENT_URL COPYWRITER_AGENT_URL DESIGNER_AGENT_URL CRITIC_AGENT_URL PM_AGENT_URL; do
-    val=$(eval echo "\$$var")
-    if [ -z "$val" ]; then
-        echo "MISSING: $var - complete Step 11 first"
-    else
-        echo "OK: $var"
-    fi
-done
-```
 
 ### Deploy the orchestrator
 
@@ -2097,7 +1956,7 @@ The Creative Director will execute all 5 agents in sequence:
 5. *(Revision if needed)* → Copywriter or Designer called again with feedback
 6. **Project Manager** → 2-week timeline, task breakdown, budget allocation
 
-![Demo: End-to-End Campaign Run](diagrams/recording-notion.gif)
+![Demo: Campaign run with Notion integration](diagrams/recording-notion.gif)
 
 ### Test single-agent routing
 
@@ -2132,6 +1991,8 @@ python3 run_campaign.py
 
 ## Clean Up
 
+Duration: 02:00
+
 Clean up Google Cloud resources to avoid ongoing charges.
 
 Run the teardown script - it reads your `.env` and deletes everything created during this codelab:
@@ -2147,7 +2008,8 @@ The script will show you exactly what it will delete and prompt for confirmation
 | Cloud Run services | brand-strategist, copywriter, designer, critic, project-manager |
 | Agent Runtime | Creative Director reasoning engine + all sessions |
 | Artifact Registry | `cloud-run-source-deploy` repository + all Docker images |
-| GCS buckets | `{PROJECT_ID}-agent-staging`, `run-sources-{PROJECT_ID}-{REGION}` |
+| GCS buckets | `{PROJECT_ID}-campaign-images`, `{PROJECT_ID}-agent-staging`, `run-sources-{PROJECT_ID}-{REGION}` |
+| Secret Manager | `notion-token`, `notion-project-db-id`, `notion-tasks-db-id` (skipped if not created) |
 
 ### Verify everything is removed
 

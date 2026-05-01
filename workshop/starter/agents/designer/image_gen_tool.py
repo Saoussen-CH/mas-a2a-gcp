@@ -4,10 +4,16 @@ import os
 import uuid
 
 from google import genai
+from google.adk.tools import ToolContext
 from google.genai import types
 
 
-def generate_image(concept_name: str, image_prompt: str, aspect_ratio: str = "1:1") -> dict:
+async def generate_image(
+    concept_name: str,
+    image_prompt: str,
+    aspect_ratio: str,
+    tool_context: ToolContext,
+) -> dict:
     """
     Generate an image with Gemini native image generation and upload it to GCS.
 
@@ -71,8 +77,17 @@ def generate_image(concept_name: str, image_prompt: str, aspect_ratio: str = "1:
         blob_name = f"campaign-images/{concept_name}-{uuid.uuid4().hex[:8]}.{ext}"
         blob = bucket.blob(blob_name)
         blob.upload_from_file(io.BytesIO(image_bytes), content_type=mime_type)
-
         gcs_uri = f"gs://{bucket_name}/{blob_name}"
+
+        # Save as ADK artifact so adk web renders the image inline when testing
+        # the Designer directly. Silently skipped when no artifact service is
+        # configured (e.g. Cloud Run deployment).
+        try:
+            artifact = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+            await tool_context.save_artifact(f"{concept_name}.{ext}", artifact)
+        except ValueError:
+            pass
+
         return {"status": "success", "gcs_uri": gcs_uri, "concept_name": concept_name}
 
     except Exception as e:

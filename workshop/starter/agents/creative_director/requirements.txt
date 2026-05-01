@@ -1,4 +1,0 @@
-google-genai>=1.51.0
-google-adk[a2a]==1.31.1
-python-dotenv>=1.0.0
-google-cloud-storage>=2.10.0

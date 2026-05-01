@@ -4,31 +4,21 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including Node.js for MCP
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# Install system dependencies
 # hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Notion MCP server globally and clean npm cache
-RUN npm install -g @notionhq/notion-mcp-server@1.9.1 \
-    && npm cache clean --force
-
-# Ensure npm global bin is on PATH
-ENV PATH="/usr/local/bin:${PATH}"
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy pyproject.toml first for better layer caching
+COPY pyproject.toml .
 
-# Install Python dependencies with uv
-RUN uv pip install --system --no-cache -r requirements.txt
+# Install Python dependencies
+RUN uv sync --no-install-project --no-dev
 
 # Copy application code
 COPY . .
@@ -46,4 +36,4 @@ ENV HOST=0.0.0.0
 EXPOSE 8080
 
 # Run the A2A server
-CMD ["python", "agent.py"]
+CMD ["uv", "run", "python", "agent.py"]

@@ -37,6 +37,15 @@ The tool returns structured fields: `score`, `approval_status`, `what_works`, `i
 all concepts (use the lowest score and NEEDS_REVISION if any concept needs revision).
 Call `review_image` once per image.
 
+NO IMAGES PROVIDED:
+If the input contains no `gcs_uri` values, write the VISUALS REVIEW section as:
+- Score: N/A
+- Status: NOT_REVIEWED
+- What Works: No images provided for review.
+- Issues: None
+- Suggestions: None
+Treat NOT_REVIEWED as approved when computing All Approved.
+
 Required output format - use this EXACTLY:
 
 **POSTS REVIEW:**
@@ -47,11 +56,11 @@ Required output format - use this EXACTLY:
 - Suggestions: [concrete improvements if NEEDS_REVISION]
 
 **VISUALS REVIEW:**
-- Score: [X/10]
-- Status: [APPROVED or NEEDS_REVISION]
-- What Works: [specific visual strengths from actual image review]
-- Issues: [specific problems if any]
-- Suggestions: [concrete improvements if NEEDS_REVISION]
+- Score: [X/10 or N/A]
+- Status: [APPROVED or NEEDS_REVISION or NOT_REVIEWED]
+- What Works: [specific visual strengths from actual image review, or "No images provided for review."]
+- Issues: [specific problems if any, or "None"]
+- Suggestions: [concrete improvements if NEEDS_REVISION, or "None"]
 
 **OVERALL ASSESSMENT:**
 - All Approved: [YES or NO]
