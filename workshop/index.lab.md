@@ -465,16 +465,12 @@ In the ADK web UI chat box, try:
 
 You should see the agent call Google Search and return structured research with Audience Insights, Competitive Analysis, and Trending Topics sections.
 
-## Meet the Copywriter - ADK Skills
+## Build the Copywriter - ADK Skills
 
 Duration: 03:00
 
 **Role:** Turn brand research into Instagram captions. The Copywriter creates 3-5 caption variations covering
 different tones (inspirational, educational, community, urgency, story-driven), each with hashtags and a CTA.
-
-These three specialist agents are already complete in the starter - no TODOs here. Each one introduces a new concept
-worth understanding before you wire them together. Keep the ADK web UI running and use the **agent dropdown** in the
-top-left to switch agents without restarting the server. Open **Web Preview - port 8000** if you closed it.
 
 ### Concept: ADK Skills
 
@@ -499,7 +495,9 @@ skills/
       brand-voice-examples.md      ← L3: annotated real-world caption examples
 ```
 
-In `agent.py`, the skill is wired with two lines:
+### TODO - Wire the ADK Skill
+
+Open `agents/copywriter/agent.py`. Find the three `# TODO` comments and fill them in:
 
 ```python
 from google.adk.skills import load_skill_from_dir
@@ -508,14 +506,15 @@ from google.adk.tools import skill_toolset
 _instagram_skill = load_skill_from_dir(
     pathlib.Path(__file__).parent / "skills" / "instagram-copywriting"
 )
+_copywriting_skills = skill_toolset.SkillToolset(skills=[_instagram_skill])
+
 root_agent = Agent(
     ...
-    tools=[skill_toolset.SkillToolset(skills=[_instagram_skill])],
+    tools=[_copywriting_skills],
 )
 ```
 
-Open `agents/copywriter/agent.py` and `agents/copywriter/skills/instagram-copywriting/SKILL.md` to see how the skill
-is structured and wired.
+Open `agents/copywriter/skills/instagram-copywriting/SKILL.md` to see how the skill content is structured.
 
 **Try it:** Switch the dropdown to **`copywriter`** and send:
 
@@ -533,9 +532,11 @@ Write 3 Instagram captions - one inspirational, one educational, one community-f
 > context passing is entirely the orchestrator's responsibility. That's the Creative Director's job, which you'll build
 > next.
 
-## Meet the Designer - Multimodal Image Generation
+## Build the Designer - Multimodal Image Generation
 
-Duration: 03:00
+Duration: 05:00
+
+Keep the ADK web UI running. Use the **agent dropdown** to switch agents without restarting the server.
 
 **Role:** Create visual concepts for each caption and generate the actual images using Gemini native image generation.
 The Designer outputs 2-3 visual concepts per caption - each with a detailed prompt, style, color palette, mood, and
@@ -543,9 +544,10 @@ Instagram format - then calls the `generate_image` tool to produce a real image 
 
 ### Concept: Bridging a text agent with an image model via a tool
 
-The Designer runs on the standard text model (`gemini-2.5-flash`), but image generation requires a dedicated model
-(`gemini-3.1-flash-image-preview`). That image model doesn't support function calling, so it can't be used directly
-as an ADK agent. Instead, it's wrapped in a plain Python function and registered as a `FunctionTool`.
+The Designer runs on `gemini-3.1-flash-preview` (the text model set via `GEMINI_MODEL` in `.env`), but image
+generation requires a dedicated model (`gemini-3.1-flash-image-preview`). That image model doesn't support function
+calling, so it can't be used directly as an ADK agent. Instead, it's wrapped in a plain Python function and
+registered as a `FunctionTool`.
 
 This is the pattern for any model or API that the LLM can't call directly: wrap it in a tool, let the agent
 orchestrate when to call it, and get a structured result back.
@@ -567,7 +569,52 @@ Designer agent (text model)
   Critic (receives gcs_uri, passes to Vertex AI for multimodal review)
 ```
 
-Open `agents/designer/agent.py` and `agents/designer/image_gen_tool.py` to see the full implementation.
+### TODO - Implement `generate_image`
+
+Open `agents/designer/image_gen_tool.py`. The function signature, environment setup, and aspect ratio injection are
+provided. Fill in the three TODOs:
+
+**TODO 1 - Call the Gemini image model:**
+
+```python
+client = genai.Client(vertexai=True, project=project_id, location=location)
+
+response = client.models.generate_content(
+    model=image_model,
+    contents=prompt_with_aspect,
+    config=types.GenerateContentConfig(
+        response_modalities=["IMAGE", "TEXT"],
+    ),
+)
+```
+
+**TODO 2 - Extract image bytes from the response:**
+
+```python
+image_bytes = None
+mime_type = "image/png"
+for part in response.candidates[0].content.parts:
+    if part.inline_data is not None:
+        image_bytes = part.inline_data.data
+        mime_type = part.inline_data.mime_type or "image/png"
+        break
+
+if not image_bytes:
+    return {"status": "error", "error": "Gemini returned no image data"}
+```
+
+**TODO 3 - Upload to GCS and return the URI:**
+
+```python
+ext = "jpg" if "jpeg" in mime_type else "png"
+from google.cloud import storage
+gcs_client = storage.Client(project=project_id)
+bucket = gcs_client.bucket(bucket_name)
+blob_name = f"campaign-images/{concept_name}-{uuid.uuid4().hex[:8]}.{ext}"
+blob = bucket.blob(blob_name)
+blob.upload_from_file(io.BytesIO(image_bytes), content_type=mime_type)
+gcs_uri = f"gs://{bucket_name}/{blob_name}"
+```
 
 **Try it:** Switch the dropdown to **`designer`** and send:
 
@@ -589,9 +636,9 @@ Style: clean, modern, lifestyle-focused. Include prompts with color palette, moo
 > renders these as thumbnails directly in the chat UI. On Cloud Run there is no artifact service, so the call raises
 > `ValueError`, which the tool catches and ignores - the `gcs_uri` is always returned regardless.
 
-## Meet the Critic - Structured Output
+## Build the Critic - Structured Output
 
-Duration: 04:00
+Duration: 06:00
 
 **Role:** Quality-assure copy and visuals before they're handed to the Project Manager. The Critic scores both
 deliverables and returns `APPROVED` or `NEEDS_REVISION` with specific suggestions. When `gcs_uri` values are present
@@ -609,8 +656,7 @@ reads it programmatically to decide whether to trigger a revision loop. That mak
 > logic breaks silently. There is no Python regex or JSON parser here - the LLM in the Creative Director follows its
 > instruction, which says "look for these exact strings". This is why the Critic format is non-negotiable.
 
-Open `agents/critic/agent.py` and `agents/critic/image_review_tool.py`. The output format is enforced in the system
-instruction:
+Open `agents/critic/agent.py`. The output format is enforced in the system instruction:
 
 ```text
 **POSTS REVIEW:**
@@ -631,11 +677,46 @@ The scoring rubric maps scores to decisions deterministically: 9-10 and 7-8 = AP
 When no images are provided, `VISUALS REVIEW` uses `NOT_REVIEWED` (treated as approved) so the revision loop still
 works in text-only runs.
 
+### TODO - Implement `review_image`
+
+Open `agents/critic/image_review_tool.py`. The Pydantic models and prompt are provided. Fill in the three TODOs:
+
+**TODO 1 - Create an image part from the GCS URI:**
+
+```python
+image_part = types.Part.from_uri(file_uri=gcs_uri, mime_type=mime_type)
+```
+
 > aside positive
 >
-> **Multimodal review via GCS.** The `review_image` tool takes a `gs://` URI and uses `Part.from_uri()` to pass the
-> image to Gemini. Vertex AI fetches the image server-side - the Critic container never downloads it directly, so no
-> Cloud Storage credentials are needed on the Critic service.
+> **Multimodal review via GCS.** `Part.from_uri()` passes the image as a GCS reference. Vertex AI fetches it
+> server-side - the Critic container never downloads the image directly, so no Cloud Storage credentials are needed
+> on the Critic service.
+
+**TODO 2 - Call Gemini with a structured response schema:**
+
+```python
+response = client.models.generate_content(
+    model=model,
+    contents=[image_part, prompt],
+    config=types.GenerateContentConfig(
+        response_schema=_GeminiReview,
+        response_mime_type="application/json",
+    ),
+)
+```
+
+> aside positive
+>
+> **Structured output via Pydantic.** Passing `response_schema=_GeminiReview` forces Gemini to return valid JSON
+> matching the Pydantic model. No regex, no prompt-engineering the format - the model is constrained at the API level.
+
+**TODO 3 - Parse the response and return the result:**
+
+```python
+review = _GeminiReview.model_validate_json(response.text)
+return ImageReviewResult(status="success", concept_name=concept_name, **review.model_dump())
+```
 
 **Try it:** Switch the dropdown to **`critic`** and send:
 

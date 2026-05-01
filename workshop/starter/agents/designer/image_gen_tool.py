@@ -48,47 +48,43 @@ async def generate_image(
     prompt_with_aspect = f"{image_prompt}\n\nGenerate this as a {aspect_hint} image."
 
     try:
-        client = genai.Client(vertexai=True, project=project_id, location=location)
+        # TODO 1: Create a genai.Client with vertexai=True, project, and location.
+        # Call client.models.generate_content() with:
+        #   - model=image_model
+        #   - contents=prompt_with_aspect
+        #   - config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"])
+        # Store the result in `response`.
 
-        response = client.models.generate_content(
-            model=image_model,
-            contents=prompt_with_aspect,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE", "TEXT"],
-            ),
-        )
-
-        # Extract the first image part from the response
+        # TODO 2: Extract image bytes from the response.
+        # Iterate over response.candidates[0].content.parts.
+        # Find the first part where part.inline_data is not None.
+        # Set image_bytes = part.inline_data.data and mime_type = part.inline_data.mime_type or "image/png".
+        # If no image_bytes found, return {"status": "error", "error": "Gemini returned no image data"}.
         image_bytes = None
         mime_type = "image/png"
-        for part in response.candidates[0].content.parts:
-            if part.inline_data is not None:
-                image_bytes = part.inline_data.data
-                mime_type = part.inline_data.mime_type or "image/png"
-                break
 
-        if not image_bytes:
-            return {"status": "error", "error": "Gemini returned no image data"}
-
-        ext = "jpg" if "jpeg" in mime_type else "png"
-        from google.cloud import storage
-        gcs_client = storage.Client(project=project_id)
-        bucket = gcs_client.bucket(bucket_name)
-        blob_name = f"campaign-images/{concept_name}-{uuid.uuid4().hex[:8]}.{ext}"
-        blob = bucket.blob(blob_name)
-        blob.upload_from_file(io.BytesIO(image_bytes), content_type=mime_type)
-        gcs_uri = f"gs://{bucket_name}/{blob_name}"
+        # TODO 3: Upload image_bytes to GCS and return the URI.
+        # - Determine the file extension from mime_type ("jpg" if "jpeg" in mime_type else "png").
+        # - Create a storage.Client and get the bucket (bucket_name).
+        # - Build blob_name: f"campaign-images/{concept_name}-{uuid.uuid4().hex[:8]}.{ext}"
+        # - Upload via blob.upload_from_file(io.BytesIO(image_bytes), content_type=mime_type).
+        # - Build gcs_uri = f"gs://{bucket_name}/{blob_name}".
+        gcs_uri = None
 
         # Save as ADK artifact so adk web renders the image inline when testing
         # the Designer directly. Silently skipped when no artifact service is
         # configured (e.g. Cloud Run deployment).
-        try:
-            artifact = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
-            await tool_context.save_artifact(f"{concept_name}.{ext}", artifact)
-        except ValueError:
-            pass
+        if image_bytes and gcs_uri:
+            ext = "jpg" if "jpeg" in mime_type else "png"
+            try:
+                artifact = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+                await tool_context.save_artifact(f"{concept_name}.{ext}", artifact)
+            except ValueError:
+                pass
 
-        return {"status": "success", "gcs_uri": gcs_uri, "concept_name": concept_name}
+            return {"status": "success", "gcs_uri": gcs_uri, "concept_name": concept_name}
+
+        return {"status": "error", "error": "Image generation incomplete - fill in the TODOs"}
 
     except Exception as e:
         return {"status": "error", "error": str(e)}
