@@ -166,7 +166,8 @@ gcloud services enable \
     generativelanguage.googleapis.com \
     iam.googleapis.com \
     cloudresourcemanager.googleapis.com \
-    storage.googleapis.com
+    storage.googleapis.com \
+    secretmanager.googleapis.com
 ```
 
 This takes about 2 minutes. You'll see `Operation finished successfully` when done.
@@ -1800,6 +1801,12 @@ polling quota (60 requests/minute). When complete, it writes each agent's Cloud 
 
 After the Designer is deployed, the script automatically grants its Cloud Run service account
 `roles/storage.objectCreator` on your GCS bucket so it can upload generated images.
+
+If you configured Notion credentials in `.env`, the script also stores them securely in
+**Secret Manager** (as `notion-token`, `notion-project-db-id`, `notion-tasks-db-id`) and
+injects them into the Project Manager service via `--set-secrets` rather than plain environment
+variables. This means the token never appears in Cloud Run's environment tab or in `gcloud`
+command history.
 
 ### What gets deployed per service
 

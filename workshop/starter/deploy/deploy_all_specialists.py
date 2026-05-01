@@ -83,6 +83,104 @@ async def run_command_async(
         raise
 
 
+async def _add_secret_version(
+    secret_id: str, value: str, project_id: str
+) -> tuple[int, str, str]:
+    """Add a version to an existing Secret Manager secret, passing the value via stdin."""
+    process = await asyncio.create_subprocess_exec(
+        "gcloud", "secrets", "versions", "add", secret_id,
+        "--data-file=-",
+        f"--project={project_id}",
+        "--quiet",
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        stdout, stderr = await process.communicate(input=value.encode())
+        return process.returncode, stdout.decode(), stderr.decode()
+    except asyncio.CancelledError:
+        process.terminate()
+        await process.wait()
+        raise
+
+
+async def setup_notion_secrets(project_id: str) -> dict[str, str]:
+    """
+    Store Notion credentials in Secret Manager.
+    Creates each secret if it doesn't exist, then adds a new version.
+
+    Returns:
+        {ENV_VAR_NAME: "projects/.../secrets/.../versions/latest"} for --set-secrets,
+        or empty dict if Notion credentials are not configured.
+    """
+    notion_token = os.getenv("NOTION_TOKEN")
+    notion_db_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
+    notion_tasks_db_id = os.getenv("NOTION_TASKS_DATABASE_ID")
+
+    if not notion_token or not notion_db_id:
+        return {}
+
+    credentials = {
+        "NOTION_TOKEN": ("notion-token", notion_token),
+        "NOTION_PROJECT_DATABASE_ID": ("notion-project-db-id", notion_db_id),
+    }
+    if notion_tasks_db_id:
+        credentials["NOTION_TASKS_DATABASE_ID"] = ("notion-tasks-db-id", notion_tasks_db_id)
+
+    secret_refs = {}
+    for env_var, (secret_id, value) in credentials.items():
+        # Create secret (idempotent - ALREADY_EXISTS is not an error)
+        await run_command_async([
+            "gcloud", "secrets", "create", secret_id,
+            f"--project={project_id}",
+            "--replication-policy=automatic",
+            "--quiet",
+        ])
+        # Add new version with the credential value
+        returncode, _, stderr = await _add_secret_version(secret_id, value, project_id)
+        if returncode == 0:
+            secret_refs[env_var] = (
+                f"projects/{project_id}/secrets/{secret_id}/versions/latest"
+            )
+            print(f"   ✓ {secret_id} stored in Secret Manager")
+        else:
+            print(f"   Warning: Could not store {secret_id}: {stderr.strip()}")
+
+    return secret_refs
+
+
+async def grant_pm_secret_access(project_id: str, secret_refs: dict[str, str]) -> None:
+    """
+    Grant the Project Manager Cloud Run service account
+    roles/secretmanager.secretAccessor on each Notion secret.
+    Uses the default Compute Engine SA (Cloud Run default).
+    """
+    if not secret_refs:
+        return
+
+    _, project_number, _ = await run_command_async([
+        "gcloud", "projects", "describe", project_id,
+        "--format=value(projectNumber)",
+    ])
+    sa_email = f"{project_number.strip()}-compute@developer.gserviceaccount.com"
+    print(f"   Granting Secret Manager access to {sa_email}...")
+
+    for _, secret_path in secret_refs.items():
+        secret_id = secret_path.split("/secrets/")[1].split("/versions/")[0]
+        returncode, _, stderr = await run_command_async([
+            "gcloud", "secrets", "add-iam-policy-binding", secret_id,
+            f"--member=serviceAccount:{sa_email}",
+            "--role=roles/secretmanager.secretAccessor",
+            f"--project={project_id}",
+            "--quiet",
+        ])
+        if returncode == 0:
+            print(f"   ✓ Access granted to {secret_id}")
+        else:
+            print(f"   Warning: Could not grant access to {secret_id}: {stderr.strip()}")
+
+
 async def deploy_single_agent(
     agent_config: dict, project_id: str, region: str
 ) -> str | None:
@@ -128,20 +226,19 @@ async def deploy_single_agent(
     if gemini_image_model and name == "designer":
         env_vars += f",GEMINI_IMAGE_MODEL={gemini_image_model}"
 
-    # Add Notion credentials for project-manager agent
+    # Store Notion credentials in Secret Manager for project-manager
+    secret_refs: dict[str, str] = {}
     if name == "project-manager":
-        notion_token = os.getenv("NOTION_TOKEN")
-        notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
-        notion_tasks_db_id = os.getenv("NOTION_TASKS_DATABASE_ID")
-
-        if notion_token and notion_database_id:
-            print(f"   Adding Notion MCP credentials to {name}...")
-            env_vars += f",NOTION_TOKEN={notion_token},NOTION_PROJECT_DATABASE_ID={notion_database_id}"
-            if notion_tasks_db_id:
-                env_vars += f",NOTION_TASKS_DATABASE_ID={notion_tasks_db_id}"
+        if os.getenv("NOTION_TOKEN") and os.getenv("NOTION_PROJECT_DATABASE_ID"):
+            print(f"   Storing Notion credentials in Secret Manager...")
+            secret_refs = await setup_notion_secrets(project_id)
+            if secret_refs:
+                # Grant SA access before deploy so the service starts cleanly
+                await grant_pm_secret_access(project_id, secret_refs)
         else:
             print(
-                f"   Warning: NOTION_TOKEN or NOTION_PROJECT_DATABASE_ID not set - {name} will work without Notion integration"
+                f"   Warning: NOTION_TOKEN or NOTION_PROJECT_DATABASE_ID not set"
+                f" - {name} will work without Notion integration"
             )
 
     cmd = [
@@ -163,6 +260,9 @@ async def deploy_single_agent(
         "--min-instances=0",
         "--quiet",
     ]
+    if secret_refs:
+        secrets_flag = ",".join(f"{k}={v}" for k, v in secret_refs.items())
+        cmd.append(f"--set-secrets={secrets_flag}")
 
     # Run deployment
     try:
@@ -233,8 +333,8 @@ async def update_agent_a2a_config(
     service_name: str, url: str, project_id: str, region: str
 ) -> None:
     """
-    Update deployed agent with A2A configuration (PUBLIC_HOST, PORT, PROTOCOL)
-    Also adds Notion credentials for project-manager agent.
+    Update deployed agent with A2A configuration (PUBLIC_HOST, PORT, PROTOCOL).
+    Notion credentials are handled via Secret Manager at deploy time, not here.
 
     Args:
         service_name: Name of the Cloud Run service
@@ -249,19 +349,6 @@ async def update_agent_a2a_config(
 
     # Build environment variables update
     env_vars_update = f"PUBLIC_HOST={public_host},PUBLIC_PORT=443,PROTOCOL=https"
-
-    # Add Notion credentials for project-manager agent
-    if service_name == "project-manager":
-        notion_token = os.getenv("NOTION_TOKEN")
-        notion_database_id = os.getenv("NOTION_PROJECT_DATABASE_ID")
-
-        if notion_token and notion_database_id:
-            print(f"   Adding Notion MCP credentials to {service_name}...")
-            env_vars_update += f",NOTION_TOKEN={notion_token},NOTION_PROJECT_DATABASE_ID={notion_database_id}"
-        else:
-            print(
-                f"   Warning: NOTION_TOKEN or NOTION_PROJECT_DATABASE_ID not set - {service_name} will work without Notion integration"
-            )
 
     cmd = [
         "gcloud",

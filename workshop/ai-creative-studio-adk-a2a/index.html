@@ -36,7 +36,7 @@
           <hr style="border:none;border-top:1px solid #dadce0;margin:0 0 20px 0;">
           <div style="display:flex;align-items:center;margin-bottom:16px;color:#5f6368;font-size:14px;">
             <svg style="margin-right:16px;flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-            <span>Last updated Apr 30, 2026</span>
+            <span>Last updated May 01, 2026</span>
           </div>
           <div style="display:flex;align-items:center;color:#5f6368;font-size:14px;">
             <div style="margin-right:16px;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#bdc1c6;display:flex;align-items:center;justify-content:center;overflow:hidden;">
@@ -159,7 +159,8 @@ echo &#34;Project: $PROJECT_ID&#34;
     generativelanguage.googleapis.com \
     iam.googleapis.com \
     cloudresourcemanager.googleapis.com \
-    storage.googleapis.com
+    storage.googleapis.com \
+    secretmanager.googleapis.com
 </code></pre>
 <p>This takes about 2 minutes. You&#39;ll see <code>Operation finished successfully</code> when done.</p>
 <h2 is-upgraded>Set up Application Default Credentials (ADC)</h2>
@@ -1349,6 +1350,7 @@ uv run deploy/deploy_all_specialists.py
 </code></pre>
 <p>This script deploys all 5 agents one at a time (~10-12 minutes total). Sequential deployment avoids the Cloud Build polling quota (60 requests/minute). When complete, it writes each agent&#39;s Cloud Run URL back to <code>.env</code>.</p>
 <p>After the Designer is deployed, the script automatically grants its Cloud Run service account <code>roles/storage.objectCreator</code> on your GCS bucket so it can upload generated images.</p>
+<p>If you configured Notion credentials in <code>.env</code>, the script also stores them securely in <strong>Secret Manager</strong> (as <code>notion-token</code>, <code>notion-project-db-id</code>, <code>notion-tasks-db-id</code>) and injects them into the Project Manager service via <code>--set-secrets</code> rather than plain environment variables. This means the token never appears in Cloud Run&#39;s environment tab or in <code>gcloud</code> command history.</p>
 <h2 is-upgraded>What gets deployed per service</h2>
 <pre><code language="language-bash" class="language-bash"># Each service is deployed with these env vars:
 gcloud run deploy brand-strategist \
