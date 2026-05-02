@@ -52,8 +52,19 @@ async def generate_image(
         # Call client.models.generate_content() with:
         #   - model=image_model
         #   - contents=prompt_with_aspect
-        #   - config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"])
+        #   - config=types.GenerateContentConfig(
+        #       response_modalities=["IMAGE", "TEXT"],
+        #       http_options=types.HttpOptions(
+        #           retry_options=types.HttpRetryOptions(
+        #               attempts=5, exp_base=2, initial_delay=30,
+        #               http_status_codes=[429, 500, 503, 504],
+        #           ),
+        #           timeout=180_000,
+        #       ),
+        #     )
         # Store the result in `response`.
+        # Note: retry_options here is essential — image generation quota (DSQ) recovers
+        # slowly, so initial_delay=30s gives the pool time to refill between attempts.
 
         # TODO 2: Extract image bytes from the response.
         # Iterate over response.candidates[0].content.parts.

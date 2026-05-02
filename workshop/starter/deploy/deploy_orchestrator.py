@@ -140,14 +140,11 @@ def deploy_orchestrator(auto_deploy_specialists=False):
     sys.path.insert(0, str(project_root / "agents"))
     from creative_director.agent import root_app  # App object with compaction config
 
-    # Wrap App in AdkApp for Agent Engine deployment
+    # Wrap App in AdkApp for Agent Engine deployment.
     adk_app = agent_engines.AdkApp(
-        app=root_app,  # Pass as 'app' parameter since it's an App object
+        app=root_app,
         enable_tracing=True,
     )
-
-    # Initialize client
-    client = Client(project=PROJECT_ID, location=LOCATION)
 
     # =========================================================================
     # : Create AND Deploy with ALL config at once
@@ -160,7 +157,8 @@ def deploy_orchestrator(auto_deploy_specialists=False):
     print("    - Requirements:")
     print("      • google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0")
     print("      • google-adk[a2a]==1.31.1")
-    print("      • google-genai>=1.51.0")
+    print("      • google-genai>=1.70.0")
+    print("      • google-cloud-storage>=2.10.0")
     print("      • python-dotenv>=1.0.0")
     print("      • pydantic>=2.0.0")
     print("      • cloudpickle>=3.0.0")
@@ -172,41 +170,43 @@ def deploy_orchestrator(auto_deploy_specialists=False):
     print(f"      • PM_AGENT_URL={PM_URL or '(not set)'}")
 
     try:
-        # Attempt single-stage deployment
-        # NOTE: Use 'agent' parameter, not 'agent_engine' (deprecated)
-        agent_engine_resource = client.agent_engines.create(
-            agent=adk_app,
-            config={
-                "staging_bucket": STAGING_BUCKET,
-                "display_name": DISPLAY_NAME,
-                "requirements": [
-                    "google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0",
-                    "google-adk[a2a]==1.31.1",
-                    "google-genai>=1.70.0",
-                    "python-dotenv>=1.0.0",
-                    "pydantic>=2.0.0",
-                    "cloudpickle>=3.0.0",
-                ],
-                "env_vars": {
-                    "COPYWRITER_AGENT_URL": COPYWRITER_URL,
-                    "DESIGNER_AGENT_URL": DESIGNER_URL,
-                    "STRATEGIST_AGENT_URL": STRATEGIST_URL,
-                    "CRITIC_AGENT_URL": CRITIC_URL,
-                    "PM_AGENT_URL": PM_URL,
-                    "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
-                    # Agent Runtime auto-sets GOOGLE_CLOUD_LOCATION to the deployment
-                    # region (us-central1), but preview models require "global".
-                    # Explicitly override so the orchestrator can reach the model.
-                    "GOOGLE_CLOUD_LOCATION": os.getenv("GOOGLE_CLOUD_LOCATION", "global"),
-                    "GOOGLE_GENAI_USE_VERTEXAI": "true",
-                    "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
-                    "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true",
-                },
+        # chdir to agents/ so extra_packages=["creative_director"] resolves as a
+        # relative path - this is how the module-level agent_engines.create() API
+        # discovers and tarballs local packages for upload to the staging bucket.
+        os.chdir(project_root / "agents")
+
+        agent_engine_resource = agent_engines.create(
+            agent_engine=adk_app,
+            display_name=DISPLAY_NAME,
+            requirements=[
+                "google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0",
+                "google-adk[a2a]==1.31.1",
+                "google-genai>=1.70.0",
+                "google-cloud-storage>=2.10.0",
+                "python-dotenv>=1.0.0",
+                "pydantic>=2.0.0",
+                "cloudpickle>=3.0.0",
+            ],
+            extra_packages=["creative_director"],
+            env_vars={
+                "COPYWRITER_AGENT_URL": COPYWRITER_URL,
+                "DESIGNER_AGENT_URL": DESIGNER_URL,
+                "STRATEGIST_AGENT_URL": STRATEGIST_URL,
+                "CRITIC_AGENT_URL": CRITIC_URL,
+                "PM_AGENT_URL": PM_URL,
+                "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                # Agent Runtime auto-sets GOOGLE_CLOUD_LOCATION to the deployment
+                # region (us-central1), but preview models require "global".
+                # Explicitly override so the orchestrator can reach the model.
+                "GOOGLE_CLOUD_LOCATION": os.getenv("GOOGLE_CLOUD_LOCATION", "global"),
+                "GOOGLE_GENAI_USE_VERTEXAI": "true",
+                "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
+                "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true",
             },
         )
 
         # Extract resource name and ID
-        resource_name = agent_engine_resource.api_resource.name
+        resource_name = agent_engine_resource.resource_name
         agent_engine_id = resource_name.split("/")[-1]
 
         print("\n" + "=" * 70)

@@ -478,16 +478,22 @@ A naive approach would embed all platform knowledge - character limits, hashtag 
 examples - directly in the system prompt. That works, but bloats every request with content the agent only needs
 occasionally.
 
-**ADK Skills** (`SkillToolset`, introduced in ADK 1.25.0) let you package that knowledge into modular files loaded
-on demand. The system instruction shrinks to a short role statement plus "load the skill before writing". The L2
-methodology and L3 reference files are only pulled into context when the agent triggers the skill.
+**ADK Skills** (`SkillToolset`, introduced in ADK 1.25.0) let you package that knowledge into modular files with
+three levels of loading:
+
+- **L1 - frontmatter** (`name` + `description` in `SKILL.md`): always available, used for skill discovery
+- **L2 - instructions** (body of `SKILL.md`): loaded when the agent triggers the skill
+- **L3 - resources** (`references/` and `assets/` files): loaded only when the agent explicitly reads them
+
+The system instruction shrinks to a short role statement plus "load the skill before writing". Platform details only
+enter the context window when the agent actually needs them.
 
 The Copywriter's skill lives in `agents/copywriter/skills/instagram-copywriting/`:
 
 ```text
 skills/
   instagram-copywriting/
-    SKILL.md                       ← L2: core methodology, tone matrix, output format
+    SKILL.md                       ← L1 frontmatter (discovery) + L2 instructions (loaded on trigger)
     references/
       platform-guide.md            ← L3: character limits, hashtag tiers, algorithm signals
       caption-formulas.md          ← L3: hook formulas, CTA patterns, full caption structures
@@ -577,43 +583,54 @@ provided. Fill in the three TODOs:
 **TODO 1 - Call the Gemini image model:**
 
 ```python
-client = genai.Client(vertexai=True, project=project_id, location=location)
+        client = genai.Client(vertexai=True, project=project_id, location=location)
 
-response = client.models.generate_content(
-    model=image_model,
-    contents=prompt_with_aspect,
-    config=types.GenerateContentConfig(
-        response_modalities=["IMAGE", "TEXT"],
-    ),
-)
+        response = client.models.generate_content(
+            model=image_model,
+            contents=prompt_with_aspect,
+            config=types.GenerateContentConfig(
+                response_modalities=["IMAGE", "TEXT"],
+                http_options=types.HttpOptions(
+                    retry_options=types.HttpRetryOptions(
+                        attempts=5, exp_base=2, initial_delay=30,
+                        http_status_codes=[429, 500, 503, 504],
+                    ),
+                    timeout=180_000,
+                ),
+            ),
+        )
 ```
+
+> aside positive
+>
+> **Why `initial_delay=30` here?** Image generation quota on Dynamic Shared Quota recovers slowly compared to text models. A 30-second base delay gives the shared pool time to refill between retries. The text model retry config uses `initial_delay=5` - not enough for image quota.
 
 **TODO 2 - Extract image bytes from the response:**
 
 ```python
-image_bytes = None
-mime_type = "image/png"
-for part in response.candidates[0].content.parts:
-    if part.inline_data is not None:
-        image_bytes = part.inline_data.data
-        mime_type = part.inline_data.mime_type or "image/png"
-        break
+        image_bytes = None
+        mime_type = "image/png"
+        for part in response.candidates[0].content.parts:
+            if part.inline_data is not None:
+                image_bytes = part.inline_data.data
+                mime_type = part.inline_data.mime_type or "image/png"
+                break
 
-if not image_bytes:
-    return {"status": "error", "error": "Gemini returned no image data"}
+        if not image_bytes:
+            return {"status": "error", "error": "Gemini returned no image data"}
 ```
 
 **TODO 3 - Upload to GCS and return the URI:**
 
 ```python
-ext = "jpg" if "jpeg" in mime_type else "png"
-from google.cloud import storage
-gcs_client = storage.Client(project=project_id)
-bucket = gcs_client.bucket(bucket_name)
-blob_name = f"campaign-images/{concept_name}-{uuid.uuid4().hex[:8]}.{ext}"
-blob = bucket.blob(blob_name)
-blob.upload_from_file(io.BytesIO(image_bytes), content_type=mime_type)
-gcs_uri = f"gs://{bucket_name}/{blob_name}"
+        ext = "jpg" if "jpeg" in mime_type else "png"
+        from google.cloud import storage
+        gcs_client = storage.Client(project=project_id)
+        bucket = gcs_client.bucket(bucket_name)
+        blob_name = f"campaign-images/{concept_name}-{uuid.uuid4().hex[:8]}.{ext}"
+        blob = bucket.blob(blob_name)
+        blob.upload_from_file(io.BytesIO(image_bytes), content_type=mime_type)
+        gcs_uri = f"gs://{bucket_name}/{blob_name}"
 ```
 
 **Try it:** Switch the dropdown to **`designer`** and send:
@@ -622,12 +639,6 @@ gcs_uri = f"gs://{bucket_name}/{blob_name}"
 Create 2 visual concepts for an EcoFlow Smart Water Bottle Instagram post targeting health-conscious millennials.
 Style: clean, modern, lifestyle-focused. Include prompts with color palette, mood, and format (1080x1080 or 1080x1350).
 ```
-
-> aside negative
->
-> **Local test note:** `GCS_IMAGES_BUCKET` must be set in your `.env` for image generation to work. If the tool
-> returns `GCS_IMAGES_BUCKET env var not set`, run `source .env` then restart the server. The agent will still return
-> the full visual concept - the `generate_image` call either succeeds with a `gcs_uri` or returns an error inline.
 
 > aside positive
 >
@@ -644,38 +655,27 @@ Duration: 06:00
 deliverables and returns `APPROVED` or `NEEDS_REVISION` with specific suggestions. When `gcs_uri` values are present
 in the input, it calls the `review_image` tool to visually inspect each generated image before scoring.
 
-### Concept: Rigid output format as a machine-readable contract
+### Concept: When to use a Pydantic model for Gemini output
 
-Most agent outputs are free-form prose read by a human. The Critic's output is different: the Creative Director
-reads it programmatically to decide whether to trigger a revision loop. That makes the format a contract.
+The rule is about **who consumes the output**:
 
-> aside negative
->
-> **The orchestrator parses this response as structured text.** The Creative Director reads the Critic's output and
-> looks for exact strings - `APPROVED`, `NEEDS_REVISION`, `All Approved: YES`. If the format drifts, the revision
-> logic breaks silently. There is no Python regex or JSON parser here - the LLM in the Creative Director follows its
-> instruction, which says "look for these exact strings". This is why the Critic format is non-negotiable.
+- **Python code consumes it** → use `response_schema` + Pydantic. Code can't handle ambiguity, so you need a guaranteed structure to extract fields reliably.
+- **An LLM consumes it** → text format + system instruction is enough. LLMs understand formatting rules and tolerate variation.
 
-Open `agents/critic/agent.py`. The output format is enforced in the system instruction:
+In `review_image`, Python code needs `score`, `approval_status`, `what_works`, `issues`, and `suggestions` as typed values. Passing `response_schema=_GeminiReview` constrains Gemini at the API level to return valid JSON; `model_validate_json()` parses it into a typed object your code can use reliably.
 
-```text
-**POSTS REVIEW:**
-- Score: X/10
-- Status: APPROVED or NEEDS_REVISION
-...
-
-**VISUALS REVIEW:**
-- Score: X/10 or N/A
-- Status: APPROVED or NEEDS_REVISION or NOT_REVIEWED
-...
-
-**OVERALL ASSESSMENT:**
-- All Approved: YES or NO
+```python
+class _GeminiReview(BaseModel):
+    score: int = Field(ge=1, le=10)
+    approval_status: Literal["APPROVED", "NEEDS_REVISION"]
+    what_works: str
+    issues: str
+    suggestions: str
 ```
 
-The scoring rubric maps scores to decisions deterministically: 9-10 and 7-8 = APPROVED, 5-6 and 1-4 = NEEDS_REVISION.
-When no images are provided, `VISUALS REVIEW` uses `NOT_REVIEWED` (treated as approved) so the revision loop still
-works in text-only runs.
+> aside positive
+>
+> **Contrast:** the Critic's final review is read by the Creative Director - another LLM. A text format enforced in the system instruction is enough there. No schema needed when the consumer is an LLM, not code.
 
 ### TODO - Implement `review_image`
 
@@ -684,7 +684,7 @@ Open `agents/critic/image_review_tool.py`. The Pydantic models and prompt are pr
 **TODO 1 - Create an image part from the GCS URI:**
 
 ```python
-image_part = types.Part.from_uri(file_uri=gcs_uri, mime_type=mime_type)
+        image_part = types.Part.from_uri(file_uri=gcs_uri, mime_type=mime_type)
 ```
 
 > aside positive
@@ -696,14 +696,14 @@ image_part = types.Part.from_uri(file_uri=gcs_uri, mime_type=mime_type)
 **TODO 2 - Call Gemini with a structured response schema:**
 
 ```python
-response = client.models.generate_content(
-    model=model,
-    contents=[image_part, prompt],
-    config=types.GenerateContentConfig(
-        response_schema=_GeminiReview,
-        response_mime_type="application/json",
-    ),
-)
+        response = client.models.generate_content(
+            model=model,
+            contents=[image_part, prompt],
+            config=types.GenerateContentConfig(
+                response_schema=_GeminiReview,
+                response_mime_type="application/json",
+            ),
+        )
 ```
 
 > aside positive
@@ -714,8 +714,8 @@ response = client.models.generate_content(
 **TODO 3 - Parse the response and return the result:**
 
 ```python
-review = _GeminiReview.model_validate_json(response.text)
-return ImageReviewResult(status="success", concept_name=concept_name, **review.model_dump())
+        review = _GeminiReview.model_validate_json(response.text)
+        return ImageReviewResult(status="success", concept_name=concept_name, **review.model_dump())
 ```
 
 **Try it:** Switch the dropdown to **`critic`** and send:
