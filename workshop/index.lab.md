@@ -503,7 +503,13 @@ skills/
 
 ### TODO - Wire the ADK Skill
 
-Open `agents/copywriter/agent.py`. Find the three `# TODO` comments and fill them in:
+Open the file directly in the Cloud Shell editor:
+
+```bash
+cloudshell edit agents/copywriter/agent.py
+```
+
+Find the three `# TODO` comments and fill them in:
 
 ```python
 from google.adk.skills import load_skill_from_dir
@@ -520,7 +526,11 @@ root_agent = Agent(
 )
 ```
 
-Open `agents/copywriter/skills/instagram-copywriting/SKILL.md` to see how the skill content is structured.
+Open the skill file to see how it is structured:
+
+```bash
+cloudshell edit agents/copywriter/skills/instagram-copywriting/SKILL.md
+```
 
 **Try it:** Switch the dropdown to **`copywriter`** and send:
 
@@ -577,8 +587,13 @@ Designer agent (text model)
 
 ### TODO - Implement `generate_image`
 
-Open `agents/designer/image_gen_tool.py`. The function signature, environment setup, and aspect ratio injection are
-provided. Fill in the three TODOs:
+Open the file directly in the Cloud Shell editor:
+
+```bash
+cloudshell edit agents/designer/image_gen_tool.py
+```
+
+The function signature, environment setup, and aspect ratio injection are provided. Fill in the three TODOs:
 
 **TODO 1 - Call the Gemini image model:**
 
@@ -679,7 +694,13 @@ class _GeminiReview(BaseModel):
 
 ### TODO - Implement `review_image`
 
-Open `agents/critic/image_review_tool.py`. The Pydantic models and prompt are provided. Fill in the three TODOs:
+Open the file directly in the Cloud Shell editor:
+
+```bash
+cloudshell edit agents/critic/image_review_tool.py
+```
+
+The Pydantic models and prompt are provided. Fill in the three TODOs:
 
 **TODO 1 - Create an image part from the GCS URI:**
 
@@ -1044,9 +1065,14 @@ uv run adk web agents --allow_origins='*'
 Open Web Preview on port 8000. Use the **agent dropdown** to select **`project_manager`**, then try:
 
 ```
-Create a project plan for an EcoFlow Smart Water Bottle Instagram campaign.
-Budget: $3,000. Launch in 2 weeks. Include phases, tasks with deadlines from today, and milestones.
+Create a project plan for a GreenBrew organic coffee brand Instagram campaign.
+Budget: $2,500. Launch in 3 weeks. Target audience: eco-conscious millennials aged 22-30.
+Include phases, tasks with deadlines from today, and milestones.
 ```
+
+> aside positive
+>
+> **Use a different campaign here.** The full orchestrator run later uses EcoFlow Smart Water Bottle. Using GreenBrew here lets you tell the two tests apart when checking Notion or reviewing outputs.
 
 You should see a structured text timeline with phases, task list, and milestones. If Notion credentials are set in `.env`, the agent will also create entries in your Notion workspace.
 
@@ -1380,7 +1406,13 @@ The system instruction lives in `prompt.py` in the same directory - it's importe
 from .prompt import SYSTEM_INSTRUCTION_TEMPLATE
 ```
 
-Open `prompt.py` to read it before moving on. Understanding it is important because it controls the entire orchestration behavior.
+Open `prompt.py` to read it before moving on:
+
+```bash
+cloudshell edit agents/creative_director/prompt.py
+```
+
+Understanding it is important because it controls the entire orchestration behavior.
 
 ### Why the orchestrator prompt controls everything
 
@@ -1754,8 +1786,9 @@ Brand Strategist.
 For the full campaign, try the following:
 
 ```
-Create a complete Instagram campaign for EcoFlow Smart Water Bottle targeting health-conscious millennials aged 25-35. 
-Budget $3,000, launch in 2 weeks.
+Create a complete Instagram campaign for SolarPack portable solar charger targeting
+outdoor enthusiasts and digital nomads aged 22-35.
+Budget $2,000, launch in 2 weeks.
 ```
 
 You'll see the Creative Director coordinate all 5 specialists in sequence, with each agent's output flowing into the next.

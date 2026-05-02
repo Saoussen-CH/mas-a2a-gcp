@@ -399,7 +399,10 @@ INFO: Uvicorn running on http://localhost:8000
       brand-voice-examples.md      ← L3: annotated real-world caption examples
 </code></pre>
 <h2 is-upgraded>TODO - Wire the ADK Skill</h2>
-<p>Open <code>agents/copywriter/agent.py</code>. Find the three <code># TODO</code> comments and fill them in:</p>
+<p>Open the file directly in the Cloud Shell editor:</p>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/copywriter/agent.py
+</code></pre>
+<p>Find the three <code># TODO</code> comments and fill them in:</p>
 <pre><code language="language-python" class="language-python">from google.adk.skills import load_skill_from_dir
 from google.adk.tools import skill_toolset
 
@@ -413,7 +416,9 @@ root_agent = Agent(
     tools=[_copywriting_skills],
 )
 </code></pre>
-<p>Open <code>agents/copywriter/skills/instagram-copywriting/SKILL.md</code> to see how the skill content is structured.</p>
+<p>Open the skill file to see how it is structured:</p>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/copywriter/skills/instagram-copywriting/SKILL.md
+</code></pre>
 <p><strong>Try it:</strong> Switch the dropdown to <strong><code>copywriter</code></strong> and send:</p>
 <pre><code>You are writing captions for EcoFlow Smart Water Bottle targeting health-conscious millennials aged 25-35.
 Audience insight: they prioritize sustainability, track health metrics, and share lifestyle content.
@@ -448,7 +453,10 @@ Write 3 Instagram captions - one inspirational, one educational, one community-f
   Critic (receives gcs_uri, passes to Vertex AI for multimodal review)
 </code></pre>
 <h2 is-upgraded>TODO - Implement <code>generate_image</code></h2>
-<p>Open <code>agents/designer/image_gen_tool.py</code>. The function signature, environment setup, and aspect ratio injection are provided. Fill in the three TODOs:</p>
+<p>Open the file directly in the Cloud Shell editor:</p>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/designer/image_gen_tool.py
+</code></pre>
+<p>The function signature, environment setup, and aspect ratio injection are provided. Fill in the three TODOs:</p>
 <p><strong>TODO 1 - Call the Gemini image model:</strong></p>
 <pre><code language="language-python" class="language-python">        client = genai.Client(vertexai=True, project=project_id, location=location)
 
@@ -520,7 +528,10 @@ Style: clean, modern, lifestyle-focused. Include prompts with color palette, moo
 <aside class="special"><p><strong>Contrast:</strong> the Critic&#39;s final review is read by the Creative Director - another LLM. A text format enforced in the system instruction is enough there. No schema needed when the consumer is an LLM, not code.</p>
 </aside>
 <h2 is-upgraded>TODO - Implement <code>review_image</code></h2>
-<p>Open <code>agents/critic/image_review_tool.py</code>. The Pydantic models and prompt are provided. Fill in the three TODOs:</p>
+<p>Open the file directly in the Cloud Shell editor:</p>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/critic/image_review_tool.py
+</code></pre>
+<p>The Pydantic models and prompt are provided. Fill in the three TODOs:</p>
 <p><strong>TODO 1 - Create an image part from the GCS URI:</strong></p>
 <pre><code language="language-python" class="language-python">        image_part = types.Part.from_uri(file_uri=gcs_uri, mime_type=mime_type)
 </code></pre>
@@ -807,9 +818,12 @@ Phase 4: Launch &amp; Monitoring | [date] → [date] | [key activities]
 <pre><code language="language-bash" class="language-bash">uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
 <p>Open Web Preview on port 8000. Use the <strong>agent dropdown</strong> to select <strong><code>project_manager</code></strong>, then try:</p>
-<pre><code>Create a project plan for an EcoFlow Smart Water Bottle Instagram campaign.
-Budget: $3,000. Launch in 2 weeks. Include phases, tasks with deadlines from today, and milestones.
+<pre><code>Create a project plan for a GreenBrew organic coffee brand Instagram campaign.
+Budget: $2,500. Launch in 3 weeks. Target audience: eco-conscious millennials aged 22-30.
+Include phases, tasks with deadlines from today, and milestones.
 </code></pre>
+<aside class="special"><p><strong>Use a different campaign here.</strong> The full orchestrator run later uses EcoFlow Smart Water Bottle. Using GreenBrew here lets you tell the two tests apart when checking Notion or reviewing outputs.</p>
+</aside>
 <p>You should see a structured text timeline with phases, task list, and milestones. If Notion credentials are set in <code>.env</code>, the agent will also create entries in your Notion workspace.</p>
 
 
@@ -1057,7 +1071,10 @@ cloudshell edit agents/creative_director/agent.py
 <p>The system instruction lives in <code>prompt.py</code> in the same directory - it&#39;s imported automatically:</p>
 <pre><code language="language-python" class="language-python">from .prompt import SYSTEM_INSTRUCTION_TEMPLATE
 </code></pre>
-<p>Open <code>prompt.py</code> to read it before moving on. Understanding it is important because it controls the entire orchestration behavior.</p>
+<p>Open <code>prompt.py</code> to read it before moving on:</p>
+<pre><code language="language-bash" class="language-bash">cloudshell edit agents/creative_director/prompt.py
+</code></pre>
+<p>Understanding it is important because it controls the entire orchestration behavior.</p>
 <h2 is-upgraded>Why the orchestrator prompt controls everything</h2>
 <p>Open <code>prompt.py</code> alongside this section - the examples below reference specific parts of it.</p>
 <p>The prompt in <code>prompt.py</code> is not just documentation - it&#39;s the control plane of the entire system. A poorly structured orchestrator prompt produces: agents called out of order, content generated by the orchestrator instead of specialists, workflows that continue after failures, and context silently dropped between agents. These nine elements prevent the most common failures:</p>
@@ -1318,8 +1335,9 @@ brand-strategist-xxxx.run.app  ← actual HTTP A2A call happens here
 </code></pre>
 <p>You&#39;ll see that the Creative Director will route this to the Brand Strategist only and you&#39;ll get a response from the Brand Strategist.</p>
 <p>For the full campaign, try the following:</p>
-<pre><code>Create a complete Instagram campaign for EcoFlow Smart Water Bottle targeting health-conscious millennials aged 25-35. 
-Budget $3,000, launch in 2 weeks.
+<pre><code>Create a complete Instagram campaign for SolarPack portable solar charger targeting
+outdoor enthusiasts and digital nomads aged 22-35.
+Budget $2,000, launch in 2 weeks.
 </code></pre>
 <p>You&#39;ll see the Creative Director coordinate all 5 specialists in sequence, with each agent&#39;s output flowing into the next.</p>
 <p class="image-container"><img alt="Demo: End-to-End Campaign Run" src="img/61d31718553a5172.gif"></p>
