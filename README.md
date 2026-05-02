@@ -50,7 +50,7 @@ workshop/
 ## Getting Started
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git
 cd workshop/starter
 uv sync
 cp .env.example .env
