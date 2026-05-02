@@ -194,17 +194,9 @@ sed -i &#34;s|GCS_IMAGES_BUCKET=your-project-id-campaign-images|GCS_IMAGES_BUCKE
 <p>We use <a href="https://docs.astral.sh/uv/" target="_blank"><code>uv</code></a> - a fast, modern Python package manager that handles virtual environments and installs in a single tool. It&#39;s ~10-100x faster than <code>pip</code> and is the recommended way to manage Python projects.</p>
 <p>Cloud Shell already has <code>uv</code> installed. All agents share the same core dependencies, so <strong>install once</strong> and it works for every agent in this codelab:</p>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-uv venv
-source .venv/bin/activate
-uv pip install \
-    &#34;google-adk[a2a]==1.31.1&#34; \
-    &#34;google-genai&gt;=1.51.0&#34; \
-    &#34;uvicorn[standard]&gt;=0.25.0&#34; \
-    &#34;python-dotenv&gt;=1.0.0&#34; \
-    &#34;google-cloud-storage&gt;=2.10.0&#34; \
-    &#34;pydantic&gt;=2.0.0&#34;
+uv sync
 </code></pre>
-<p>The <code>uv venv</code> command creates a <code>.venv/</code> directory next to your code. Each specialist also has its own <code>pyproject.toml</code> used exclusively by Docker builds - the shared install above covers everything you need for local testing.</p>
+<p>The <code>uv sync</code> command reads <code>pyproject.toml</code> and creates a <code>.venv/</code> directory with all dependencies. Each specialist also has its own <code>pyproject.toml</code> used exclusively by Docker builds - the shared install above covers everything you need for local testing.</p>
 <aside class="special"><p><strong>No manual activation needed.</strong> All commands in this codelab use <code>uv run</code>, which automatically activates the <code>.venv</code> in <code>~/ai-creative-studio/workshop/starter/</code>. Just <code>cd</code> to the <code>starter</code> directory and prefix your command with <code>uv run</code>.</p>
 </aside>
 

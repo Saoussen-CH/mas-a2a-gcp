@@ -246,18 +246,10 @@ Cloud Shell already has `uv` installed. All agents share the same core dependenc
 
 ```bash
 cd ~/ai-creative-studio/workshop/starter
-uv venv
-source .venv/bin/activate
-uv pip install \
-    "google-adk[a2a]==1.31.1" \
-    "google-genai>=1.51.0" \
-    "uvicorn[standard]>=0.25.0" \
-    "python-dotenv>=1.0.0" \
-    "google-cloud-storage>=2.10.0" \
-    "pydantic>=2.0.0"
+uv sync
 ```
 
-The `uv venv` command creates a `.venv/` directory next to your code. Each specialist also has its own `pyproject.toml` used exclusively by Docker builds - the shared install above covers everything you need for local testing.
+The `uv sync` command reads `pyproject.toml` and creates a `.venv/` directory with all dependencies. Each specialist also has its own `pyproject.toml` used exclusively by Docker builds - the shared install above covers everything you need for local testing.
 
 > aside positive
 >
