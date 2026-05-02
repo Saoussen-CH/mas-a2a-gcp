@@ -50,8 +50,8 @@ workshop/
 ## Getting Started
 
 ```bash
-git clone https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git
-cd workshop/starter
+git clone -b workshop-final-release https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git
+cd ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun/workshop/starter
 uv sync
 cp .env.example .env
 # Fill in .env with your project values
@@ -59,6 +59,36 @@ uv run adk web agents --allow_origins='*'
 ```
 
 Full step-by-step instructions are in the published codelab.
+
+## Updating the Codelab (Collaborators)
+
+The codelab source is `workshop/index.lab.md`. After editing it, regenerate the published HTML with:
+
+**Prerequisites — install once:**
+
+```bash
+# Install Go (required by claat)
+sudo apt-get install golang-go        # Linux / Cloud Shell
+# brew install go                     # macOS
+
+# Install claat
+go install github.com/googlecodelabs/tools/claat@latest
+export PATH=$PATH:$(go env GOPATH)/bin
+```
+
+**Export after every edit:**
+
+```bash
+cd workshop
+bash export.sh
+```
+
+`export.sh` does three things:
+1. Runs `claat export index.lab.md` - generates `workshop/ai-creative-studio-adk-a2a/`
+2. Runs `inject_about.py` to add the "About this codelab" card to `index.html`
+3. Copies the result to `docs/` (the GitHub Pages source)
+
+Commit the changes in `docs/` to publish the updated codelab.
 
 ## Tech Stack
 
