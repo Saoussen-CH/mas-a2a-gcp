@@ -346,18 +346,14 @@ Format your output as:
 INFO: Uvicorn running on http://localhost:8000
 </code></pre>
 <p>The server is now running inside Cloud Shell:</p>
-<p class="image-container"><img alt="adk web running in Cloud Shell terminal" src="img/98797c77a12172ed.png"></p>
 <p>To open it in your browser, use <strong>Web Preview</strong>:</p>
 <ol type="1">
 <li>Look at the <strong>Cloud Shell toolbar</strong> at the top of the page</li>
 <li>Click the <strong>Web Preview</strong> icon (looks like a box with an upward arrow, top-right of the Cloud Shell toolbar)</li>
 <li>Click <strong>&#34;Change port&#34;</strong> and enter <code>8000</code>, then click <strong>&#34;Change and Preview&#34;</strong></li>
 </ol>
-<p class="image-container"><img alt="Change Preview Port dialog in Cloud Shell" src="img/187b84b471aee67c.png"></p>
 <p>A new browser tab opens with the ADK web UI. Click the <strong>&#34;Select an agent&#34;</strong> dropdown in the top-left - you&#39;ll see all your agents listed:</p>
-<p class="image-container"><img alt="ADK web UI agent dropdown showing all available agents" src="img/b88f7f0be77d2d68.png"></p>
 <p>Choose <code>brand_strategist</code> to start testing:</p>
-<p class="image-container"><img alt="ADK web UI showing the brand strategist responding to a test prompt" src="img/aec37ecb420c3d32.png"></p>
 <h2 is-upgraded>Try these test prompts</h2>
 <p>In the ADK web UI chat box, try:</p>
 <ul>
@@ -390,26 +386,36 @@ INFO: Uvicorn running on http://localhost:8000
     assets/
       brand-voice-examples.md      ← L3: annotated real-world caption examples
 </code></pre>
-<h2 is-upgraded>TODO - Wire the ADK Skill</h2>
 <p>Open the file directly in the Cloud Shell editor:</p>
 <pre><code language="language-bash" class="language-bash">cloudshell edit agents/copywriter/agent.py
 </code></pre>
-<p>Find the three <code># TODO</code> comments and fill them in:</p>
+<h2 is-upgraded>TODO 1 - Import <code>load_skill_from_dir</code> and <code>skill_toolset</code></h2>
+<p>Find the comment <code># TODO: Import load_skill_from_dir and skill_toolset</code> and add the two imports:</p>
 <pre><code language="language-python" class="language-python">from google.adk.skills import load_skill_from_dir
 from google.adk.tools import skill_toolset
-
-_instagram_skill = load_skill_from_dir(
+</code></pre>
+<h2 is-upgraded>TODO 2 - Load the skill and create a SkillToolset</h2>
+<p>Find the two comments below the imports:</p>
+<pre><code language="language-python" class="language-python"># TODO: Load the instagram-copywriting skill from the skills/ directory
+# TODO: Create a SkillToolset with the loaded skill
+</code></pre>
+<p>Replace them with:</p>
+<pre><code language="language-python" class="language-python">_instagram_skill = load_skill_from_dir(
     pathlib.Path(__file__).parent / &#34;skills&#34; / &#34;instagram-copywriting&#34;
 )
 _copywriting_skills = skill_toolset.SkillToolset(skills=[_instagram_skill])
-
-root_agent = Agent(
-    ...
-    tools=[_copywriting_skills],
-)
+</code></pre>
+<p><code>load_skill_from_dir</code> reads <code>SKILL.md</code> plus any files in <code>references/</code> and <code>assets/</code>. <code>SkillToolset</code> wraps it into the format ADK agents accept - a toolset, not a raw skill.</p>
+<h2 is-upgraded>TODO 3 - Register the toolset with the agent</h2>
+<p>Find <code>tools=[],  # TODO: Add the SkillToolset here</code> and replace it with:</p>
+<pre><code language="language-python" class="language-python">tools=[_copywriting_skills],
 </code></pre>
 <p>Open the skill file to see how it is structured:</p>
 <pre><code language="language-bash" class="language-bash">cloudshell edit agents/copywriter/skills/instagram-copywriting/SKILL.md
+</code></pre>
+<p>Keep the ADK web UI running. Use the <strong>agent dropdown</strong> to switch to <strong><code>copywriter</code></strong> without restarting the server.</p>
+<p>If it&#39;s not running, start it again:</p>
+<pre><code language="language-bash" class="language-bash">uv run adk web agents --allow_origins=&#39;*&#39;
 </code></pre>
 <p><strong>Try it:</strong> Switch the dropdown to <strong><code>copywriter</code></strong> and send:</p>
 <pre><code>You are writing captions for EcoFlow Smart Water Bottle targeting health-conscious millennials aged 25-35.

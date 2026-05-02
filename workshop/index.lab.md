@@ -429,24 +429,17 @@ INFO: Uvicorn running on http://localhost:8000
 
 The server is now running inside Cloud Shell:
 
-![adk web running in Cloud Shell terminal](diagrams/wksp8.png)
-
 To open it in your browser, use **Web Preview**:
 
 1. Look at the **Cloud Shell toolbar** at the top of the page
 2. Click the **Web Preview** icon (looks like a box with an upward arrow, top-right of the Cloud Shell toolbar)
 3. Click **"Change port"** and enter `8000`, then click **"Change and Preview"**
 
-![Change Preview Port dialog in Cloud Shell](diagrams/wksp9.png)
-
 A new browser tab opens with the ADK web UI. Click the **"Select an agent"** dropdown in the top-left - you'll see all
 your agents listed:
 
-![ADK web UI agent dropdown showing all available agents](diagrams/wksp11.png)
-
 Choose `brand_strategist` to start testing:
 
-![ADK web UI showing the brand strategist responding to a test prompt](diagrams/woksp10.png)
 
 ### Try these test prompts
 
@@ -493,35 +486,61 @@ skills/
       brand-voice-examples.md      ← L3: annotated real-world caption examples
 ```
 
-### TODO - Wire the ADK Skill
-
 Open the file directly in the Cloud Shell editor:
 
 ```bash
 cloudshell edit agents/copywriter/agent.py
 ```
 
-Find the three `# TODO` comments and fill them in:
+### TODO 1 - Import `load_skill_from_dir` and `skill_toolset`
+
+Find the comment `# TODO: Import load_skill_from_dir and skill_toolset` and add the two imports:
 
 ```python
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools import skill_toolset
+```
 
+### TODO 2 - Load the skill and create a SkillToolset
+
+Find the two comments below the imports:
+
+```python
+# TODO: Load the instagram-copywriting skill from the skills/ directory
+# TODO: Create a SkillToolset with the loaded skill
+```
+
+Replace them with:
+
+```python
 _instagram_skill = load_skill_from_dir(
     pathlib.Path(__file__).parent / "skills" / "instagram-copywriting"
 )
 _copywriting_skills = skill_toolset.SkillToolset(skills=[_instagram_skill])
+```
 
-root_agent = Agent(
-    ...
-    tools=[_copywriting_skills],
-)
+`load_skill_from_dir` reads `SKILL.md` plus any files in `references/` and `assets/`. `SkillToolset` wraps it into the format ADK agents accept - a toolset, not a raw skill.
+
+### TODO 3 - Register the toolset with the agent
+
+Find `tools=[],  # TODO: Add the SkillToolset here` and replace it with:
+
+```python
+tools=[_copywriting_skills],
 ```
 
 Open the skill file to see how it is structured:
 
 ```bash
 cloudshell edit agents/copywriter/skills/instagram-copywriting/SKILL.md
+```
+
+Keep the ADK web UI running. Use the **agent dropdown** to switch to **`copywriter`** without restarting the server.
+
+If it's not running, start it again:
+
+```bash
+uv run adk web agents --allow_origins='*'
 ```
 
 **Try it:** Switch the dropdown to **`copywriter`** and send:

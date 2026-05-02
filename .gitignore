@@ -7,6 +7,11 @@ medium/
 a2a-inspector/
 workshop/conference-submission.md
 workshop/PUBLISH.md
+workshop/diagrams
+workshop/export.sh
+workshop/index.lab.md
+workshop/inject_about.py
+workshop/ai-creative-studio-adk-a2a
 
 # Local test/scratch files
 test_*_local.py
