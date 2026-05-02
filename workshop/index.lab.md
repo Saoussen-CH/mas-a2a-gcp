@@ -469,8 +469,8 @@ You should see the agent call Google Search and return structured research with 
 
 Duration: 03:00
 
-**Role:** Turn brand research into Instagram captions. The Copywriter creates 3-5 caption variations covering
-different tones (inspirational, educational, community, urgency, story-driven), each with hashtags and a CTA.
+**Role:** Turn brand research into Instagram captions. The Copywriter creates 3 caption variations covering
+different tones (inspirational, educational, community), each with hashtags and a CTA.
 
 ### Concept: ADK Skills
 
@@ -1479,7 +1479,7 @@ In early versions, the orchestrator would receive an error from one specialist, 
 Remote agents have **no conversation history**. When the orchestrator calls the Copywriter via A2A, the Copywriter sees only the message in that single request - it has no idea what the Brand Strategist said. The orchestrator must explicitly bundle prior outputs into each subsequent call:
 
 ```text
-copywriter(request="Create 5 posts for EcoFlow water bottle targeting millennials.
+copywriter(request="Create 3 posts for EcoFlow water bottle targeting millennials.
 Use these insights from the Brand Strategist: [paste full strategist output here].
 Create engaging captions with hashtags.")
 ```
@@ -1680,7 +1680,7 @@ Turn 2:  orchestrator plan                     ~300 tokens
 Turn 3:  brand_strategist tool_call            ~150 tokens
 Turn 4:  brand_strategist tool_output          ~1,500 tokens  ← full research report
 Turn 5:  copywriter tool_call                  ~300 tokens    ← must include strategist output
-Turn 6:  copywriter tool_output                ~2,000 tokens  ← 5 captions
+Turn 6:  copywriter tool_output                ~2,000 tokens  ← 3 captions
 Turn 7:  designer tool_call                    ~500 tokens
 Turn 8:  designer tool_output                  ~1,500 tokens
 ...
@@ -2066,7 +2066,7 @@ Create a complete Instagram campaign for:
 The Creative Director will execute all 5 agents in sequence:
 
 1. **Brand Strategist** → market research, competitor analysis, audience insights
-2. **Copywriter** → 5 Instagram posts with captions, hashtags, CTAs
+2. **Copywriter** → 3 Instagram posts with captions, hashtags, CTAs
 3. **Designer** → visual concepts + real images generated via Gemini (GCS URIs) for each post
 4. **Critic** → quality review with APPROVED / NEEDS_REVISION scores
 5. *(Revision if needed)* → Copywriter or Designer called again with feedback

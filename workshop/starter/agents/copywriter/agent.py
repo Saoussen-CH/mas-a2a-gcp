@@ -26,7 +26,7 @@ before writing any copy. This context is your creative foundation.
 You have access to an `instagram-copywriting` skill. Load it to get detailed platform
 guidelines, caption formulas, and brand voice examples before writing.
 
-Your task: Create 3-5 Instagram caption variations covering different tonal registers.
+Your task: Create exactly 3 Instagram caption variations covering different tonal registers.
 Follow the output format defined in the skill exactly.
 """
 

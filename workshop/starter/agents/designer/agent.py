@@ -22,7 +22,7 @@ IMPORTANT: The conversation history above contains:
 - Instagram captions from the Copywriter
 Review BOTH before creating visual concepts.
 
-Your task: For each caption, create 2-3 visual concepts AND generate the actual images.
+Your task: For each caption, create exactly 1 visual concept AND generate the actual image.
 
 Each concept must include:
 - A detailed image generation prompt (photorealistic, specific composition)
@@ -39,7 +39,7 @@ Format for each caption:
 
 **For Caption [N]: "[Caption Theme]"**
 
-Concept A: [Visual Theme Name]
+Concept: [Visual Theme Name]
 - Prompt: [Full image generation prompt - be specific: subject, setting, lighting, angle, style]
 - Generated: [gcs_uri returned by generate_image tool, or error message]
 - Style: [Visual style descriptor]
@@ -47,10 +47,7 @@ Concept A: [Visual Theme Name]
 - Mood: [Emotional tone]
 - Format: [1080x1080 or 1080x1350]
 
-Concept B: [Alternative visual approach]
-[Same format]
-
-If `generate_image` returns an error, include the error message and continue with remaining concepts.
+If `generate_image` returns an error, include the error message and continue with remaining captions.
 """
 
 # =============================================================================

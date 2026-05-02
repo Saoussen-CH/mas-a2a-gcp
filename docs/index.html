@@ -378,7 +378,7 @@ INFO: Uvicorn running on http://localhost:8000
       </google-codelab-step>
     
       <google-codelab-step label="Build the Copywriter - ADK Skills" duration="3">
-        <p><strong>Role:</strong> Turn brand research into Instagram captions. The Copywriter creates 3-5 caption variations covering different tones (inspirational, educational, community, urgency, story-driven), each with hashtags and a CTA.</p>
+        <p><strong>Role:</strong> Turn brand research into Instagram captions. The Copywriter creates 3 caption variations covering different tones (inspirational, educational, community), each with hashtags and a CTA.</p>
 <h2 is-upgraded>Concept: ADK Skills</h2>
 <p>A naive approach would embed all platform knowledge - character limits, hashtag tiers, caption formulas, brand voice examples - directly in the system prompt. That works, but bloats every request with content the agent only needs occasionally.</p>
 <p><strong>ADK Skills</strong> (<code>SkillToolset</code>, introduced in ADK 1.25.0) let you package that knowledge into modular files with three levels of loading:</p>
@@ -1114,7 +1114,7 @@ e) Then move to the next agent
 <p>In early versions, the orchestrator would receive an error from one specialist, fabricate a plausible output for it, and continue to the next agent. The user got a complete-looking campaign built on a hallucinated foundation. The fix is explicit: <em>STOP immediately. Report the exact error. Never continue.</em></p>
 <p><strong>Element 5 - Context passing rules</strong></p>
 <p>Remote agents have <strong>no conversation history</strong>. When the orchestrator calls the Copywriter via A2A, the Copywriter sees only the message in that single request - it has no idea what the Brand Strategist said. The orchestrator must explicitly bundle prior outputs into each subsequent call:</p>
-<pre><code language="language-text" class="language-text">copywriter(request=&#34;Create 5 posts for EcoFlow water bottle targeting millennials.
+<pre><code language="language-text" class="language-text">copywriter(request=&#34;Create 3 posts for EcoFlow water bottle targeting millennials.
 Use these insights from the Brand Strategist: [paste full strategist output here].
 Create engaging captions with hashtags.&#34;)
 </code></pre>
@@ -1263,7 +1263,7 @@ Turn 2:  orchestrator plan                     ~300 tokens
 Turn 3:  brand_strategist tool_call            ~150 tokens
 Turn 4:  brand_strategist tool_output          ~1,500 tokens  ← full research report
 Turn 5:  copywriter tool_call                  ~300 tokens    ← must include strategist output
-Turn 6:  copywriter tool_output                ~2,000 tokens  ← 5 captions
+Turn 6:  copywriter tool_output                ~2,000 tokens  ← 3 captions
 Turn 7:  designer tool_call                    ~500 tokens
 Turn 8:  designer tool_output                  ~1,500 tokens
 ...
@@ -1543,7 +1543,7 @@ agent_engine_id = resource_name.split(&#34;/&#34;)[-1]
 <p>The Creative Director will execute all 5 agents in sequence:</p>
 <ol type="1">
 <li><strong>Brand Strategist</strong> → market research, competitor analysis, audience insights</li>
-<li><strong>Copywriter</strong> → 5 Instagram posts with captions, hashtags, CTAs</li>
+<li><strong>Copywriter</strong> → 3 Instagram posts with captions, hashtags, CTAs</li>
 <li><strong>Designer</strong> → visual concepts + real images generated via Gemini (GCS URIs) for each post</li>
 <li><strong>Critic</strong> → quality review with APPROVED / NEEDS_REVISION scores</li>
 <li><em>(Revision if needed)</em> → Copywriter or Designer called again with feedback</li>
