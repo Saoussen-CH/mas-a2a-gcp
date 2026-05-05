@@ -508,7 +508,7 @@ cloudshell edit agents/copywriter/agent.py
 
 ### TODO 1 - Import `load_skill_from_dir` and `skill_toolset`
 
-Find the comment `# TODO: Import load_skill_from_dir and skill_toolset` and add the two imports:
+Find the comment `# TODO 1: Import load_skill_from_dir and skill_toolset` and add the two imports:
 
 ```python
 from google.adk.skills import load_skill_from_dir
@@ -520,8 +520,8 @@ from google.adk.tools import skill_toolset
 Find the two comments below the imports:
 
 ```python
-# TODO: Load the instagram-copywriting skill from the skills/ directory
-# TODO: Create a SkillToolset with the loaded skill
+# TODO 2: Load the instagram-copywriting skill from the skills/ directory
+# TODO 2: Create a SkillToolset with the loaded skill
 ```
 
 Replace them with:
@@ -537,7 +537,7 @@ _copywriting_skills = skill_toolset.SkillToolset(skills=[_instagram_skill])
 
 ### TODO 3 - Register the toolset with the agent
 
-Find `tools=[],  # TODO: Add the SkillToolset here` and replace it with:
+Find `tools=[],  # TODO 3: Add the SkillToolset here` and replace it with:
 
 ```python
 tools=[_copywriting_skills],
@@ -1647,7 +1647,7 @@ The Project Manager always receives the final approved versions, not the origina
 
 ### TODO 2 - Register each specialist as a RemoteA2aAgent + AgentTool
 
-Find the `# TODO: For each specialist URL...` comment and replace it with:
+Find the `# TODO 2: For each specialist URL...` comment and replace it with:
 
 ```python
     if strategist_url:
@@ -1742,7 +1742,7 @@ The summary preserves the essential facts (key insights, approved captions, visu
 
 #### The code
 
-Find the `# TODO: Wrap the agent in an App...` comment and replace the placeholder `App(...)` with:
+Find the `# TODO 3: Wrap the agent in an App...` comment and replace the placeholder `App(...)` with:
 
 ```python
     from google.adk.apps import App

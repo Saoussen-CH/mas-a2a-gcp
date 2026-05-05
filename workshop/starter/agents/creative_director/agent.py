@@ -42,7 +42,7 @@ def create_creative_director():
         FunctionTool(func=get_image_links),
     ]
 
-    # TODO: For each specialist URL that is set, create a RemoteA2aAgent
+    # TODO 2: For each specialist URL that is set, create a RemoteA2aAgent
     # and wrap it in an AgentTool, then append to agent_tools.
     #
     # Pattern for each specialist:
@@ -89,7 +89,7 @@ def create_creative_director():
         generate_content_config=generation_config,
     )
 
-    # TODO: Wrap the agent in an App with EventsCompactionConfig
+    # TODO 3: Wrap the agent in an App with EventsCompactionConfig
     # This prevents token limit failures in long 5-agent workflows.
     #
     # Hint:

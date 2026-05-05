@@ -14,7 +14,7 @@ load_dotenv()
 
 logger = logging.getLogger("ai_creative_studio.brand_strategist")
 
-# TODO: Define SYSTEM_INSTRUCTION
+# TODO 1: Define SYSTEM_INSTRUCTION
 # The Brand Strategist is a RESEARCH-ONLY agent. It should:
 #   - Search for target audience insights (use google_search with current year)
 #   - Analyze 2-3 competitor brands
@@ -31,10 +31,10 @@ logger = logging.getLogger("ai_creative_studio.brand_strategist")
 #   - Always include the current year in search queries
 #   - Today's date is: {datetime.date.today().strftime("%B %d, %Y")}
 SYSTEM_INSTRUCTION = """
-# TODO: Write the Brand Strategist system instruction here
+# TODO 1: Write the Brand Strategist system instruction here
 """
 
-# TODO: Create the root_agent
+# TODO 2: Create the root_agent
 # Use:
 #   name="brand_strategist"
 #   model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
@@ -43,9 +43,9 @@ root_agent = Agent(
     name="brand_strategist",
     model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
-    # TODO: add instruction=SYSTEM_INSTRUCTION
-    # TODO: add description=
-    # TODO: add tools=
+    # TODO 2: add instruction=SYSTEM_INSTRUCTION
+    # TODO 2: add description=
+    # TODO 2: add tools=
 )
 
 logger.info("Brand Strategist agent created")

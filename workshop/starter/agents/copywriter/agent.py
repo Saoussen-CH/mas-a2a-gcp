@@ -5,7 +5,7 @@ import pathlib
 from dotenv import load_dotenv
 from google.adk.agents import Agent
 
-# TODO: Import load_skill_from_dir and skill_toolset
+# TODO 1: Import load_skill_from_dir and skill_toolset
 
 try:
     from .retry import GENERATE_CONTENT_CONFIG
@@ -16,9 +16,9 @@ load_dotenv()
 
 logger = logging.getLogger("ai_creative_studio.copywriter")
 
-# TODO: Load the instagram-copywriting skill from the skills/ directory
+# TODO 2: Load the instagram-copywriting skill from the skills/ directory
 
-# TODO: Create a SkillToolset with the loaded skill
+# TODO 2: Create a SkillToolset with the loaded skill
 
 
 SYSTEM_INSTRUCTION = """You are an expert Social Media Copywriter specializing in Instagram content.
@@ -38,7 +38,7 @@ root_agent = Agent(
     name="copywriter",
     model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
-    tools=[],  # TODO: Add the SkillToolset here
+    tools=[],  # TODO 3: Add the SkillToolset here
     instruction=SYSTEM_INSTRUCTION,
     description="Expert social media copywriter for creating engaging captions and copy",
 )

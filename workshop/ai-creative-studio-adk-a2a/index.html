@@ -400,14 +400,14 @@ INFO: Uvicorn running on http://localhost:8000
 <pre><code language="language-bash" class="language-bash">cloudshell edit agents/copywriter/agent.py
 </code></pre>
 <h2 is-upgraded>TODO 1 - Import <code>load_skill_from_dir</code> and <code>skill_toolset</code></h2>
-<p>Find the comment <code># TODO: Import load_skill_from_dir and skill_toolset</code> and add the two imports:</p>
+<p>Find the comment <code># TODO 1: Import load_skill_from_dir and skill_toolset</code> and add the two imports:</p>
 <pre><code language="language-python" class="language-python">from google.adk.skills import load_skill_from_dir
 from google.adk.tools import skill_toolset
 </code></pre>
 <h2 is-upgraded>TODO 2 - Load the skill and create a SkillToolset</h2>
 <p>Find the two comments below the imports:</p>
-<pre><code language="language-python" class="language-python"># TODO: Load the instagram-copywriting skill from the skills/ directory
-# TODO: Create a SkillToolset with the loaded skill
+<pre><code language="language-python" class="language-python"># TODO 2: Load the instagram-copywriting skill from the skills/ directory
+# TODO 2: Create a SkillToolset with the loaded skill
 </code></pre>
 <p>Replace them with:</p>
 <pre><code language="language-python" class="language-python">_instagram_skill = load_skill_from_dir(
@@ -417,7 +417,7 @@ _copywriting_skills = skill_toolset.SkillToolset(skills=[_instagram_skill])
 </code></pre>
 <p><code>load_skill_from_dir</code> reads <code>SKILL.md</code> plus any files in <code>references/</code> and <code>assets/</code>. <code>SkillToolset</code> wraps it into the format ADK agents accept - a toolset, not a raw skill.</p>
 <h2 is-upgraded>TODO 3 - Register the toolset with the agent</h2>
-<p>Find <code>tools=[],  # TODO: Add the SkillToolset here</code> and replace it with:</p>
+<p>Find <code>tools=[],  # TODO 3: Add the SkillToolset here</code> and replace it with:</p>
 <pre><code language="language-python" class="language-python">tools=[_copywriting_skills],
 </code></pre>
 <p>Open the skill file to see how it is structured:</p>
@@ -1215,7 +1215,7 @@ the strengths the critic identified.&#34;
 <h3 is-upgraded>What gets passed to the Project Manager</h3>
 <p>The Project Manager always receives the final approved versions, not the originals. If revisions happened, the orchestrator passes the revised copy and visuals. If everything was approved on the first pass, it passes those directly. The PM never sees rejected drafts.</p>
 <h2 is-upgraded>TODO 2 - Register each specialist as a RemoteA2aAgent + AgentTool</h2>
-<p>Find the <code># TODO: For each specialist URL...</code> comment and replace it with:</p>
+<p>Find the <code># TODO 2: For each specialist URL...</code> comment and replace it with:</p>
 <pre><code language="language-python" class="language-python">    if strategist_url:
         available_agents_list.append(
             &#34;- **brand_strategist**: Market research, competitor analysis, trend identification&#34;
@@ -1295,7 +1295,7 @@ With compaction (interval=3, overlap=1):
 </code></pre>
 <p>The summary preserves the essential facts (key insights, approved captions, visual concepts) while discarding the verbose formatting, repeated context passed to each agent, and intermediate reasoning. The Critic still has everything it needs to evaluate - it just reads a summary instead of three full reports.</p>
 <h3 is-upgraded>The code</h3>
-<p>Find the <code># TODO: Wrap the agent in an App...</code> comment and replace the placeholder <code>App(...)</code> with:</p>
+<p>Find the <code># TODO 3: Wrap the agent in an App...</code> comment and replace the placeholder <code>App(...)</code> with:</p>
 <pre><code language="language-python" class="language-python">    from google.adk.apps import App
     from google.adk.apps.app import EventsCompactionConfig
     from google.adk.apps.llm_event_summarizer import LlmEventSummarizer

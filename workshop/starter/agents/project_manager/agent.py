@@ -93,7 +93,7 @@ Director), add them to the Notion project page body as a bulleted list under a
         else ""
     )
 
-    # TODO: Write the system instruction for the Project Manager.
+    # TODO 1: Write the system instruction for the Project Manager.
     # It should:
     #   - Use today's date as the starting point for all timelines
     #   - Break campaigns into phases: Strategy, Creation, Review, Launch
@@ -110,7 +110,7 @@ Director), add them to the Notion project page body as a bulleted list under a
     #
     # Today's date: {datetime.date.today().strftime("%B %d, %Y")}
     return f"""
-# TODO: Write the Project Manager system instruction here
+# TODO 1: Write the Project Manager system instruction here
 
 Today's date: {datetime.date.today().strftime("%B %d, %Y")}
 {notion_section}
@@ -126,20 +126,20 @@ def create_project_manager_agent():
     if not notion_token or not notion_project_db_id or not notion_tasks_db_id:
         logger.warning("Notion credentials not set — running without Notion integration")
 
-        # TODO: Create and return an Agent without tools
+        # TODO 2: Create and return an Agent without tools
         # Use name="project_manager", model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         return Agent(
             name="project_manager",
             model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             generate_content_config=GENERATE_CONTENT_CONFIG,
-            # TODO: add instruction=get_system_instruction()
-            # TODO: add description=
+            # TODO 2: add instruction=get_system_instruction()
+            # TODO 2: add description=
         )
 
     else:
         logger.info(f"Notion configured — projects database: {notion_project_db_id}, tasks database: {notion_tasks_db_id}")
 
-        # TODO: Create the MCP toolset for Notion
+        # TODO 3: Create the MCP toolset for Notion
         # Hint: import McpToolset, StdioConnectionParams from google.adk.tools.mcp_tool
         #       import StdioServerParameters from mcp
         #
@@ -151,15 +151,15 @@ def create_project_manager_agent():
         #     connection_params=StdioConnectionParams(server_params=server_params, timeout=30.0)
         # )
 
-        # TODO: Create and return an Agent WITH the notion_toolset
+        # TODO 3: Create and return an Agent WITH the notion_toolset
         return Agent(
             name="project_manager",
             model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             generate_content_config=GENERATE_CONTENT_CONFIG,
             after_tool_callback=handle_notion_error,
-            # TODO: add instruction=get_system_instruction(project_database_id=notion_project_db_id, tasks_database_id=notion_tasks_db_id)
-            # TODO: add description=
-            # TODO: add tools=[notion_toolset]
+            # TODO 3: add instruction=get_system_instruction(project_database_id=notion_project_db_id, tasks_database_id=notion_tasks_db_id)
+            # TODO 3: add description=
+            # TODO 3: add tools=[notion_toolset]
         )
 
 
