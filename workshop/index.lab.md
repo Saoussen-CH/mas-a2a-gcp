@@ -68,12 +68,10 @@ runs on **Agent Runtime** and connects to each specialist remotely.
 > If you are attending an **instructor-led workshop**: Your instructor will provide you with a credit code. Please use
 > the one they provide.
 >  
-> If you are working through this Codelab **on your own**: You must use a personal account (e.g., `name@gmail.com`).
-> Corporate or school-managed accounts will not work. 
->
-> Redeem your free Google Cloud credits using this [link](https://goo.gle/codelab-todo-credits). You can follow the
-> instructions [here](https://codelabs.developers.google.com/codelabs/cloud-codelab-credits) to activate the credit and
-> create a new project.
+> If you are working through this Codelab **on your own**: Please use the instructions below with a personal account 
+> (e.g., `name@gmail.com`). Corporate or school-managed accounts will not work. 
+
+Enable_GDP_Credits_Banner: True
 
 ## Set Up Your Environment
 
@@ -136,6 +134,7 @@ Project: my-project-123
 ```bash
 gcloud services enable \
     aiplatform.googleapis.com \
+    apphub.googleapis.com \
     run.googleapis.com \
     cloudbuild.googleapis.com \
     artifactregistry.googleapis.com \
@@ -1343,12 +1342,21 @@ cd ~/ai-creative-studio/workshop
 ./setup_inspector.sh
 ```
 
-> aside positive
+> aside negative
 > 
 > **Download timeout?** Cloud Shell has intermittent outbound bandwidth limits. Retry with a longer timeout:
 > ```bash
 > UV_HTTP_TIMEOUT=120 ./setup_inspector.sh
 > ```
+
+> aside negative
+> **Could not find a declaration file for module 'dompurify'**: If you receive this error, you likely installed A2A 
+> inspector before. Delete the directory and retry:
+> ```bash
+> rm -rf ~/a2a-inspector/
+> ``` 
+> If you still encounter issues, you can skip testing with the A2A inspector and continue with the rest of the codelab.   
+>
 
 The `.env` update is a one-time command. Use **Terminal 6** to start the inspector next:
 
@@ -2084,7 +2092,8 @@ The entire system is deployed. Run a complete campaign from the Agent Runtime pl
 
 ### Open the Agent Runtime playground
 
-1. Go to [https://console.cloud.google.com/agent-platform/runtimes](https://console.cloud.google.com/agent-platform/runtimes)
+1. Go to [https://console.cloud.google.com/agent-platform/runtimes](https://console.cloud.google.com/agent-platform/runtimes). 
+   You can also navigate to the Agent Runtime from **Agent Platform** > **Agents** > **Deployments**.
 2. Select your deployed Agent Runtime (`creative-director`)
 3. Click **Playground** in the left sidebar
 4. Click **New session** to open a fresh conversation
@@ -2131,15 +2140,20 @@ request classification logic from the system instruction working correctly.
 While still in the console:
 
 1. Click **Traces** in the left sidebar (next to Playground)
-2. Select the session you just ran
+2. Under **Trace View**, select the trace for the session you just ran
 3. Expand the trace tree to see each agent call, its inputs/outputs, latency, and token usage
 
 Each A2A call to a specialist appears as a separate span. You can see exactly what context the Creative Director passed
 to each agent and what it received back.
 
+> aside negative
+> 
+> **Note:** If you don't see the sessions in the **Traces** tab, wait a few minutes and refresh the page.
+
+
 ### Optional: Run from the terminal
 
-A `run_campaign.py` script is already included in the starter. Run it directly:
+You can also run the campaign programmatically using the `run_campaign.py` script that is already included in the starter. 
 
 ```bash
 cd ~/ai-creative-studio/workshop/starter
