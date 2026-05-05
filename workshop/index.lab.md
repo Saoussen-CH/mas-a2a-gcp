@@ -1,6 +1,6 @@
 ---
 id: ai-creative-studio-adk-a2a
-summary: This codelabs guides you to build a Multi-Agent AI Creative Studio with ADK and A2A
+summary: Build a complete multi-model AI agent system on Google Cloud using ADK, A2A, and MCP
 status: Draft
 authors: Saoussen Chaabnia & Mete Atamel
 categories: AI, Google Cloud, ADK
@@ -11,7 +11,7 @@ keywords: docType:Codelab, category:Cloud, product:CloudRun
 
 ---
 
-# Build a Multi-Agent AI Creative Studio with ADK and A2A
+# From Prompt to Production: Build a Complete Multi-Model AI Agent System on Google Cloud
 
 ## Overview
 
@@ -99,7 +99,6 @@ Then click **Authorize** to allow Cloud Shell to make Google Cloud API calls:
 ![Authorize Cloud Shell dialog](diagrams/wksp3.jpg)
 
 Cloud Shell is now ready. You'll see a welcome message in the terminal:
-
 ![Cloud Shell terminal ready](diagrams/wksp4.jpg)
 
 > aside negative
@@ -178,7 +177,7 @@ This codelab uses a **starter repository** - a skeleton project with all the inf
 pyproject.toml, deploy scripts) but with the agent logic left for you to write.
 
 ```bash
-git clone -b feature/copywriter-skills https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git ~/ai-creative-studio
+git clone -b workshop-final-release https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git ~/ai-creative-studio
 cd ~/ai-creative-studio/workshop/starter
 ```
 
@@ -204,6 +203,22 @@ gcloud storage buckets create gs://${BUCKET_NAME} \
     --project=${PROJECT_ID}
 
 sed -i "s|GCS_IMAGES_BUCKET=your-project-id-campaign-images|GCS_IMAGES_BUCKET=${BUCKET_NAME}|" .env
+```
+
+Then set up signed image URL support. The Creative Director generates clickable HTTPS links for each image in the
+final campaign summary. This requires a service account to sign the URLs. Run these two commands to configure it:
+
+```bash
+export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
+export SA_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+gcloud iam service-accounts add-iam-policy-binding ${SA_EMAIL} \
+  --member="user:$(gcloud config get-value account)" \
+  --role="roles/iam.serviceAccountTokenCreator"
+
+grep -q "^SIGNING_SERVICE_ACCOUNT" .env \
+  && sed -i "s|^SIGNING_SERVICE_ACCOUNT=.*|SIGNING_SERVICE_ACCOUNT=${SA_EMAIL}|" .env \
+  || echo "SIGNING_SERVICE_ACCOUNT=${SA_EMAIL}" >> .env
 ```
 
 > aside positive
@@ -245,7 +260,6 @@ We use [`uv`](https://docs.astral.sh/uv/) - a fast, modern Python package manage
 Cloud Shell already has `uv` installed. All agents share the same core dependencies, so **install once** and it works for every agent in this codelab:
 
 ```bash
-cd ~/ai-creative-studio/workshop/starter
 uv sync
 ```
 
@@ -566,12 +580,12 @@ Duration: 05:00
 Keep the ADK web UI running. Use the **agent dropdown** to switch agents without restarting the server.
 
 **Role:** Create visual concepts for each caption and generate the actual images using Gemini native image generation.
-The Designer outputs 2-3 visual concepts per caption - each with a detailed prompt, style, color palette, mood, and
-Instagram format - then calls the `generate_image` tool to produce a real image and upload it to GCS.
+The Designer outputs exactly 1 visual concept per caption - with a detailed prompt, style, color palette, mood, and
+Instagram format - then immediately calls the `generate_image` tool to produce the actual image and upload it to GCS.
 
 ### Concept: Bridging a text agent with an image model via a tool
 
-The Designer runs on `gemini-3.1-flash-preview` (the text model set via `GEMINI_MODEL` in `.env`), but image
+The Designer runs on `gemini-3-flash-preview` (the text model set via `GEMINI_MODEL` in `.env`), but image
 generation requires a dedicated model (`gemini-3.1-flash-image-preview`). That image model doesn't support function
 calling, so it can't be used directly as an ADK agent. Instead, it's wrapped in a plain Python function and
 registered as a `FunctionTool`.
@@ -596,17 +610,17 @@ Designer agent (text model)
   Critic (receives gcs_uri, passes to Vertex AI for multimodal review)
 ```
 
-### TODO - Implement `generate_image`
-
 Open the file directly in the Cloud Shell editor:
 
 ```bash
 cloudshell edit agents/designer/image_gen_tool.py
 ```
 
-The function signature, environment setup, and aspect ratio injection are provided. Fill in the three TODOs:
+The function signature, environment setup, and aspect ratio injection are provided. Work through the three TODOs in order:
 
-**TODO 1 - Call the Gemini image model:**
+### TODO 1 - Call the Gemini image model
+
+Find the `# TODO 1` comment and replace it with:
 
 ```python
         client = genai.Client(vertexai=True, project=project_id, location=location)
@@ -631,7 +645,9 @@ The function signature, environment setup, and aspect ratio injection are provid
 >
 > **Why `initial_delay=30` here?** Image generation quota on Dynamic Shared Quota recovers slowly compared to text models. A 30-second base delay gives the shared pool time to refill between retries. The text model retry config uses `initial_delay=5` - not enough for image quota.
 
-**TODO 2 - Extract image bytes from the response:**
+### TODO 2 - Extract image bytes from the response
+
+Find the `# TODO 2` comment and replace it with:
 
 ```python
         image_bytes = None
@@ -646,7 +662,9 @@ The function signature, environment setup, and aspect ratio injection are provid
             return {"status": "error", "error": "Gemini returned no image data"}
 ```
 
-**TODO 3 - Upload to GCS and return the URI:**
+### TODO 3 - Upload to GCS and return the URI
+
+Find the `# TODO 3` comment and replace it with:
 
 ```python
         ext = "jpg" if "jpeg" in mime_type else "png"
@@ -662,8 +680,8 @@ The function signature, environment setup, and aspect ratio injection are provid
 **Try it:** Switch the dropdown to **`designer`** and send:
 
 ```
-Create 2 visual concepts for an EcoFlow Smart Water Bottle Instagram post targeting health-conscious millennials.
-Style: clean, modern, lifestyle-focused. Include prompts with color palette, mood, and format (1080x1080 or 1080x1350).
+Create a visual concept and generate the image for an EcoFlow Smart Water Bottle Instagram post targeting health-conscious millennials.
+Style: clean, modern, lifestyle-focused. Include a detailed prompt with color palette, mood, and format (1080x1080 or 1080x1350).
 ```
 
 > aside positive
@@ -703,17 +721,17 @@ class _GeminiReview(BaseModel):
 >
 > **Contrast:** the Critic's final review is read by the Creative Director - another LLM. A text format enforced in the system instruction is enough there. No schema needed when the consumer is an LLM, not code.
 
-### TODO - Implement `review_image`
-
 Open the file directly in the Cloud Shell editor:
 
 ```bash
 cloudshell edit agents/critic/image_review_tool.py
 ```
 
-The Pydantic models and prompt are provided. Fill in the three TODOs:
+The Pydantic models and prompt are provided. Work through the three TODOs in order:
 
-**TODO 1 - Create an image part from the GCS URI:**
+### TODO 1 - Create an image part from the GCS URI
+
+Find the `# TODO 1` comment and replace it with:
 
 ```python
         image_part = types.Part.from_uri(file_uri=gcs_uri, mime_type=mime_type)
@@ -725,7 +743,9 @@ The Pydantic models and prompt are provided. Fill in the three TODOs:
 > server-side - the Critic container never downloads the image directly, so no Cloud Storage credentials are needed
 > on the Critic service.
 
-**TODO 2 - Call Gemini with a structured response schema:**
+### TODO 2 - Call Gemini with a structured response schema
+
+Find the `# TODO 2` comment and replace it with:
 
 ```python
         response = client.models.generate_content(
@@ -743,7 +763,9 @@ The Pydantic models and prompt are provided. Fill in the three TODOs:
 > **Structured output via Pydantic.** Passing `response_schema=_GeminiReview` forces Gemini to return valid JSON
 > matching the Pydantic model. No regex, no prompt-engineering the format - the model is constrained at the API level.
 
-**TODO 3 - Parse the response and return the result:**
+### TODO 3 - Parse the response and return the result
+
+Find the `# TODO 3` comment and replace it with:
 
 ```python
         review = _GeminiReview.model_validate_json(response.text)
@@ -1018,12 +1040,15 @@ Inside `create_project_manager_agent()`, in the `if not notion_token` branch, re
         return Agent(
             name="project_manager",
             model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            generate_content_config=GENERATE_CONTENT_CONFIG,
             instruction=get_system_instruction(),
             description="Project manager that creates campaign timelines and task breakdowns",
         )
 ```
 
 ### TODO 3 - Agent with Notion MCP
+
+> **Note:** The starter file already contains a pre-written `handle_notion_error` callback above `create_project_manager_agent()`. It intercepts Notion API errors (400/404) and replaces the raw error payloads with clean, actionable messages so the LLM can self-correct. You just need to wire it in via `after_tool_callback`.
 
 First, read both database IDs at the top of `create_project_manager_agent()`:
 
@@ -1056,6 +1081,8 @@ Then in the `else` branch, create the MCP toolset and the agent:
         return Agent(
             name="project_manager",
             model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            generate_content_config=GENERATE_CONTENT_CONFIG,
+            after_tool_callback=handle_notion_error,
             instruction=get_system_instruction(
                 project_database_id=notion_project_db_id,
                 tasks_database_id=notion_tasks_db_id,
@@ -1804,7 +1831,7 @@ Budget $2,000, launch in 2 weeks.
 
 You'll see the Creative Director coordinate all 5 specialists in sequence, with each agent's output flowing into the next.
 
-![Demo: End-to-End Campaign Run](diagrams/demo-campaign-run.gif)
+![Demo: End-to-End Campaign Run](diagrams/adkweb-fullcampain.gif)
 
 > aside negative
 > 
@@ -2015,8 +2042,11 @@ agent_engine_resource = client.agent_engines.create(
         "requirements": [
             "google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0",
             "google-adk[a2a]==1.31.1",
-            "google-genai>=1.51.0",
+            "google-genai>=1.70.0",
+            "google-cloud-storage>=2.10.0",
             "python-dotenv>=1.0.0",
+            "pydantic>=2.0.0",
+            "cloudpickle>=3.0.0",
         ],
         # Specialist URLs passed as env vars - the orchestrator reads these at runtime
         "env_vars": {
@@ -2083,7 +2113,7 @@ The Creative Director will execute all 5 agents in sequence:
 5. *(Revision if needed)* → Copywriter or Designer called again with feedback
 6. **Project Manager** → 2-week timeline, task breakdown, budget allocation
 
-![Demo: Campaign run with Notion integration](diagrams/recording-notion.gif)
+![Demo: Campaign run with Notion integration](diagrams/GCP-fullcomapin.gif)
 
 ### Test single-agent routing
 

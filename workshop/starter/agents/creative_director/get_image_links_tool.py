@@ -24,9 +24,39 @@ def get_image_links(gcs_uris: list[str]) -> dict:
         project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
         client = gcs.Client(project=project_id)
 
-        # Detect credential type to choose signing method
         credentials, _ = google.auth.default()
-        use_signed = hasattr(credentials, "service_account_email")
+
+        # Determine which SA email to sign as:
+        # - On Cloud Run / Agent Engine: Compute Engine credentials carry a service_account_email
+        # - Locally with user ADC: set SIGNING_SERVICE_ACCOUNT in .env
+        sa_email = (
+            os.environ.get("SIGNING_SERVICE_ACCOUNT")
+            or getattr(credentials, "service_account_email", None)
+        )
+
+        if sa_email:
+            # Use IAM Sign Blob API - works for all credential types (Compute Engine,
+            # Cloud Run, user ADC with impersonation). No private key needed.
+            from google.auth import iam as google_auth_iam
+            from google.auth.transport import requests as google_auth_requests
+            from google.oauth2 import service_account as sa_module
+
+            request = google_auth_requests.Request()
+            credentials.refresh(request)
+
+            signer = google_auth_iam.Signer(
+                request=request,
+                credentials=credentials,
+                service_account_email=sa_email,
+            )
+            sign_credentials = sa_module.Credentials(
+                signer=signer,
+                service_account_email=sa_email,
+                token_uri="https://oauth2.googleapis.com/token",
+            )
+            use_signed = True
+        else:
+            use_signed = False
 
         links = []
         for uri in gcs_uris:
@@ -34,19 +64,19 @@ def get_image_links(gcs_uris: list[str]) -> dict:
             bucket_name, blob_path = without_prefix.split("/", 1)
             blob = client.bucket(bucket_name).blob(blob_path)
 
-            # Extract a readable concept label from the blob path
-            filename = blob_path.rsplit("/", 1)[-1]          # e.g. caption1_concept_a-ab12cd34.png
-            concept = re.sub(r"-[0-9a-f]{8}\.[^.]+$", "", filename)  # strip uuid + ext
+            filename = blob_path.rsplit("/", 1)[-1]
+            concept = re.sub(r"-[0-9a-f]{8}\.[^.]+$", "", filename)
 
             if use_signed:
                 url = blob.generate_signed_url(
                     version="v4",
                     expiration=timedelta(hours=1),
                     method="GET",
+                    credentials=sign_credentials,
                 )
             else:
-                # User ADC credentials can't sign - return public URL instead.
-                # Requires the GCS bucket to have public read access.
+                # No SA available - requires bucket public read access.
+                # Set SIGNING_SERVICE_ACCOUNT in .env to enable signed URLs locally.
                 url = f"https://storage.googleapis.com/{bucket_name}/{blob_path}"
 
             links.append({"concept": concept, "url": url})

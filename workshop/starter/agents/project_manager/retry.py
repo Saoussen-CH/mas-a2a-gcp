@@ -9,9 +9,9 @@ Agent so each model call retries with exponential backoff before giving up.
 from google.genai import types
 
 RETRY_CONFIG = types.HttpRetryOptions(
-    attempts=3,
+    attempts=5,
     exp_base=2,
-    initial_delay=5,
+    initial_delay=10,
     http_status_codes=[429, 500, 503, 504],
 )
 

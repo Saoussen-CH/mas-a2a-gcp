@@ -1,6 +1,6 @@
 # AI Creative Studio — Workshop
 
-## Google Codelab: Building a Multi-Agent AI Creative Studio with ADK and A2A
+## From Prompt to Production: Build a Complete Multi-Model AI Agent System on Google Cloud
 
 This directory contains all the materials for the hands-on workshop codelab.
 
@@ -8,28 +8,28 @@ This directory contains all the materials for the hands-on workshop codelab.
 
 ```
 workshop/
-├── codelab.md              # Codelab source (claat Markdown format)
+├── index.lab.md            # Codelab source (claat Markdown format)
+├── export.sh               # Regenerates docs/ from index.lab.md
+├── inject_about.py         # Injects "About this codelab" card into index.html
 ├── diagrams/               # Screenshots and GIFs used in the codelab
 ├── starter/                # Starter code given to participants
 │   ├── agents/             # Agent stubs with TODO comments
 │   └── deploy/             # Deployment scripts
-├── ai-creative-studio-adk-a2a/   # Exported HTML codelab (generated)
-├── PUBLISH.md              # Instructions for publishing to codelabs.developers.google.com
-└── conference-submission.md
+└── docs/                   # Published codelab (codelab.json + index.html)
 ```
 
 ### What Participants Build
 
-A distributed multi-agent system for social media campaign generation:
+A distributed multimodal multi-agent system for social media campaign generation:
 
 | Agent | Platform | Role |
 |---|---|---|
 | Brand Strategist | Cloud Run | Market research with Google Search |
-| Copywriter | Cloud Run | Instagram posts and captions |
-| Designer | Cloud Run | Image generation prompts |
-| Critic | Cloud Run | Quality review and feedback |
-| Project Manager | Cloud Run | Timeline and tasks via Notion MCP |
-| Creative Director | Vertex AI Agent Engine | Orchestrator — routes tasks via A2A |
+| Copywriter | Cloud Run | Instagram captions using ADK Skills |
+| Designer | Cloud Run | Visual concepts + real image generation via Gemini |
+| Critic | Cloud Run | Quality review and structured feedback |
+| Project Manager | Cloud Run | Timeline, tasks, and Notion sync via MCP |
+| Creative Director | Gemini Enterprise Agent Platform Runtime | Orchestrator — routes tasks via A2A |
 
 ### Workshop Details
 
@@ -38,29 +38,28 @@ A distributed multi-agent system for social media campaign generation:
 | **Duration** | ~2.5 hours |
 | **Level** | Intermediate |
 | **Environment** | GCP Cloud Shell |
-| **Topics** | Google ADK, A2A Protocol, MCP, Cloud Run, Vertex AI Agent Engine |
+| **Topics** | Google ADK, ADK Skills, A2A Protocol, MCP, Multimodal, Cloud Run, Gemini Enterprise Agent Platform Runtime |
 
 ### Prerequisites for Participants
 
 - Google Cloud project with billing enabled
 - Owner or Editor IAM role
-- Gemini API key from [aistudio.google.com](https://aistudio.google.com/app/apikey)
 - (Optional) Notion account for MCP integration
 
-### Build & Serve the Codelab Locally
+### Build & Export the Codelab
 
 ```bash
-# Install claat
+# Install Go + claat (once)
+sudo apt-get install golang-go
 go install github.com/googlecodelabs/tools/claat@latest
-# or download from https://github.com/googlecodelabs/tools/releases
+export PATH=$PATH:$(go env GOPATH)/bin
 
-# Export to HTML (run from workshop/ directory)
-claat export codelab.md
-
-# Serve locally
-claat serve
-# Opens: http://localhost:9090/ai-creative-studio-adk-a2a
+# Export after every edit to index.lab.md
+cd workshop
+bash export.sh
 ```
+
+Output is written to `docs/`. Commit `docs/` to publish via GitHub Pages.
 
 ### Starter Code
 
@@ -68,7 +67,7 @@ The `starter/` directory contains the code participants start from:
 
 - Agent files have `# TODO` comments guiding participants through implementation
 - Deploy scripts are fully functional — participants only implement agent logic
-- A reference solution is in the root `agents/` directory
+- Pre-written infrastructure includes retry config, error handling callbacks, and MCP toolset setup
 
 ### Publishing
 

@@ -1,8 +1,11 @@
 import datetime
+import json
 import logging
 import os
 
 from google.adk.agents import Agent
+from google.adk.tools.base_tool import BaseTool
+from google.adk.tools.tool_context import ToolContext
 from dotenv import load_dotenv
 try:
     from .retry import GENERATE_CONTENT_CONFIG
@@ -12,6 +15,46 @@ except ImportError:
 load_dotenv()
 
 logger = logging.getLogger("ai_creative_studio.project_manager")
+
+
+def handle_notion_error(
+    tool: BaseTool,
+    args: dict,
+    tool_context: ToolContext,
+    tool_response: dict,
+) -> dict | None:
+    """Intercept Notion API errors and replace the raw stack trace with a clean message."""
+    if not tool.name.startswith("API-"):
+        return None
+
+    content = (tool_response.get("content") or [{}])[0].get("text", "")
+    try:
+        data = json.loads(content)
+    except Exception:
+        return None
+
+    status = data.get("status")
+    if status not in (400, 404):
+        return None
+
+    message = data.get("message", "")
+    code = data.get("code", "")
+    logger.warning("Notion %s (%s) on %s — injecting recovery hint", status, code, tool.name)
+
+    if status == 404 and code == "object_not_found":
+        # The misleading Notion message blames sharing/permissions, but the real
+        # cause is passing a database ID as page_id in the parent object.
+        message = (
+            "object_not_found: you passed a database ID as page_id. "
+            'Use {"parent": {"database_id": "<id>"}} not {"parent": {"page_id": "<id>"}}.'
+        )
+
+    return {
+        "content": [{
+            "type": "text",
+            "text": f"Notion {status} ({code}) on {tool.name}: {message}\n\nRetry with corrected parameters.",
+        }]
+    }
 
 
 def get_system_instruction(project_database_id=None, tasks_database_id=None):
@@ -113,6 +156,7 @@ def create_project_manager_agent():
             name="project_manager",
             model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             generate_content_config=GENERATE_CONTENT_CONFIG,
+            after_tool_callback=handle_notion_error,
             # TODO: add instruction=get_system_instruction(project_database_id=notion_project_db_id, tasks_database_id=notion_tasks_db_id)
             # TODO: add description=
             # TODO: add tools=[notion_toolset]

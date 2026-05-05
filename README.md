@@ -1,29 +1,30 @@
-# AI Creative Studio - ADK Multi-Agent Workshop
+# AI Creative Studio - Distributed Multimodal Multi-Agent Workshop
 
-A hands-on codelab for building a multi-agent AI system using **Google Agent Development Kit (ADK)** and **Agent-to-Agent (A2A)** protocol. Participants build a complete Instagram campaign generator from scratch, deploying five specialist agents that collaborate through A2A communication.
+A hands-on codelab for building a distributed multimodal multi-agent system using **Google ADK**, **A2A protocol**, **MCP**, and **Gemini Enterprise Agent Platform Runtime**. Participants build a complete Instagram campaign generator from scratch, deploying five specialist agents that collaborate through A2A communication.
 
 ## What You Build
 
-A multi-agent creative studio where specialized AI agents collaborate to produce full social media campaigns:
+A distributed multi-agent creative studio where specialized AI agents collaborate to produce full social media campaigns:
 
 | Agent | Role |
 |---|---|
 | **Brand Strategist** | Market research, competitor analysis, audience insights |
-| **Copywriter** | 3 Instagram caption variations using ADK Skills |
-| **Designer** | Visual concepts + real image generation via Gemini |
+| **Copywriter** | Instagram captions using ADK Skills (platform guidelines + caption formulas) |
+| **Designer** | Visual concepts + real image generation via Gemini, stored in GCS |
 | **Critic** | Quality review with structured APPROVED / NEEDS_REVISION scores |
-| **Project Manager** | Campaign timeline, tasks, and optional Notion integration |
+| **Project Manager** | Campaign timeline, tasks, and optional Notion integration via MCP |
 
-Coordinated by a **Creative Director** orchestrator that sequences the agents, handles errors, and compiles the final campaign.
+Coordinated by a **Creative Director** orchestrator that sequences the agents, handles the Critic's revision loop, and compiles the final campaign.
 
 ## Key Concepts Covered
 
 - Building ADK agents with tools, callbacks, and system instructions
 - **ADK Skills** - packaging reusable knowledge into modular files loaded on demand
-- **A2A protocol** - agents communicating over HTTP as independent services
-- Multimodal image generation with Gemini and GCS upload
-- MCP toolsets - connecting agents to external services (Notion)
-- Deploying agents to Cloud Run and Agent Engine (Vertex AI)
+- **Multimodal** - bridging a text agent to an image model via a `FunctionTool`
+- **A2A protocol** - agents communicating over HTTPS as independent services
+- **MCP toolsets** - connecting agents to external services (Notion) without custom glue code
+- **`after_tool_callback`** - intercepting tool responses for error handling and schema injection
+- Deploying agents to **Cloud Run** and **Gemini Enterprise Agent Platform Runtime**
 
 ## Repository Structure
 
@@ -33,12 +34,13 @@ workshop/
     agents/
       brand_strategist/
       copywriter/         ← includes ADK Skills (instagram-copywriting)
-      designer/           ← includes Gemini image generation tool
+      designer/           ← Gemini image generation + GCS upload
       critic/
-      project_manager/    ← optional Notion MCP integration
-      creative_director/  ← orchestrator
-    deploy/         ← Cloud Run + Agent Engine deployment scripts
+      project_manager/    ← Notion MCP integration + error handling callback
+      creative_director/  ← orchestrator with Critic revision loop
+    deploy/         ← Cloud Run + Gemini Enterprise Agent Platform deployment scripts
   docs/             ← published codelab (codelab.json + index.html)
+  diagrams/         ← screenshots and GIFs used in the codelab
 ```
 
 ## Prerequisites
@@ -92,8 +94,8 @@ Commit the changes in `docs/` to publish the updated codelab.
 
 ## Tech Stack
 
-- [Google ADK](https://adk.dev) `1.31.1`
+- [Google ADK](https://adk.dev) `1.31+`
 - [A2A Protocol](https://github.com/google/A2A)
-- Gemini 2.5 Flash (text) + Gemini image generation
-- Cloud Run, Vertex AI Agent Engine, Cloud Storage
+- Gemini models (text + image generation) on Vertex AI
+- Cloud Run, Gemini Enterprise Agent Platform Runtime, Cloud Storage
 - MCP (Model Context Protocol) for Notion integration

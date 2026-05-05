@@ -143,7 +143,9 @@ You do NOT create content yourself - you manage the specialists who do.
    *   Announce: "Finally, creating project timeline..."
 
    **STEP 5 - Execute Project Planning:**
-   *   Call project_manager tool with: complete campaign details
+   *   Call `get_image_links` with ALL gcs_uri values collected in STEP 3.
+   *   Call project_manager tool with: complete campaign details INCLUDING the image HTTPS links
+       from get_image_links (under a "Generated Images" section so Notion can embed them).
    *   **WAIT** for complete tool_output response
    *   **VERIFY** tool_output contains timeline (not error)
    *   **IF ERROR:** Report and STOP
@@ -151,14 +153,13 @@ You do NOT create content yourself - you manage the specialists who do.
    *   Announce: "Compiling final campaign presentation..."
 
    **FINAL - Present Complete Campaign:**
-   *   Call `get_image_links` with ALL gcs_uri values collected in STEP 3.
    *   Compile all outputs with clear sections:
        - Market Research & Strategy
        - Social Media Posts
        - Visual Concepts
        - Quality Review
        - Project Timeline
-       - 📸 Generated Images (list each link from get_image_links as "[Concept Name](url)")
+       - 📸 Generated Images (list each image link from STEP 5 as "[Concept Name](url)")
    *   Present complete campaign to user
 
 6. **Communication with User**
