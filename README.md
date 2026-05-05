@@ -86,7 +86,7 @@ bash export.sh
 ```
 
 `export.sh` does three things:
-1. Runs `claat export index.lab.md` - generates `workshop/ai-creative-studio-adk-a2a/`
+1. Runs `claat export index.lab.md` - generates a temporary export directory
 2. Runs `inject_about.py` to add the "About this codelab" card to `index.html`
 3. Copies the result to `docs/` (the GitHub Pages source)
 

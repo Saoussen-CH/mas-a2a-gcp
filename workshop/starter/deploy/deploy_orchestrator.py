@@ -33,6 +33,7 @@ Usage:
 import argparse
 import asyncio
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -51,6 +52,10 @@ load_dotenv()
 # CLOUD_RUN_REGION / GCP_REGION: real GCP region for Agent Runtime and Cloud Run.
 # GOOGLE_CLOUD_LOCATION may be "global" (for preview model routing) — do NOT use it here.
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("PROJECT_ID", "")
+PROJECT_NUMBER = os.getenv("GOOGLE_CLOUD_PROJECT_NUMBER") or subprocess.check_output(
+    ["gcloud", "projects", "describe", PROJECT_ID, "--format=value(projectNumber)"],
+    text=True,
+).strip()
 LOCATION = (
     os.getenv("CLOUD_RUN_REGION")
     or os.getenv("GCP_REGION")
@@ -202,6 +207,8 @@ def deploy_orchestrator(auto_deploy_specialists=False):
                 "GOOGLE_GENAI_USE_VERTEXAI": "true",
                 "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
                 "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true",
+                # SA used to sign GCS image URLs - required for get_image_links tool.
+                "SIGNING_SERVICE_ACCOUNT": f"{PROJECT_NUMBER}-compute@developer.gserviceaccount.com",
             },
         )
 

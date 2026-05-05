@@ -29,10 +29,19 @@ def get_image_links(gcs_uris: list[str]) -> dict:
         # Determine which SA email to sign as:
         # - On Cloud Run / Agent Engine: Compute Engine credentials carry a service_account_email
         # - Locally with user ADC: set SIGNING_SERVICE_ACCOUNT in .env
-        sa_email = (
-            os.environ.get("SIGNING_SERVICE_ACCOUNT")
-            or getattr(credentials, "service_account_email", None)
+        sa_email = os.environ.get("SIGNING_SERVICE_ACCOUNT") or getattr(
+            credentials, "service_account_email", None
         )
+
+        # On Agent Runtime, service_account_email is "default" - resolve the real email
+        # from the GCP metadata server.
+        if sa_email == "default":
+            import urllib.request
+            req = urllib.request.Request(
+                "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
+                headers={"Metadata-Flavor": "Google"},
+            )
+            sa_email = urllib.request.urlopen(req, timeout=2).read().decode()
 
         if sa_email:
             # Use IAM Sign Blob API - works for all credential types (Compute Engine,

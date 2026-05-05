@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
   <meta name="theme-color" content="#4F7DC9">
   <meta charset="UTF-8">
-  <title>Building Multimodal Multi-Agent Systems with Google&#39;s Full Agent Stack: From ADK &amp; Skills to A2A, MCP, Cloud Run &amp; Agent Runtime</title>
+  <title>Build a Multi-Agent Creative Studio with Google&#39;s Agent Stack: ADK, A2A, MCP on Cloud Run &amp; Agent Runtime</title>
   <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Code+Pro:400|Roboto:400,300,400italic,500,700|Roboto+Mono">
   <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
   <link rel="stylesheet" href="https://storage.googleapis.com/claat-public/codelab-elements.css">
@@ -24,7 +24,7 @@
   <google-codelab codelab-gaid="UA-52746336-1"
                   codelab-ga4id=""
                   id="ai-creative-studio-adk-a2a"
-                  title="Building Multimodal Multi-Agent Systems with Google&#39;s Full Agent Stack: From ADK &amp; Skills to A2A, MCP, Cloud Run &amp; Agent Runtime"
+                  title="Build a Multi-Agent Creative Studio with Google&#39;s Agent Stack: ADK, A2A, MCP on Cloud Run &amp; Agent Runtime"
                   environment="web"
                   feedback-link="https://github.com/googlecodelabs/feedback/issues/new?title=[ai-creative-studio-adk-a2a]">
     
@@ -98,9 +98,9 @@
 </ul>
 <h2 is-upgraded>Google Cloud Credits</h2>
 <aside class="special"><p>If you are attending an <strong>instructor-led workshop</strong>: Your instructor will provide you with a credit code. Please use the one they provide.</p>
-<p>If you are working through this Codelab <strong>on your own</strong>: You must use a personal account (e.g., <code>name@gmail.com</code>). Corporate or school-managed accounts will not work.</p>
-<p>Redeem your free Google Cloud credits using this <a href="https://goo.gle/codelab-todo-credits" target="_blank">link</a>. You can follow the instructions <a href="https://codelabs.developers.google.com/codelabs/cloud-codelab-credits" target="_blank">here</a> to activate the credit and create a new project.</p>
+<p>If you are working through this Codelab <strong>on your own</strong>: Please use the instructions below with a personal account (e.g., <code>name@gmail.com</code>). Corporate or school-managed accounts will not work.</p>
 </aside>
+<p>Enable_GDP_Credits_Banner: True</p>
 
 
       </google-codelab-step>
@@ -135,6 +135,7 @@ echo &#34;Project: $PROJECT_ID&#34;
 <h2 is-upgraded>Enable required APIs</h2>
 <pre><code language="language-bash" class="language-bash">gcloud services enable \
     aiplatform.googleapis.com \
+    apphub.googleapis.com \
     run.googleapis.com \
     cloudbuild.googleapis.com \
     artifactregistry.googleapis.com \
@@ -176,17 +177,29 @@ gcloud storage buckets create gs://${BUCKET_NAME} \
 
 sed -i &#34;s|GCS_IMAGES_BUCKET=your-project-id-campaign-images|GCS_IMAGES_BUCKET=${BUCKET_NAME}|&#34; .env
 </code></pre>
-<p>Then set up signed image URL support. The Creative Director generates clickable HTTPS links for each image in the final campaign summary. This requires a service account to sign the URLs. Run these two commands to configure it:</p>
+<p>Then set up signed image URL support. The Creative Director generates clickable HTTPS links for each image in the final campaign summary. This requires a service account to sign the URLs. Run these commands to configure it:</p>
 <pre><code language="language-bash" class="language-bash">export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format=&#34;value(projectNumber)&#34;)
 export SA_EMAIL=&#34;${PROJECT_NUMBER}-compute@developer.gserviceaccount.com&#34;
+export AGENT_RUNTIME_SA=&#34;service-${PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com&#34;
 
+# Allow your user account to sign URLs locally (adk web)
 gcloud iam service-accounts add-iam-policy-binding ${SA_EMAIL} \
   --member=&#34;user:$(gcloud config get-value account)&#34; \
   --role=&#34;roles/iam.serviceAccountTokenCreator&#34;
 
+# Allow Agent Runtime to sign URLs when deployed
+gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
+  --member=&#34;serviceAccount:${AGENT_RUNTIME_SA}&#34; \
+  --role=&#34;roles/iam.serviceAccountTokenCreator&#34;
+
+# Save SA email and project number to .env
 grep -q &#34;^SIGNING_SERVICE_ACCOUNT&#34; .env \
   &amp;&amp; sed -i &#34;s|^SIGNING_SERVICE_ACCOUNT=.*|SIGNING_SERVICE_ACCOUNT=${SA_EMAIL}|&#34; .env \
   || echo &#34;SIGNING_SERVICE_ACCOUNT=${SA_EMAIL}&#34; &gt;&gt; .env
+
+grep -q &#34;^GOOGLE_CLOUD_PROJECT_NUMBER&#34; .env \
+  &amp;&amp; sed -i &#34;s|^GOOGLE_CLOUD_PROJECT_NUMBER=.*|GOOGLE_CLOUD_PROJECT_NUMBER=${PROJECT_NUMBER}|&#34; .env \
+  || echo &#34;GOOGLE_CLOUD_PROJECT_NUMBER=${PROJECT_NUMBER}&#34; &gt;&gt; .env
 </code></pre>
 <aside class="special"><p><strong>Why a GCS bucket?</strong> The Designer generates images with Gemini and uploads them to GCS. Returning raw image bytes across A2A is impractical - a <code>gs://</code> URI is a lightweight pointer that any agent can reference. The Critic receives the URI and passes it to Vertex AI, which fetches the image server-side without the Critic container ever touching Cloud Storage directly.</p>
 </aside>
@@ -1019,9 +1032,14 @@ rm -rf ~/.cache/uv
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop
 ./setup_inspector.sh
 </code></pre>
-<aside class="special"><p><strong>Download timeout?</strong> Cloud Shell has intermittent outbound bandwidth limits. Retry with a longer timeout:</p>
+<aside class="warning"><p><strong>Download timeout?</strong> Cloud Shell has intermittent outbound bandwidth limits. Retry with a longer timeout:</p>
 <pre><code language="language-bash" class="language-bash">UV_HTTP_TIMEOUT=120 ./setup_inspector.sh
 </code></pre>
+</aside>
+<aside class="warning"><p><strong>Could not find a declaration file for module ‘dompurify&#39;</strong>: If you receive this error, you likely installed A2A inspector before. Delete the directory and retry:</p>
+<pre><code language="language-bash" class="language-bash">rm -rf ~/a2a-inspector/
+</code></pre>
+<p>If you still encounter issues, you can skip testing with the A2A inspector and continue with the rest of the codelab.</p>
 </aside>
 <p>The <code>.env</code> update is a one-time command. Use <strong>Terminal 6</strong> to start the inspector next:</p>
 <pre><code language="language-bash" class="language-bash">cd ~/a2a-inspector
@@ -1543,7 +1561,7 @@ agent_engine_id = resource_name.split(&#34;/&#34;)[-1]
         <p>The entire system is deployed. Run a complete campaign from the Agent Runtime playground.</p>
 <h2 is-upgraded>Open the Agent Runtime playground</h2>
 <ol type="1">
-<li>Go to <a href="https://console.cloud.google.com/agent-platform/runtimes" target="_blank">https://console.cloud.google.com/agent-platform/runtimes</a></li>
+<li>Go to <a href="https://console.cloud.google.com/agent-platform/runtimes" target="_blank">https://console.cloud.google.com/agent-platform/runtimes</a>. You can also navigate to the Agent Runtime from <strong>Agent Platform</strong> &gt; <strong>Agents</strong> &gt; <strong>Deployments</strong>.</li>
 <li>Select your deployed Agent Runtime (<code>creative-director</code>)</li>
 <li>Click <strong>Playground</strong> in the left sidebar</li>
 <li>Click <strong>New session</strong> to open a fresh conversation</li>
@@ -1578,14 +1596,16 @@ agent_engine_id = resource_name.split(&#34;/&#34;)[-1]
 <p>While still in the console:</p>
 <ol type="1">
 <li>Click <strong>Traces</strong> in the left sidebar (next to Playground)</li>
-<li>Select the session you just ran</li>
+<li>Under <strong>Trace View</strong>, select the trace for the session you just ran</li>
 <li>Expand the trace tree to see each agent call, its inputs/outputs, latency, and token usage</li>
 </ol>
 <p>Each A2A call to a specialist appears as a separate span. You can see exactly what context the Creative Director passed to each agent and what it received back.</p>
+<aside class="warning"><p><strong>Note:</strong> If you don&#39;t see the sessions in the <strong>Traces</strong> tab, wait a few minutes and refresh the page.</p>
+</aside>
 <h2 is-upgraded>Optional: Run from the terminal</h2>
-<p>A <code>run_campaign.py</code> script is already included in the starter. Run it directly:</p>
+<p>You can also run the campaign programmatically using the <code>run_campaign.py</code> script that is already included in the starter.</p>
 <pre><code language="language-bash" class="language-bash">cd ~/ai-creative-studio/workshop/starter
-python3 run_campaign.py
+uv run run_campaign.py
 </code></pre>
 
 

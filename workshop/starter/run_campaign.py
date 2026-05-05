@@ -1,6 +1,6 @@
 """
 Run a campaign through the deployed Creative Director on Agent Engine.
-Usage: python3 run_campaign.py
+Usage: uv run run_campaign.py
 """
 
 import os
@@ -11,8 +11,8 @@ from vertexai import Client
 
 load_dotenv()
 
-PROJECT_ID = os.getenv("GCP_PROJECT_ID") or os.getenv("PROJECT_ID")
-LOCATION = os.getenv("GCP_REGION") or os.getenv("LOCATION", "us-central1")
+PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT_ID") or os.getenv("PROJECT_ID")
+LOCATION = os.getenv("CLOUD_RUN_REGION") or os.getenv("GCP_REGION") or os.getenv("LOCATION", "us-central1")
 
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 client = Client(project=PROJECT_ID, location=LOCATION)
@@ -22,7 +22,7 @@ resource_name = (
     f"reasoningEngines/{os.getenv('AGENT_ENGINE_ID')}"
 )
 
-agent_engine = client.agent_engines.get(resource_name)
+agent_engine = client.agent_engines.get(name=resource_name)
 session = agent_engine.create_session(user_id="workshop-user")
 print(f"Session: {session['id']}\n")
 
