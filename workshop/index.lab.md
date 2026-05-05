@@ -1,6 +1,6 @@
 ---
 id: ai-creative-studio-adk-a2a
-summary: Build a complete multi-model AI agent system on Google Cloud using ADK, A2A, and MCP
+summary: Build a distributed multimodal multi-agent system using ADK, Skills, A2A, MCP, Cloud Run, and Gemini Enterprise Agent Platform Runtime
 status: Draft
 authors: Saoussen Chaabnia & Mete Atamel
 categories: AI, Google Cloud, ADK
@@ -11,7 +11,7 @@ keywords: docType:Codelab, category:Cloud, product:CloudRun
 
 ---
 
-# From Prompt to Production: Build a Complete Multi-Model AI Agent System on Google Cloud
+# Building Multimodal Multi-Agent Systems with Google's Full Agent Stack: From ADK & Skills to A2A, MCP, Cloud Run & Agent Runtime
 
 ## Overview
 
@@ -177,7 +177,7 @@ This codelab uses a **starter repository** - a skeleton project with all the inf
 pyproject.toml, deploy scripts) but with the agent logic left for you to write.
 
 ```bash
-git clone -b workshop-final-release https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git ~/ai-creative-studio
+git clone https://github.com/Saoussen-CH/mas-a2a-gcp.git ~/ai-creative-studio
 cd ~/ai-creative-studio/workshop/starter
 ```
 

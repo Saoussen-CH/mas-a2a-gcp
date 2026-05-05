@@ -1,4 +1,4 @@
-# AI Creative Studio - Distributed Multimodal Multi-Agent Workshop
+# Building Multimodal Multi-Agent Systems with Google's Full Agent Stack
 
 A hands-on codelab for building a distributed multimodal multi-agent system using **Google ADK**, **A2A protocol**, **MCP**, and **Gemini Enterprise Agent Platform Runtime**. Participants build a complete Instagram campaign generator from scratch, deploying five specialist agents that collaborate through A2A communication.
 
@@ -52,8 +52,8 @@ workshop/
 ## Getting Started
 
 ```bash
-git clone -b workshop-final-release https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git
-cd ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun/workshop/starter
+git clone https://github.com/Saoussen-CH/mas-a2a-gcp.git
+cd mas-a2a-gcp/workshop/starter
 uv sync
 cp .env.example .env
 # Fill in .env with your project values

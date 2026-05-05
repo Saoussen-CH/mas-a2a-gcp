@@ -1,6 +1,6 @@
 # AI Creative Studio — Workshop
 
-## From Prompt to Production: Build a Complete Multi-Model AI Agent System on Google Cloud
+## Building Multimodal Multi-Agent Systems with Google's Full Agent Stack: From ADK & Skills to A2A, MCP, Cloud Run & Agent Runtime
 
 This directory contains all the materials for the hands-on workshop codelab.
 
