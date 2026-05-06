@@ -1,10 +1,10 @@
-# Building Multimodal Multi-Agent Systems with Google's Full Agent Stack
+# Build a Multi-Agent Creative Studio with Google's Agent Stack: ADK, A2A, MCP on Cloud Run & Agent Runtime
 
 A hands-on codelab for building a distributed multimodal multi-agent system using **Google ADK**, **A2A protocol**, **MCP**, and **Gemini Enterprise Agent Platform Runtime**. Participants build a complete Instagram campaign generator from scratch, deploying five specialist agents that collaborate through A2A communication.
 
 ## What You Build
 
-A distributed multi-agent creative studio where specialized AI agents collaborate to produce full social media campaigns:
+A distributed multi-agent creative studio where specialized AI agents collaborate to produce complete Instagram campaigns:
 
 | Agent | Role |
 |---|---|
@@ -52,49 +52,23 @@ workshop/
 ## Getting Started
 
 ```bash
-git clone https://github.com/Saoussen-CH/mas-a2a-gcp.git
-cd mas-a2a-gcp/workshop/starter
+git clone https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git
+cd ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun/workshop/starter
 uv sync
 cp .env.example .env
 # Fill in .env with your project values
 uv run adk web agents --allow_origins='*'
 ```
 
-Full step-by-step instructions are in the published codelab.
+Full step-by-step instructions are in the published codelab at [codelabs.developers.google.com/ai-creative-studio-adk-a2a](https://codelabs.developers.google.com/ai-creative-studio-adk-a2a).
 
 ## Updating the Codelab (Collaborators)
 
-The codelab source is `workshop/index.lab.md`. After editing it, regenerate the published HTML with:
-
-**Prerequisites — install once:**
-
-```bash
-# Install Go (required by claat)
-sudo apt-get install golang-go        # Linux / Cloud Shell
-# brew install go                     # macOS
-
-# Install claat
-go install github.com/googlecodelabs/tools/claat@latest
-export PATH=$PATH:$(go env GOPATH)/bin
-```
-
-**Export after every edit:**
-
-```bash
-cd workshop
-bash export.sh
-```
-
-`export.sh` does three things:
-1. Runs `claat export index.lab.md` - generates a temporary export directory
-2. Runs `inject_about.py` to add the "About this codelab" card to `index.html`
-3. Copies the result to `docs/` (the GitHub Pages source)
-
-Commit the changes in `docs/` to publish the updated codelab.
+The codelab source (`workshop/index.lab.md`, `workshop/export.sh`, `workshop/inject_about.py`) is gitignored and managed separately. Edit the source files locally, run the export, and commit the generated output in `docs/` to publish.
 
 ## Tech Stack
 
-- [Google ADK](https://adk.dev) `1.31+`
+- [Google ADK](https://adk.dev) `1.31.1`
 - [A2A Protocol](https://github.com/google/A2A)
 - Gemini models (text + image generation) on Vertex AI
 - Cloud Run, Gemini Enterprise Agent Platform Runtime, Cloud Storage
