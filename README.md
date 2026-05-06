@@ -52,8 +52,8 @@ workshop/
 ## Getting Started
 
 ```bash
-git clone https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git
-cd ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun/workshop/starter
+git clone https://github.com/Saoussen-CH/mas-a2a-gcp.git
+cd mas-a2a-gcp/workshop/starter
 uv sync
 cp .env.example .env
 # Fill in .env with your project values
@@ -61,10 +61,6 @@ uv run adk web agents --allow_origins='*'
 ```
 
 Full step-by-step instructions are in the published codelab at [codelabs.developers.google.com/ai-creative-studio-adk-a2a](https://codelabs.developers.google.com/ai-creative-studio-adk-a2a).
-
-## Updating the Codelab (Collaborators)
-
-The codelab source (`workshop/index.lab.md`, `workshop/export.sh`, `workshop/inject_about.py`) is gitignored and managed separately. Edit the source files locally, run the export, and commit the generated output in `docs/` to publish.
 
 ## Tech Stack
 

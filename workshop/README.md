@@ -48,7 +48,7 @@ A distributed multimodal multi-agent system for Instagram campaign generation:
 The `starter/` directory contains the code participants start from:
 
 - Agent files have numbered `# TODO` comments guiding participants through each implementation step
-- Deploy scripts are fully functional — participants only implement agent logic
+- Deploy scripts are fully functional; participants only implement agent logic
 - Pre-written infrastructure includes retry config, error handling callbacks, and MCP toolset setup
 
 ### Published Codelab
