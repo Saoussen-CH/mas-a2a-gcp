@@ -13,6 +13,13 @@ keywords: docType:Codelab, category:Cloud, product:CloudRun
 
 # Build a Multi-Agent Creative Studio with Google's Agent Stack: ADK, A2A, MCP on Cloud Run & Agent Runtime
 
+Enable_GDP_Credits_Banner: True
+
+> aside negative
+> 
+> If you are attending an **instructor-led workshop**: Your instructor will provide you with a credit code. Please use
+> the one they provide.
+
 ## Overview
 
 Duration: 05:00
@@ -60,18 +67,6 @@ runs on **Agent Runtime** and connects to each specialist remotely.
 - A **Google Cloud project** with billing enabled
 - **Owner** or **Editor** IAM role
 - Basic Python knowledge
-
-### Google Cloud Credits
-
-> aside positive
-> 
-> If you are attending an **instructor-led workshop**: Your instructor will provide you with a credit code. Please use
-> the one they provide.
->  
-> If you are working through this Codelab **on your own**: Please use the instructions below with a personal account 
-> (e.g., `name@gmail.com`). Corporate or school-managed accounts will not work. 
-
-Enable_GDP_Credits_Banner: True
 
 ## Set Up Your Environment
 
