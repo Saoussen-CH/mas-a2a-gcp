@@ -11,7 +11,14 @@ keywords: docType:Codelab, category:Cloud, product:CloudRun
 
 ---
 
-# Building Multimodal Multi-Agent Systems with Google's Full Agent Stack: From ADK & Skills to A2A, MCP, Cloud Run & Agent Runtime
+# Build a Multi-Agent Creative Studio with Google's Agent Stack: ADK, A2A, MCP on Cloud Run & Agent Runtime
+
+Enable_GDP_Credits_Banner: True
+
+> aside negative
+> 
+> If you are attending an **instructor-led workshop**: Your instructor will provide you with a credit code. Please use
+> the one they provide.
 
 ## Overview
 
@@ -60,18 +67,6 @@ runs on **Agent Runtime** and connects to each specialist remotely.
 - A **Google Cloud project** with billing enabled
 - **Owner** or **Editor** IAM role
 - Basic Python knowledge
-
-### Google Cloud Credits
-
-> aside positive
-> 
-> If you are attending an **instructor-led workshop**: Your instructor will provide you with a credit code. Please use
-> the one they provide.
->  
-> If you are working through this Codelab **on your own**: Please use the instructions below with a personal account 
-> (e.g., `name@gmail.com`). Corporate or school-managed accounts will not work. 
-
-Enable_GDP_Credits_Banner: True
 
 ## Set Up Your Environment
 
@@ -205,19 +200,31 @@ sed -i "s|GCS_IMAGES_BUCKET=your-project-id-campaign-images|GCS_IMAGES_BUCKET=${
 ```
 
 Then set up signed image URL support. The Creative Director generates clickable HTTPS links for each image in the
-final campaign summary. This requires a service account to sign the URLs. Run these two commands to configure it:
+final campaign summary. This requires a service account to sign the URLs. Run these commands to configure it:
 
 ```bash
 export PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
 export SA_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+export AGENT_RUNTIME_SA="service-${PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
 
+# Allow your user account to sign URLs locally (adk web)
 gcloud iam service-accounts add-iam-policy-binding ${SA_EMAIL} \
   --member="user:$(gcloud config get-value account)" \
   --role="roles/iam.serviceAccountTokenCreator"
 
+# Allow Agent Runtime to sign URLs when deployed
+gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
+  --member="serviceAccount:${AGENT_RUNTIME_SA}" \
+  --role="roles/iam.serviceAccountTokenCreator"
+
+# Save SA email and project number to .env
 grep -q "^SIGNING_SERVICE_ACCOUNT" .env \
   && sed -i "s|^SIGNING_SERVICE_ACCOUNT=.*|SIGNING_SERVICE_ACCOUNT=${SA_EMAIL}|" .env \
   || echo "SIGNING_SERVICE_ACCOUNT=${SA_EMAIL}" >> .env
+
+grep -q "^GOOGLE_CLOUD_PROJECT_NUMBER" .env \
+  && sed -i "s|^GOOGLE_CLOUD_PROJECT_NUMBER=.*|GOOGLE_CLOUD_PROJECT_NUMBER=${PROJECT_NUMBER}|" .env \
+  || echo "GOOGLE_CLOUD_PROJECT_NUMBER=${PROJECT_NUMBER}" >> .env
 ```
 
 > aside positive
@@ -2157,7 +2164,7 @@ You can also run the campaign programmatically using the `run_campaign.py` scrip
 
 ```bash
 cd ~/ai-creative-studio/workshop/starter
-python3 run_campaign.py
+uv run run_campaign.py
 ```
 
 ## Clean Up
