@@ -592,7 +592,7 @@ Instagram format - then immediately calls the `generate_image` tool to produce t
 ### Concept: Bridging a text agent with an image model via a tool
 
 The Designer runs on `gemini-3-flash-preview` (the text model set via `GEMINI_MODEL` in `.env`), but image
-generation requires a dedicated model (`gemini-3.1-flash-image-preview`). That image model doesn't support function
+generation requires a dedicated model (`gemini-3.1-flash-image`). That image model doesn't support function
 calling, so it can't be used directly as an ADK agent. Instead, it's wrapped in a plain Python function and
 registered as a `FunctionTool`.
 
@@ -606,7 +606,7 @@ Designer agent (text model)
         ▼
   generate_image tool
         │
-        │  calls gemini-3.1-flash-image-preview
+        │  calls gemini-3.1-flash-image
         │  uploads result to GCS
         ▼
   {"status": "success", "gcs_uri": "gs://..."}
@@ -2231,7 +2231,7 @@ Congratulations! You've built and deployed a **production-grade multi-agent AI s
 
 ### Next steps
 
-- Add **multi-turn image editing** to the Designer using `gemini-3.1-flash-image-preview`'s edit capability
+- Add **multi-turn image editing** to the Designer using `gemini-3.1-flash-image`'s edit capability
 - Add **IAM authentication** to Cloud Run services (remove `--allow-unauthenticated`)
 - Replace one specialist with a **LangGraph or CrewAI** agent - A2A is framework agnostic
 - Add **user feedback** as a tool so participants can rate and iterate on outputs
