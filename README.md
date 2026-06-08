@@ -43,6 +43,8 @@ workshop/
   diagrams/         ← screenshots and GIFs used in the codelab
 ```
 
+![System Architecture](diagrams/ai-creative-studio-architecture.svg)
+
 ## Prerequisites
 
 - Google Cloud project with billing enabled
