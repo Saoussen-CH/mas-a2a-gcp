@@ -92,8 +92,8 @@ run_campaign.py          - run a campaign against a deployed Agent Platform Runt
 ### Step 1 - Clone and install
 
 ```bash
-git clone -b feature/full-implementation https://github.com/Saoussen-CH/ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun.git
-cd ai-creative-studio-adk-a2a-mcp-vertexai-cloudrun
+git clone -b feature/full-implementation https://github.com/Saoussen-CH/mas-a2a-gcp.git
+cd mas-a2a-gcp
 
 uv sync
 cp .env.example .env
