@@ -1,5 +1,6 @@
 # User-specified
 .claude
+skills/
 .env
 refs/
 prez_youtube/
@@ -8,11 +9,13 @@ a2a-inspector/
 workshop/conference-submission.md
 workshop/PUBLISH.md
 workshop/ai-creative-studio-adk-a2a
-workshop/export.sh
-workshop/index.lab.md
-workshop/inject_about.py
+#workshop/export.sh
+#workshop/index.lab.md
+#workshop/inject_about.py
 CONTRIBUTIONS.md
 blog.md
+/diagrams/
+workshop/diagrams/ai-creative-studio-architecture.drawio
 
 # Local test/scratch files
 test_*_local.py
