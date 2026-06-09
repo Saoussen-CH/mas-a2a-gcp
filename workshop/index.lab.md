@@ -13,16 +13,16 @@ keywords: docType:Codelab, category:Cloud, product:CloudRun
 
 # Build a Multi-Agent Creative Studio with Google's Agent Stack: ADK, A2A, MCP on Cloud Run & Agent Runtime
 
+## Overview
+
+Duration: 05:00
+
 Enable_GDP_Credits_Banner: True
 
 > aside negative
 > 
 > If you are attending an **instructor-led workshop**: Your instructor will provide you with a credit code. Please use
 > the one they provide.
-
-## Overview
-
-Duration: 05:00
 
 In this codelab you will build **AI Creative Studio** - a distributed multi-agent system that turns a single prompt into
 a complete Instagram campaign.
