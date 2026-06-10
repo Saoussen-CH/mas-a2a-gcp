@@ -1,5 +1,6 @@
 # User-specified
 .claude
+skills/
 .env
 refs/
 prez_youtube/
@@ -13,6 +14,8 @@ workshop/index.lab.md
 workshop/inject_about.py
 CONTRIBUTIONS.md
 blog.md
+/diagrams/
+workshop/diagrams/ai-creative-studio-architecture.drawio
 
 # Local test/scratch files
 test_*_local.py
