@@ -47,8 +47,6 @@ runs on **Agent Runtime** and connects to each specialist remotely.
 
 ### Architecture
 
-![System Overview](diagrams/00-system-overview.png)
-
 ![System Architecture](diagrams/ai-creative-studio-architecture.svg)
 
 > aside positive
