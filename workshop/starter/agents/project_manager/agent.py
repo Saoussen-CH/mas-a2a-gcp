@@ -127,10 +127,10 @@ def create_project_manager_agent():
         logger.warning("Notion credentials not set — running without Notion integration")
 
         # TODO 2: Create and return an Agent without tools
-        # Use name="project_manager", model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        # Use name="project_manager", model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
         return Agent(
             name="project_manager",
-            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
             generate_content_config=GENERATE_CONTENT_CONFIG,
             # TODO 2: add instruction=get_system_instruction()
             # TODO 2: add description=
@@ -154,7 +154,7 @@ def create_project_manager_agent():
         # TODO 3: Create and return an Agent WITH the notion_toolset
         return Agent(
             name="project_manager",
-            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
             generate_content_config=GENERATE_CONTENT_CONFIG,
             after_tool_callback=handle_notion_error,
             # TODO 3: add instruction=get_system_instruction(project_database_id=notion_project_db_id, tasks_database_id=notion_tasks_db_id)

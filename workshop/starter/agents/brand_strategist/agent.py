@@ -37,11 +37,11 @@ SYSTEM_INSTRUCTION = """
 # TODO 2: Create the root_agent
 # Use:
 #   name="brand_strategist"
-#   model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+#   model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 #   tools=[google_search]
 root_agent = Agent(
     name="brand_strategist",
-    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
     # TODO 2: add instruction=SYSTEM_INSTRUCTION
     # TODO 2: add description=

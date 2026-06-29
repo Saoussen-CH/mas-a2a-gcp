@@ -36,7 +36,7 @@ Follow the output format defined in the skill exactly.
 
 root_agent = Agent(
     name="copywriter",
-    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
     tools=[],  # TODO 3: Add the SkillToolset here
     instruction=SYSTEM_INSTRUCTION,

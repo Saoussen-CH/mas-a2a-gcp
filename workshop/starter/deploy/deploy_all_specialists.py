@@ -204,7 +204,7 @@ async def deploy_single_agent(
     # Build environment variables
     # GOOGLE_CLOUD_LOCATION controls model routing - may be "global" for preview
     # models. Read from env rather than using the Cloud Run deployment region.
-    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
     model_location = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
     env_vars = (
         f"GOOGLE_GENAI_USE_VERTEXAI=true,"

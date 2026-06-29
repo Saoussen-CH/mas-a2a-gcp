@@ -46,7 +46,7 @@ def review_image(gcs_uri: str, concept_name: str, campaign_context: str) -> Imag
     """
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
     location = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 
     try:
         client = genai.Client(vertexai=True, project=project_id, location=location)

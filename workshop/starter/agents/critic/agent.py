@@ -84,7 +84,7 @@ Evaluation criteria:
 # =============================================================================
 root_agent = Agent(
     name="critic",
-    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
     tools=[FunctionTool(func=review_image)],
     instruction=SYSTEM_INSTRUCTION,
