@@ -249,7 +249,7 @@ from google.adk.tools.google_search_tool import google_search
 
 root_agent = Agent(
     name=&#34;brand_strategist&#34;,                              # unique identifier
-    model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-2.5-flash&#34;), # the LLM powering this agent
+    model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-3.5-flash&#34;), # the LLM powering this agent
     instruction=SYSTEM_INSTRUCTION,                       # the agent&#39;s persona, constraints, and output format
     description=&#34;Brand strategist for market research, trend analysis, and competitive insights&#34;,
     tools=[google_search],                                # functions the LLM can call
@@ -342,7 +342,7 @@ Format your output as:
 <p>Next, replace the incomplete <code>root_agent</code> with:</p>
 <pre><code language="language-python" class="language-python">root_agent = Agent(
     name=&#34;brand_strategist&#34;,
-    model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-2.5-flash&#34;),
+    model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-3.5-flash&#34;),
     instruction=SYSTEM_INSTRUCTION,
     description=&#34;Brand strategist for market research, trend analysis, and competitive insights&#34;,
     tools=[google_search],
@@ -448,7 +448,7 @@ Write 3 Instagram captions - one inspirational, one educational, one community-f
         <p>Keep the ADK web UI running. Use the <strong>agent dropdown</strong> to switch agents without restarting the server.</p>
 <p><strong>Role:</strong> Create visual concepts for each caption and generate the actual images using Gemini native image generation. The Designer outputs exactly 1 visual concept per caption - with a detailed prompt, style, color palette, mood, and Instagram format - then immediately calls the <code>generate_image</code> tool to produce the actual image and upload it to GCS.</p>
 <h2 is-upgraded>Concept: Bridging a text agent with an image model via a tool</h2>
-<p>The Designer runs on <code>gemini-3-flash-preview</code> (the text model set via <code>GEMINI_MODEL</code> in <code>.env</code>), but image generation requires a dedicated model (<code>gemini-3.1-flash-image</code>). That image model doesn&#39;t support function calling, so it can&#39;t be used directly as an ADK agent. Instead, it&#39;s wrapped in a plain Python function and registered as a <code>FunctionTool</code>.</p>
+<p>The Designer runs on <code>gemini-3.5-flash</code> (the text model set via <code>GEMINI_MODEL</code> in <code>.env</code>), but image generation requires a dedicated model (<code>gemini-3.1-flash-image</code>). That image model doesn&#39;t support function calling, so it can&#39;t be used directly as an ADK agent. Instead, it&#39;s wrapped in a plain Python function and registered as a <code>FunctionTool</code>.</p>
 <p>This is the pattern for any model or API that the LLM can&#39;t call directly: wrap it in a tool, let the agent orchestrate when to call it, and get a structured result back.</p>
 <pre><code language="language-text" class="language-text">Designer agent (text model)
         │
@@ -790,7 +790,7 @@ Phase 4: Launch &amp; Monitoring | [date] → [date] | [key activities]
 <p>Inside <code>create_project_manager_agent()</code>, in the <code>if not notion_token</code> branch, replace the incomplete agent with:</p>
 <pre><code language="language-python" class="language-python">        return Agent(
             name=&#34;project_manager&#34;,
-            model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-2.5-flash&#34;),
+            model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-3.5-flash&#34;),
             generate_content_config=GENERATE_CONTENT_CONFIG,
             instruction=get_system_instruction(),
             description=&#34;Project manager that creates campaign timelines and task breakdowns&#34;,
@@ -823,7 +823,7 @@ Phase 4: Launch &amp; Monitoring | [date] → [date] | [key activities]
 
         return Agent(
             name=&#34;project_manager&#34;,
-            model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-2.5-flash&#34;),
+            model=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-3.5-flash&#34;),
             generate_content_config=GENERATE_CONTENT_CONFIG,
             after_tool_callback=handle_notion_error,
             instruction=get_system_instruction(
@@ -1312,7 +1312,7 @@ With compaction (interval=3, overlap=1):
     from google.adk.models import Gemini
 
     compaction_config = EventsCompactionConfig(
-        summarizer=LlmEventSummarizer(llm=Gemini(model_id=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-2.5-flash&#34;))),
+        summarizer=LlmEventSummarizer(llm=Gemini(model_id=os.getenv(&#34;GEMINI_MODEL&#34;, &#34;gemini-3.5-flash&#34;))),
         compaction_interval=3,   # Summarize after every 3 agent completions
         overlap_size=1,          # Keep the most recent agent&#39;s output in full
     )
