@@ -167,7 +167,7 @@ def deploy_orchestrator(auto_deploy_specialists=False):
         "STRATEGIST_AGENT_URL": STRATEGIST_URL,
         "CRITIC_AGENT_URL": CRITIC_URL,
         "PM_AGENT_URL": PM_URL,
-        "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
         "GOOGLE_CLOUD_LOCATION": os.getenv("GOOGLE_CLOUD_LOCATION", "global"),
         "GOOGLE_GENAI_USE_VERTEXAI": "true",
         "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
