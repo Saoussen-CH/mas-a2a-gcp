@@ -151,6 +151,31 @@ def deploy_orchestrator(auto_deploy_specialists=False):
         enable_tracing=True,
     )
 
+    requirements_list = [
+        "google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0",
+        "google-adk[a2a]==1.31.1",
+        "google-genai>=1.70.0",
+        "google-cloud-storage>=2.10.0",
+        "python-dotenv>=1.0.0",
+        "pydantic>=2.0.0",
+        "cloudpickle>=3.0.0",
+    ]
+
+    env_vars_dict = {
+        "COPYWRITER_AGENT_URL": COPYWRITER_URL,
+        "DESIGNER_AGENT_URL": DESIGNER_URL,
+        "STRATEGIST_AGENT_URL": STRATEGIST_URL,
+        "CRITIC_AGENT_URL": CRITIC_URL,
+        "PM_AGENT_URL": PM_URL,
+        "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "GOOGLE_CLOUD_LOCATION": os.getenv("GOOGLE_CLOUD_LOCATION", "global"),
+        "GOOGLE_GENAI_USE_VERTEXAI": "true",
+        "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
+        "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true",
+        # SA used to sign GCS image URLs - required for get_image_links tool.
+        "SIGNING_SERVICE_ACCOUNT": f"{PROJECT_NUMBER}-compute@developer.gserviceaccount.com",
+    }
+
     # =========================================================================
     # : Create AND Deploy with ALL config at once
     # =========================================================================
@@ -160,19 +185,11 @@ def deploy_orchestrator(auto_deploy_specialists=False):
     print("\n  Configuration:")
     print(f"    - Display Name: {DISPLAY_NAME}")
     print("    - Requirements:")
-    print("      • google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0")
-    print("      • google-adk[a2a]==1.31.1")
-    print("      • google-genai>=1.70.0")
-    print("      • google-cloud-storage>=2.10.0")
-    print("      • python-dotenv>=1.0.0")
-    print("      • pydantic>=2.0.0")
-    print("      • cloudpickle>=3.0.0")
+    for req in requirements_list:
+        print(f"      • {req}")
     print("    - Environment Variables:")
-    print(f"      • COPYWRITER_AGENT_URL={COPYWRITER_URL or '(not set)'}")
-    print(f"      • DESIGNER_AGENT_URL={DESIGNER_URL or '(not set)'}")
-    print(f"      • STRATEGIST_AGENT_URL={STRATEGIST_URL or '(not set)'}")
-    print(f"      • CRITIC_AGENT_URL={CRITIC_URL or '(not set)'}")
-    print(f"      • PM_AGENT_URL={PM_URL or '(not set)'}")
+    for k, v in env_vars_dict.items():
+        print(f"      • {k}={v or '(not set)'}")
 
     try:
         # chdir to agents/ so extra_packages=["creative_director"] resolves as a
@@ -180,37 +197,30 @@ def deploy_orchestrator(auto_deploy_specialists=False):
         # discovers and tarballs local packages for upload to the staging bucket.
         os.chdir(project_root / "agents")
 
-        agent_engine_resource = agent_engines.create(
-            agent_engine=adk_app,
-            display_name=DISPLAY_NAME,
-            requirements=[
-                "google-cloud-aiplatform[agent_engines]>=1.132.0,<2.0.0",
-                "google-adk[a2a]==1.31.1",
-                "google-genai>=1.70.0",
-                "google-cloud-storage>=2.10.0",
-                "python-dotenv>=1.0.0",
-                "pydantic>=2.0.0",
-                "cloudpickle>=3.0.0",
-            ],
-            extra_packages=["creative_director"],
-            env_vars={
-                "COPYWRITER_AGENT_URL": COPYWRITER_URL,
-                "DESIGNER_AGENT_URL": DESIGNER_URL,
-                "STRATEGIST_AGENT_URL": STRATEGIST_URL,
-                "CRITIC_AGENT_URL": CRITIC_URL,
-                "PM_AGENT_URL": PM_URL,
-                "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
-                # Agent Runtime auto-sets GOOGLE_CLOUD_LOCATION to the deployment
-                # region (us-central1), but preview models require "global".
-                # Explicitly override so the orchestrator can reach the model.
-                "GOOGLE_CLOUD_LOCATION": os.getenv("GOOGLE_CLOUD_LOCATION", "global"),
-                "GOOGLE_GENAI_USE_VERTEXAI": "true",
-                "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
-                "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true",
-                # SA used to sign GCS image URLs - required for get_image_links tool.
-                "SIGNING_SERVICE_ACCOUNT": f"{PROJECT_NUMBER}-compute@developer.gserviceaccount.com",
-            },
-        )
+        kwargs = {
+            "agent_engine": adk_app,
+            "display_name": DISPLAY_NAME,
+            "requirements": requirements_list,
+            "extra_packages": ["creative_director"],
+            "env_vars": env_vars_dict,
+        }
+
+        # Check if the orchestrator with the same DISPLAY_NAME already exists
+        existing_engines = list(agent_engines.list(filter=f'display_name="{DISPLAY_NAME}"'))
+        if existing_engines:
+            print(f"\n✓ Found existing Agent Engine with display name '{DISPLAY_NAME}'")
+            existing_engine = existing_engines[0]
+            resource_name = existing_engine.resource_name
+            print(f"  Updating existing engine: {resource_name}")
+            agent_engine_resource = agent_engines.update(
+                resource_name=resource_name,
+                **kwargs
+            )
+        else:
+            print(f"\nNo existing Agent Engine with display name '{DISPLAY_NAME}' found. Creating a new one...")
+            agent_engine_resource = agent_engines.create(
+                **kwargs
+            )
 
         # Extract resource name and ID
         resource_name = agent_engine_resource.resource_name
